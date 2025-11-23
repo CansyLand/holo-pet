@@ -1,0 +1,8 @@
+- clean up space after longer away
+- post sad pet on x after logn away
+- different touch zones on the pet to recognise if stroked with pointer
+- grooming mechanics should be interactive, not just cick
+- walking together
+- pets can get older dragon need 1 year to reach full age, girafe 6 mont - dog 3 month - cat 1 month.
+- old pets get a beard
+- color pattern recognition
