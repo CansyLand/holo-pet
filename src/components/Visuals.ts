@@ -29,3 +29,9 @@ export const AnimationComponent = engine.defineComponent('AnimationComponent', {
   loop: Schemas.Boolean,
   speed: Schemas.Number
 })
+
+// Camera Focus Component for managing cursor state during camera focus
+export const CameraFocusComponent = engine.defineComponent('CameraFocusComponent', {
+  isCameraFocused: Schemas.Boolean,
+  originalCursorLocked: Schemas.Optional(Schemas.Boolean) // Store original cursor state before focus
+})

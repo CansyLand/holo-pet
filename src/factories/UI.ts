@@ -12,11 +12,13 @@ import {
   Entity,
   VirtualCamera,
   MainCamera,
-  ColliderLayer
+  ColliderLayer,
+  PointerLock
 } from '@dcl/sdk/ecs'
 import { Vector3, Color4 } from '@dcl/sdk/math'
 import { Interactable, InteractionType } from '../components/Interaction'
-import { MoodBarComponent, MenuStateComponent, MenuElementComponent } from '../components/Visuals'
+import { MoodBarComponent, MenuStateComponent, MenuElementComponent, CameraFocusComponent } from '../components/Visuals'
+import { startCameraFocusMonitoring, stopCameraFocusMonitoring } from '../systems/CameraFocus'
 
 export function createPetMenu(petEntity: Entity) {
   const petPos = Transform.get(petEntity).position
@@ -273,12 +275,56 @@ export function createPetCamera(petEntity: Entity): Entity {
 }
 
 export function activatePetCamera(cameraEntity: Entity) {
+  // Store original cursor state before unlocking
+  const originalCursorLocked = PointerLock.get(engine.CameraEntity).isPointerLocked
+
+  // Create or update camera focus component on the camera entity
+  CameraFocusComponent.createOrReplace(cameraEntity, {
+    isCameraFocused: true,
+    originalCursorLocked: originalCursorLocked
+  })
+
+  // Start camera focus monitoring to prevent cursor locking
+  startCameraFocusMonitoring()
+
+  // Activate virtual camera
   MainCamera.createOrReplace(engine.CameraEntity, {
     virtualCameraEntity: cameraEntity
   })
+
+  // Unlock cursor when focused
+  PointerLock.getMutable(engine.CameraEntity).isPointerLocked = false
+
+  console.log(`Camera focused on pet - cursor unlocked (was ${originalCursorLocked ? 'locked' : 'unlocked'})`)
 }
 
 export function deactivatePetCamera() {
+  // Find the currently active camera and restore cursor state
+  for (const [cameraEntity] of engine.getEntitiesWith(CameraFocusComponent)) {
+    const focusComponent = CameraFocusComponent.getMutable(cameraEntity)
+    if (focusComponent.isCameraFocused) {
+      // Restore original cursor state
+      if (focusComponent.originalCursorLocked !== undefined) {
+        PointerLock.getMutable(engine.CameraEntity).isPointerLocked = focusComponent.originalCursorLocked
+        console.log(
+          `Camera detached from pet - cursor restored to ${focusComponent.originalCursorLocked ? 'locked' : 'unlocked'}`
+        )
+      } else {
+        // Fallback to locked if we somehow don't have the original state
+        PointerLock.getMutable(engine.CameraEntity).isPointerLocked = true
+        console.log('Camera detached from pet - cursor locked (fallback)')
+      }
+
+      // Mark camera as not focused
+      focusComponent.isCameraFocused = false
+      break
+    }
+  }
+
+  // Stop camera focus monitoring since no cameras are focused
+  stopCameraFocusMonitoring()
+
+  // Deactivate virtual camera
   const mainCamera = MainCamera.getMutableOrNull(engine.CameraEntity)
   if (mainCamera) {
     mainCamera.virtualCameraEntity = undefined

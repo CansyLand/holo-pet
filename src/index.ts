@@ -1,4 +1,4 @@
-import { engine } from '@dcl/sdk/ecs'
+import { engine, PointerLock } from '@dcl/sdk/ecs'
 import { createGameEntity } from './factories/Game'
 import { createEgg } from './factories/Pet'
 import { inputSystemCallback } from './systems/Input'
@@ -16,10 +16,13 @@ export function main() {
   engine.addSystem(renderSystem)
   engine.addSystem(movementSystem)
   engine.addSystem(menuPositionSystem)
-  
-  // 2. Setup Scene
+
+  // 2. Initialize cursor state (locked by default)
+  PointerLock.create(engine.CameraEntity, { isPointerLocked: true })
+
+  // 3. Setup Scene
   createGameEntity()
   createEgg()
-  
+
   console.log("Crystal Architecture Initialized")
 }
