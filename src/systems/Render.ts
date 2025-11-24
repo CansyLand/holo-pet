@@ -35,9 +35,7 @@ export function renderSystem(dt: number) {
     // Update scale (X axis scaling for width)
     const newScaleX = Math.max(MOOD_BAR_MIN_SCALE, percentage * MOOD_BAR_MAX_SCALE)
     transform.scale.x = newScaleX
-
   }
-
 
   // 2. Sync Animations (Future)
   // Check Pet State -> Play Animation

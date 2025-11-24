@@ -1,6 +1,7 @@
 import { engine, PointerLock } from '@dcl/sdk/ecs'
 import { createGameEntity } from './factories/Game'
 import { createEgg } from './factories/Pet'
+import { createEnvironment } from './factories/Environment'
 import { createBackgroundMusic } from './factories/Audio'
 import { inputSystemCallback } from './systems/Input'
 import { logicSystem } from './systems/Logic'
@@ -26,5 +27,6 @@ export function main() {
   // 3. Setup Scene
   createGameEntity()
   createBackgroundMusic()
+  createEnvironment()
   createEgg()
 }
