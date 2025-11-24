@@ -16,7 +16,7 @@ import {
 } from '@dcl/sdk/ecs'
 import { Vector3, Color4 } from '@dcl/sdk/math'
 import { Interactable, InteractionType } from '../components/Interaction'
-import { MoodBarComponent, MenuStateComponent, MenuElementComponent } from '../components/UIComponents'
+import { MoodBarComponent, MenuStateComponent, MenuElementComponent } from '../components/Visuals'
 
 export function createPetMenu(petEntity: Entity) {
   const petPos = Transform.get(petEntity).position

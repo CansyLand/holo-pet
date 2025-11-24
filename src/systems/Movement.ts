@@ -1,6 +1,7 @@
 import { engine, Transform } from '@dcl/sdk/ecs'
-import { MenuStateComponent } from '../components/UIComponents'
+import { MenuStateComponent } from '../components/Visuals'
 import { hideMenu, deactivatePetCamera } from '../factories/UI'
+import { PLAYER_MOVEMENT_THRESHOLD } from '../utils/constants'
 
 let lastPlayerPosition = { x: 0, y: 0, z: 0 }
 let isInitialized = false
@@ -20,11 +21,10 @@ export function movementSystem(dt: number) {
   }
 
   // Check if player has moved (with small threshold to avoid floating point issues)
-  const movementThreshold = 0.1
   const hasMoved =
-    Math.abs(currentPosition.x - lastPlayerPosition.x) > movementThreshold ||
-    Math.abs(currentPosition.y - lastPlayerPosition.y) > movementThreshold ||
-    Math.abs(currentPosition.z - lastPlayerPosition.z) > movementThreshold
+    Math.abs(currentPosition.x - lastPlayerPosition.x) > PLAYER_MOVEMENT_THRESHOLD ||
+    Math.abs(currentPosition.y - lastPlayerPosition.y) > PLAYER_MOVEMENT_THRESHOLD ||
+    Math.abs(currentPosition.z - lastPlayerPosition.z) > PLAYER_MOVEMENT_THRESHOLD
 
   if (hasMoved) {
     // Player has moved - check if any menu is open and close it

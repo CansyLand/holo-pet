@@ -2,9 +2,20 @@ import { engine, Transform, Entity } from '@dcl/sdk/ecs'
 import { InteractionEvent, InteractionType } from '../components/Interaction'
 import { PetComponent, PetState, Species } from '../components/Pet'
 import { GameState, GamePhase } from '../components/GameState'
-import { MenuStateComponent, MenuElementComponent } from '../components/UIComponents'
+import { MenuStateComponent, MenuElementComponent } from '../components/Visuals'
 import { createPet } from '../factories/Pet'
 import { showMenu, hideMenu, activatePetCamera, deactivatePetCamera } from '../factories/UI'
+import {
+  MAX_MOOD,
+  MAX_HUNGER,
+  MIN_HUNGER,
+  SAD_MOOD_THRESHOLD,
+  PET_MOOD_BOOST,
+  FEED_HUNGER_REDUCTION,
+  FEED_MOOD_BOOST,
+  PLAY_MOOD_BOOST,
+  PLAY_HUNGER_INCREASE
+} from '../utils/constants'
 
 export function logicSystem(dt: number) {
   // 1. Process Interaction Events
@@ -29,22 +40,22 @@ export function logicSystem(dt: number) {
             const petEntity = menuState.petEntity
             const petData = PetComponent.getMutable(petEntity)
             const oldMood = petData.mood
-            petData.mood = Math.min(100, petData.mood + 10)
+            petData.mood = Math.min(MAX_MOOD, petData.mood + PET_MOOD_BOOST)
             console.log(`Pet button clicked: mood ${oldMood} -> ${petData.mood}`)
           }
         }
         break
       case InteractionType.FEED:
         if (petData) {
-          petData.hunger = Math.max(0, petData.hunger - 20)
-          petData.mood = Math.min(100, petData.mood + 5)
+          petData.hunger = Math.max(MIN_HUNGER, petData.hunger - FEED_HUNGER_REDUCTION)
+          petData.mood = Math.min(MAX_MOOD, petData.mood + FEED_MOOD_BOOST)
           console.log(`Pet fed. Hunger: ${petData.hunger}, Mood: ${petData.mood}`)
         }
         break
       case InteractionType.PLAY:
         if (petData) {
-          petData.mood = Math.min(100, petData.mood + 15)
-          petData.hunger = Math.min(100, petData.hunger + 5) // Playing makes them hungry
+          petData.mood = Math.min(MAX_MOOD, petData.mood + PLAY_MOOD_BOOST)
+          petData.hunger = Math.min(MAX_HUNGER, petData.hunger + PLAY_HUNGER_INCREASE) // Playing makes them hungry
         }
         break
       case InteractionType.CLEAN:
@@ -64,9 +75,9 @@ export function logicSystem(dt: number) {
     const petData = PetComponent.getMutable(entity)
 
     // Example state update based on thresholds
-    if (petData.mood < 20) {
+    if (petData.mood < SAD_MOOD_THRESHOLD) {
       petData.state = PetState.SAD
-    } else if (petData.state === PetState.SAD && petData.mood >= 20) {
+    } else if (petData.state === PetState.SAD && petData.mood >= SAD_MOOD_THRESHOLD) {
       petData.state = PetState.IDLE
     }
   }

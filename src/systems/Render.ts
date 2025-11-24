@@ -12,7 +12,8 @@ import { GameState } from '../components/GameState'
 // Let's modify the UI Factory plan to include a UI component later.
 // For now, let's assume we can find the bar.
 
-import { MoodBarComponent } from '../components/UIComponents' // We'll need to create this
+import { MoodBarComponent } from '../components/Visuals'
+import { MOOD_BAR_MAX_SCALE, MOOD_BAR_MIN_SCALE } from '../utils/constants'
 
 export function renderSystem(dt: number) {
   // 1. Sync Mood Bar
@@ -32,7 +33,7 @@ export function renderSystem(dt: number) {
     const percentage = currentMood / 100
 
     // Update scale (X axis scaling for width)
-    const newScaleX = Math.max(0.01, percentage * 1.5) // 1.5 is max width, minimum 0.01 to avoid invisible bar
+    const newScaleX = Math.max(MOOD_BAR_MIN_SCALE, percentage * MOOD_BAR_MAX_SCALE)
     transform.scale.x = newScaleX
 
     console.log(
