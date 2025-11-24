@@ -2,7 +2,7 @@ import { engine, Transform, Entity } from '@dcl/sdk/ecs'
 import { InteractionEvent, InteractionType } from '../components/Interaction'
 import { PetComponent, PetState, Species } from '../components/Pet'
 import { GameState, GamePhase } from '../components/GameState'
-import { MenuStateComponent } from '../components/UIComponents'
+import { MenuStateComponent, MenuElementComponent } from '../components/UIComponents'
 import { createPet } from '../factories/Pet'
 import { showMenu, hideMenu, activatePetCamera, deactivatePetCamera } from '../factories/UI'
 
@@ -16,17 +16,22 @@ export function logicSystem(dt: number) {
         handleHatch(entity)
         break
       case InteractionType.PET:
-        // First check if this is a menu button click (on pet entity with menu)
-        const menuState = MenuStateComponent.getMutableOrNull(entity)
-        if (menuState) {
-          // This is a menu button click - handle pet interaction
-          if (petData) {
-            petData.mood = Math.min(100, petData.mood + 10)
-            console.log(`Pet mood increased to ${petData.mood}`)
-          }
-        } else {
-          // This is a pet entity click - show menu
+        // Check if this entity has PetComponent (direct pet click) or is a menu button
+        if (PetComponent.has(entity)) {
+          // This is a direct pet entity click - show menu
           handlePetClick(entity)
+        } else {
+          // This is a menu button click - find the menu this button belongs to and update the pet's mood
+          const menuElement = MenuElementComponent.getOrNull(entity)
+          if (menuElement) {
+            const menuStateEntity = menuElement.menuStateEntity
+            const menuState = MenuStateComponent.get(menuStateEntity)
+            const petEntity = menuState.petEntity
+            const petData = PetComponent.getMutable(petEntity)
+            const oldMood = petData.mood
+            petData.mood = Math.min(100, petData.mood + 10)
+            console.log(`Pet button clicked: mood ${oldMood} -> ${petData.mood}`)
+          }
         }
         break
       case InteractionType.FEED:
@@ -72,7 +77,7 @@ function handlePetClick(petEntity: Entity) {
   for (const [menuStateEntity, menuState] of engine.getEntitiesWith(MenuStateComponent)) {
     if (menuState.petEntity === petEntity) {
       // Show menu and activate camera
-      showMenu(menuState.menuRootEntity)
+      showMenu(menuStateEntity)
       if (menuState.virtualCameraEntity) {
         activatePetCamera(menuState.virtualCameraEntity)
       }
@@ -90,11 +95,11 @@ function handlePetClick(petEntity: Entity) {
 function handleCloseMenu(buttonEntity: Entity) {
   // Find the menu state that contains this button
   for (const [menuStateEntity, menuState] of engine.getEntitiesWith(MenuStateComponent)) {
-    // Check if this button is a child of the menu root
-    const buttonTransform = Transform.get(buttonEntity)
-    if (buttonTransform.parent === menuState.menuRootEntity) {
+    // Check if this button belongs to this menu (using MenuElementComponent)
+    const menuElement = MenuElementComponent.getOrNull(buttonEntity)
+    if (menuElement && menuElement.menuStateEntity === menuStateEntity) {
       // Hide menu and deactivate camera
-      hideMenu(menuState.menuRootEntity)
+      hideMenu(menuStateEntity)
       deactivatePetCamera()
 
       // Update menu state

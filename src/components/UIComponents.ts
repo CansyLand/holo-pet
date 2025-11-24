@@ -10,3 +10,7 @@ export const MenuStateComponent = engine.defineComponent('MenuStateComponent', {
   menuRootEntity: Schemas.Entity,
   virtualCameraEntity: Schemas.Optional(Schemas.Entity)
 })
+
+export const MenuElementComponent = engine.defineComponent('MenuElementComponent', {
+  menuStateEntity: Schemas.Entity // Reference to the menu state this element belongs to
+})

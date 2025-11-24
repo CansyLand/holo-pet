@@ -7,7 +7,8 @@ import {
   PointerEvents,
   PointerEventType,
   InputAction,
-  ColliderLayer
+  ColliderLayer,
+  GltfContainer
 } from '@dcl/sdk/ecs'
 import { Vector3, Color4 } from '@dcl/sdk/math'
 import { PetComponent, Species, PetState } from '../components/Pet'
@@ -55,17 +56,17 @@ export function createPet(species: Species) {
   const entity = engine.addEntity()
 
   Transform.create(entity, {
-    position: Vector3.create(8, 1, 8),
-    scale: Vector3.create(0.8, 0.8, 0.8)
+    position: Vector3.create(8, 0.5, 8), // Lower position since GLTF models might have different pivot points
+    scale: Vector3.create(1.5, 1.5, 1.5) // Slightly larger scale for better visibility
   })
 
-  MeshRenderer.setBox(entity)
+  // Load the 3D dog model
+  GltfContainer.create(entity, {
+    src: 'assets/models/BlockDog.glb'
+  })
+
+  // Add collision for interaction
   MeshCollider.setBox(entity, ColliderLayer.CL_POINTER)
-
-  const color = species === Species.DOG ? Color4.Green() : Color4.Purple()
-  Material.setPbrMaterial(entity, {
-    albedoColor: color
-  })
 
   PetComponent.create(entity, {
     species: species,

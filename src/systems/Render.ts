@@ -1,4 +1,4 @@
-import { engine, Transform } from '@dcl/sdk/ecs'
+import { engine, Transform, MeshRenderer } from '@dcl/sdk/ecs'
 import { PetComponent } from '../components/Pet'
 import { GameState } from '../components/GameState'
 
@@ -18,21 +18,35 @@ export function renderSystem(dt: number) {
   // 1. Sync Mood Bar
   // Find the active pet to get mood
   let currentMood = 0
+  let petCount = 0
   for (const [entity, pet] of engine.getEntitiesWith(PetComponent)) {
     currentMood = pet.mood
+    petCount++
   }
 
   // Find mood bar and update scale
+  let moodBarCount = 0
   for (const [entity, moodBar] of engine.getEntitiesWith(MoodBarComponent)) {
+    moodBarCount++
     const transform = Transform.getMutable(entity)
     const percentage = currentMood / 100
 
-    // Update scale (assuming X axis scaling)
-    transform.scale.x = percentage * 1.5 // 1.5 is max width
+    // Update scale (X axis scaling for width)
+    const newScaleX = Math.max(0.01, percentage * 1.5) // 1.5 is max width, minimum 0.01 to avoid invisible bar
+    transform.scale.x = newScaleX
 
-    // Update position to keep left aligned (optional, same math as before)
-    // Center X = -0.75 + (Width / 2)
-    transform.position.x = -0.75 + (1.5 * percentage) / 2
+    console.log(
+      `Mood bar updated: entity=${entity}, mood=${currentMood}, percentage=${percentage}, scaleX=${newScaleX}, hasMeshRenderer=${MeshRenderer.has(
+        entity
+      )}`
+    )
+  }
+
+  if (petCount === 0) {
+    console.log('No pets found!')
+  }
+  if (moodBarCount === 0) {
+    console.log('No mood bars found!')
   }
 
   // 2. Sync Animations (Future)

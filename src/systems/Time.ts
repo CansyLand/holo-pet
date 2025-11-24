@@ -15,7 +15,7 @@ export function timeSystem(dt: number) {
 
     // Mood decay
     if (petData.mood > 0) {
-      petData.mood = Math.max(0, petData.mood - 1)
+      petData.mood = Math.max(0, petData.mood - 5)
     }
 
     // Hunger growth

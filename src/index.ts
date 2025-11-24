@@ -6,6 +6,7 @@ import { logicSystem } from './systems/Logic'
 import { timeSystem } from './systems/Time'
 import { renderSystem } from './systems/Render'
 import { movementSystem } from './systems/Movement'
+import { menuPositionSystem } from './systems/MenuPosition'
 
 export function main() {
   // 1. Setup Systems
@@ -14,6 +15,7 @@ export function main() {
   engine.addSystem(timeSystem)
   engine.addSystem(renderSystem)
   engine.addSystem(movementSystem)
+  engine.addSystem(menuPositionSystem)
   
   // 2. Setup Scene
   createGameEntity()
