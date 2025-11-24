@@ -30,6 +30,14 @@ export const AnimationComponent = engine.defineComponent('AnimationComponent', {
   speed: Schemas.Number
 })
 
+// Pet Animation State Component for tracking pet animation transitions
+export const PetAnimationStateComponent = engine.defineComponent('PetAnimationStateComponent', {
+  currentAnimation: Schemas.String, // Current clip name: 'Idle', 'Sitting', 'Standing'
+  lastMenuVisible: Schemas.Boolean, // To detect menu visibility changes
+  isTransitioning: Schemas.Boolean, // True when Standing is playing, waiting to transition to Idle
+  transitionStartTime: Schemas.Number // Timestamp when Standing animation started
+})
+
 // Camera Focus Component for managing cursor state during camera focus
 export const CameraFocusComponent = engine.defineComponent('CameraFocusComponent', {
   isCameraFocused: Schemas.Boolean,

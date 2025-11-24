@@ -36,19 +36,8 @@ export function renderSystem(dt: number) {
     const newScaleX = Math.max(MOOD_BAR_MIN_SCALE, percentage * MOOD_BAR_MAX_SCALE)
     transform.scale.x = newScaleX
 
-    console.log(
-      `Mood bar updated: entity=${entity}, mood=${currentMood}, percentage=${percentage}, scaleX=${newScaleX}, hasMeshRenderer=${MeshRenderer.has(
-        entity
-      )}`
-    )
   }
 
-  if (petCount === 0) {
-    console.log('No pets found!')
-  }
-  if (moodBarCount === 0) {
-    console.log('No mood bars found!')
-  }
 
   // 2. Sync Animations (Future)
   // Check Pet State -> Play Animation

@@ -31,7 +31,7 @@ export function movementSystem(dt: number) {
     for (const [menuStateEntity, menuState] of engine.getEntitiesWith(MenuStateComponent)) {
       if (menuState.isVisible) {
         // Close the menu
-        hideMenu(menuState.menuRootEntity)
+        hideMenu(menuStateEntity)
         deactivatePetCamera()
 
         // Update menu state

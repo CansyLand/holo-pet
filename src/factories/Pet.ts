@@ -8,11 +8,13 @@ import {
   PointerEventType,
   InputAction,
   ColliderLayer,
-  GltfContainer
+  GltfContainer,
+  Animator
 } from '@dcl/sdk/ecs'
 import { Vector3, Color4 } from '@dcl/sdk/math'
 import { PetComponent, Species, PetState } from '../components/Pet'
 import { Interactable, InteractionType } from '../components/Interaction'
+import { PetAnimationStateComponent } from '../components/Visuals'
 import { createPetMenu } from './UI' // We will create this next
 
 export function createEgg() {
@@ -63,6 +65,35 @@ export function createPet(species: Species) {
   // Load the 3D dog model
   GltfContainer.create(entity, {
     src: 'assets/models/BlockDog.glb'
+  })
+
+  // Add Animator component with three animation states
+  Animator.create(entity, {
+    states: [
+      {
+        clip: 'Idle',
+        playing: true,
+        loop: true
+      },
+      {
+        clip: 'Sitting',
+        playing: false,
+        loop: false
+      },
+      {
+        clip: 'Standing',
+        playing: false,
+        loop: false
+      }
+    ]
+  })
+
+  // Initialize animation state component
+  PetAnimationStateComponent.create(entity, {
+    currentAnimation: 'Idle',
+    lastMenuVisible: false,
+    isTransitioning: false,
+    transitionStartTime: 0
   })
 
   // Add collision for interaction
