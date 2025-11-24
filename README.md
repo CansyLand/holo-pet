@@ -4,6 +4,8 @@
 
 **Previewing the scene**
 
+npm run start -- --explorer-alpha
+
 1. Download this repository.
 
 2. Install the [Decentraland Editor](https://docs.decentraland.org/creator/development-guide/sdk7/editor/)
