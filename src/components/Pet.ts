@@ -19,3 +19,6 @@ export const PetComponent = engine.defineComponent('PetComponent', {
   hunger: Schemas.Number, // 0-100
   state: Schemas.EnumString<PetState>(PetState, PetState.IDLE)
 })
+
+
+

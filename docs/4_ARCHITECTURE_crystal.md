@@ -18,26 +18,81 @@ We reject the "God Object" (`GameManager` class) in favor of a **Pure ECS (Entit
 
 ---
 
+## 📖 Terminology (Shared Vocabulary)
+
+Use these terms when discussing game states and modes:
+
+### Game Phases (`GameState.phase`)
+
+| Phase        | Description                            | Scene Type |
+| ------------ | -------------------------------------- | ---------- |
+| **EGG**      | Initial state - egg on holographic pad | TECH       |
+| **HATCHING** | Transition animation (egg cracking)    | TECH → PET |
+| **PET**      | Pet has hatched, player can interact   | PET        |
+
+### Interaction Modes (within PET phase)
+
+| Mode           | Description                                             | `MenuStateComponent.isVisible` |
+| -------------- | ------------------------------------------------------- | ------------------------------ |
+| **Idle Mode**  | Normal gameplay - pet wanders, free camera              | `false`                        |
+| **Focus Mode** | Player clicked pet - camera zooms, menu shows, pet sits | `true`                         |
+
+**Focus Mode** includes:
+
+- Camera attached to virtual camera (`MainCamera.virtualCameraEntity` set)
+- Pet animation is "Sitting"
+- Cursor unlocked for menu interaction
+- 3D menu buttons visible
+
+### Scene Types (`SceneElement.sceneType`)
+
+| Type   | Description                             | When Active |
+| ------ | --------------------------------------- | ----------- |
+| `TECH` | Computers, holographic pad, digital lab | EGG phase   |
+| `PET`  | Grass, bowls, toys, theme decorations   | PET phase   |
+
+### Themes (`GameState.theme`)
+
+Themes are **cosmetic variations** of the PET scene. They change colors and add decorations but don't affect gameplay.
+
+| Theme       | Ground Color  | Decorations                | Calendar Period  |
+| ----------- | ------------- | -------------------------- | ---------------- |
+| `DEFAULT`   | Green grass   | Pink flower                | Spring (default) |
+| `CHRISTMAS` | White snow    | Tree, presents, gold star  | Dec 15-26        |
+| `NEW_YEAR`  | Light snow    | Disco ball, champagne, hat | Dec 27 - Jan 7   |
+| `SUMMER`    | Vibrant green | Beach umbrella, sunflower  | Jun 1 - Aug 31   |
+| `AUTUMN`    | Brown earth   | Pumpkin, leaves, bare tree | Sep 1 - Nov 14   |
+
+Theme selection uses UTC time so all players see the same environment globally.
+
+**Manual Override:** Edit `THEME_OVERRIDE` in `src/utils/theme.ts` to force a specific theme during development.
+
+---
+
 ## 🏗️ Directory Structure
 
 ```text
 src/
 ├── components/         # PURE DATA SCHEMAS
-│   ├── GameState.ts    # Global state (Singleton component)
+│   ├── GameState.ts    # Global state (phase, theme, activePet)
 │   ├── Pet.ts          # Pet-specific data (Mood, Species)
+│   ├── Scene.ts        # SceneElement tag for environment entities
 │   ├── Interaction.ts  # InteractionEvent, Interactable
-│   └── Visuals.ts      # MoodFeedback, Animations
+│   └── UIState.ts      # Menu state, mood bar, camera focus, animations
 ├── systems/            # PURE LOGIC FUNCTIONS
 │   ├── Input.ts        # Captures clicks -> Adds InteractionEvent
 │   ├── Logic.ts        # Consumes InteractionEvent -> Updates Data
 │   ├── Time.ts         # Handles decay/growth over time
+│   ├── CameraFocus.ts  # Manages cursor during Focus Mode
 │   └── Render.ts       # Syncs Visuals/UI to Data
 ├── factories/          # ENTITY CREATORS
 │   ├── Game.ts         # Sets up global entities
+│   ├── Environment.ts  # Creates TECH/PET scenes with themes
 │   ├── Pet.ts          # Spawns Pet entities + meshes
-│   └── UI.ts           # Spawns HUD/Menu
+│   └── UI.ts           # Spawns HUD/Menu, camera controls
 ├── utils/              # HELPERS & CONSTANTS
 │   ├── constants.ts
+│   ├── theme.ts        # UTC calendar + manual override for themes
 │   └── types.ts
 └── index.ts            # ENTRY POINT (Setup only)
 ```
@@ -54,6 +109,8 @@ Instead of a `GameManager` class, we use a singleton entity with a `GameState` c
 
 - `phase`: 'EGG' | 'HATCHING' | 'PET'
 - `activePetEntity`: EntityID
+- `menuStateEntity`: EntityID (optional)
+- `theme`: 'DEFAULT' | 'CHRISTMAS' | 'NEW_YEAR' | 'SUMMER' | 'AUTUMN'
 
 ### B. Entity State (`PetComponent`)
 

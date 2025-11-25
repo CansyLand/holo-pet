@@ -12,7 +12,7 @@ import { GameState } from '../components/GameState'
 // Let's modify the UI Factory plan to include a UI component later.
 // For now, let's assume we can find the bar.
 
-import { MoodBarComponent } from '../components/Visuals'
+import { MoodBarComponent } from '../components/UIState'
 import { MOOD_BAR_MAX_SCALE, MOOD_BAR_MIN_SCALE } from '../utils/constants'
 
 export function renderSystem(dt: number) {

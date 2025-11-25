@@ -1,7 +1,6 @@
 import { engine, Animator } from '@dcl/sdk/ecs'
 import { PetComponent } from '../components/Pet'
-import { MenuStateComponent } from '../components/Visuals'
-import { PetAnimationStateComponent } from '../components/Visuals'
+import { MenuStateComponent, PetAnimationStateComponent } from '../components/UIState'
 
 /**
  * Animation System - Handles pet animations based on menu visibility state

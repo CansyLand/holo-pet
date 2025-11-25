@@ -1,5 +1,8 @@
 import { engine, PointerLock } from '@dcl/sdk/ecs'
-import { CameraFocusComponent } from '../components/Visuals'
+import { CameraFocusComponent } from '../components/UIState'
+
+// Track whether the system is currently active to prevent duplicate additions
+let isCameraFocusSystemActive = false
 
 /**
  * Camera Focus System - Prevents cursor locking while camera is focused on pet
@@ -30,7 +33,12 @@ export function cameraFocusSystem(dt: number) {
  * Start camera focus monitoring by adding the system to the engine
  */
 export function startCameraFocusMonitoring() {
+  if (isCameraFocusSystemActive) {
+    console.log('Camera focus monitoring already active')
+    return
+  }
   engine.addSystem(cameraFocusSystem, 1, 'CameraFocusSystem')
+  isCameraFocusSystemActive = true
   console.log('Camera focus monitoring started')
 }
 
@@ -38,6 +46,11 @@ export function startCameraFocusMonitoring() {
  * Stop camera focus monitoring by removing the system from the engine
  */
 export function stopCameraFocusMonitoring() {
+  if (!isCameraFocusSystemActive) {
+    console.log('Camera focus monitoring already stopped')
+    return
+  }
   engine.removeSystem('CameraFocusSystem')
+  isCameraFocusSystemActive = false
   console.log('Camera focus monitoring stopped')
 }

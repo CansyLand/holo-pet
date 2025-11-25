@@ -2,8 +2,8 @@
   "ecs7": true,
   "runtimeVersion": "7",
   "display": {
-    "title": "SDK7 Scene Template",
-    "description": "template scene with SDK7",
+    "title": "HoloPet - Companion",
+    "description": " A lonely egg needs love to bloom. Care for your pet and watch it grow.",
     "navmapThumbnail": "images/scene-thumbnail.png",
     "favicon": "favicon_asset"
   },
@@ -15,9 +15,7 @@
   "main": "bin/index.js",
   "tags": [],
   "scene": {
-    "parcels": [
-      "0,0"
-    ],
+    "parcels": ["0,0", "0,1", "1,0", "1,1"],
     "base": "0,0"
   },
   "spawnPoints": [
@@ -25,18 +23,9 @@
       "name": "spawn1",
       "default": true,
       "position": {
-        "x": [
-          0,
-          3
-        ],
-        "y": [
-          0,
-          0
-        ],
-        "z": [
-          0,
-          3
-        ]
+        "x": [0, 3],
+        "y": [0, 0],
+        "z": [0, 3]
       },
       "cameraTarget": {
         "x": 8,
@@ -48,5 +37,8 @@
   "featureToggles": {
     "voiceChat": "enabled",
     "portableExperiences": "enabled"
+  },
+  "worldConfiguration": {
+    "name": "cansy.dcl.eth"
   }
 }

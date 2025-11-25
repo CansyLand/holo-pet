@@ -2,9 +2,12 @@ import { engine, Transform, Entity } from '@dcl/sdk/ecs'
 import { InteractionEvent, InteractionType } from '../components/Interaction'
 import { PetComponent, PetState, Species } from '../components/Pet'
 import { GameState, GamePhase } from '../components/GameState'
-import { MenuStateComponent, MenuElementComponent } from '../components/Visuals'
+import { MenuStateComponent, MenuElementComponent } from '../components/UIState'
 import { createPet } from '../factories/Pet'
 import { showMenu, hideMenu, activatePetCamera, deactivatePetCamera } from '../factories/UI'
+import { removeSceneByType, createPetEnvironment } from '../factories/Environment'
+import { SceneType } from '../components/Scene'
+import { getCurrentTheme, getThemeDisplayName } from '../utils/theme'
 import {
   MAX_MOOD,
   MAX_HUNGER,
@@ -132,6 +135,13 @@ function handleHatch(eggEntity: any) {
       // Remove Egg
       engine.removeEntity(eggEntity)
 
+      // Get current theme (UTC calendar or manual override)
+      const theme = getCurrentTheme()
+
+      // Switch from tech scene to pet scene with theme
+      removeSceneByType(SceneType.TECH)
+      createPetEnvironment(theme)
+
       // Spawn Pet
       const petResult = createPet(Species.DOG) // Defaulting to DOG for now, could be random
 
@@ -140,8 +150,9 @@ function handleHatch(eggEntity: any) {
       mutableState.phase = GamePhase.PET
       mutableState.activePetEntity = petResult.petEntity
       mutableState.menuStateEntity = petResult.menuStateEntity
+      mutableState.theme = theme
 
-      console.log('Egg hatched into a Pet!')
+      console.log(`Egg hatched into a Pet! Theme: ${getThemeDisplayName(theme)}`)
     }
   }
 }

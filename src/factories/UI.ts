@@ -17,7 +17,7 @@ import {
 } from '@dcl/sdk/ecs'
 import { Vector3, Color4 } from '@dcl/sdk/math'
 import { Interactable, InteractionType } from '../components/Interaction'
-import { MoodBarComponent, MenuStateComponent, MenuElementComponent, CameraFocusComponent } from '../components/Visuals'
+import { MoodBarComponent, MenuStateComponent, MenuElementComponent, CameraFocusComponent } from '../components/UIState'
 import { startCameraFocusMonitoring, stopCameraFocusMonitoring } from '../systems/CameraFocus'
 
 export function createPetMenu(petEntity: Entity) {

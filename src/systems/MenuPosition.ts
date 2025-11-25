@@ -1,5 +1,5 @@
 import { engine, Transform } from '@dcl/sdk/ecs'
-import { MenuStateComponent, MenuElementComponent, MoodBarComponent } from '../components/Visuals'
+import { MenuStateComponent, MenuElementComponent, MoodBarComponent } from '../components/UIState'
 import { MENU_HEIGHT_OFFSET } from '../utils/constants'
 
 export function menuPositionSystem(dt: number) {

@@ -14,14 +14,18 @@ import {
 import { Vector3, Color4 } from '@dcl/sdk/math'
 import { PetComponent, Species, PetState } from '../components/Pet'
 import { Interactable, InteractionType } from '../components/Interaction'
-import { PetAnimationStateComponent } from '../components/Visuals'
+import { PetAnimationStateComponent } from '../components/UIState'
 import { createPetMenu } from './UI' // We will create this next
+
+// Scene center for 2x2 parcels (32m x 32m)
+const SCENE_CENTER_X = 16
+const SCENE_CENTER_Z = 16
 
 export function createEgg() {
   const entity = engine.addEntity()
 
   Transform.create(entity, {
-    position: Vector3.create(8, 1, 8),
+    position: Vector3.create(SCENE_CENTER_X, 1, SCENE_CENTER_Z),
     scale: Vector3.create(1, 1, 1)
   })
 
@@ -58,7 +62,7 @@ export function createPet(species: Species) {
   const entity = engine.addEntity()
 
   Transform.create(entity, {
-    position: Vector3.create(8, 0.5, 8), // Lower position since GLTF models might have different pivot points
+    position: Vector3.create(SCENE_CENTER_X, 0.5, SCENE_CENTER_Z), // Centered in 2x2 parcel
     scale: Vector3.create(1.5, 1.5, 1.5) // Slightly larger scale for better visibility
   })
 

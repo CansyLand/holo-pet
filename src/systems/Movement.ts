@@ -1,5 +1,5 @@
 import { engine, Transform } from '@dcl/sdk/ecs'
-import { MenuStateComponent } from '../components/Visuals'
+import { MenuStateComponent } from '../components/UIState'
 import { hideMenu, deactivatePetCamera } from '../factories/UI'
 import { PLAYER_MOVEMENT_THRESHOLD } from '../utils/constants'
 
