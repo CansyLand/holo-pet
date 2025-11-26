@@ -1,10 +1,11 @@
 import { engine, Animator } from '@dcl/sdk/ecs'
 import { PetComponent } from '../components/Pet'
 import { MenuStateComponent, PetAnimationStateComponent } from '../components/UIState'
+import { getPetBehaviorState, BehaviorState } from './Behavior'
 
 /**
- * Animation System - Handles pet animations based on menu visibility state
- * Single source of truth: MenuStateComponent.isVisible
+ * Animation System - Handles pet animations based on menu visibility and behavior state
+ * Sources of truth: MenuStateComponent.isVisible and BehaviorState.WAITING_AT_STATION
  */
 export function animationSystem(dt: number) {
   // Query all pets
@@ -27,6 +28,11 @@ export function animationSystem(dt: number) {
     const isMenuVisible = menuState.isVisible
     const wasMenuVisible = animState.lastMenuVisible
 
+    // Check if pet is waiting at a station (behavior-driven sitting)
+    const behaviorState = getPetBehaviorState(petEntity)
+    const isWaitingAtStation = behaviorState === BehaviorState.WAITING_AT_STATION
+    const wasWaitingAtStation = animState.lastWaitingAtStation
+
     // Handle Standing→Idle transition (wait 1.5 seconds for Standing animation to play)
     if (animState.isTransitioning) {
       const elapsedTime = dt * 1000 // Convert to milliseconds
@@ -41,6 +47,7 @@ export function animationSystem(dt: number) {
       }
     }
 
+    // Priority: Menu visibility takes precedence over station waiting
     // Detect menu visibility changes
     if (isMenuVisible !== wasMenuVisible) {
       if (isMenuVisible) {
@@ -52,17 +59,47 @@ export function animationSystem(dt: number) {
         }
       } else {
         // Menu became hidden → play Standing animation, then transition to Idle
+        // But only if pet is not waiting at a station
+        if (!isWaitingAtStation) {
+          const standingClip = Animator.getClip(petEntity, 'Standing')
+          if (standingClip) {
+            // Stop any currently playing animations first
+            Animator.stopAllAnimations(petEntity)
+            // Play Standing animation
+            Animator.playSingleAnimation(petEntity, 'Standing', true)
+            animState.currentAnimation = 'Standing'
+            animState.isTransitioning = true
+            animState.transitionStartTime = 0 // Reset timer
+          } else {
+            // Fallback to Idle if Standing doesn't exist
+            Animator.playSingleAnimation(petEntity, 'Idle', true)
+            animState.currentAnimation = 'Idle'
+            animState.isTransitioning = false
+          }
+        }
+        // If still waiting at station, stay sitting (handled below)
+      }
+    }
+
+    // Handle station waiting state changes (only when menu is not visible)
+    if (!isMenuVisible && isWaitingAtStation !== wasWaitingAtStation) {
+      if (isWaitingAtStation) {
+        // Started waiting at station → play Sitting animation
+        if (animState.currentAnimation !== 'Sitting') {
+          Animator.playSingleAnimation(petEntity, 'Sitting', true)
+          animState.currentAnimation = 'Sitting'
+          animState.isTransitioning = false
+        }
+      } else {
+        // Stopped waiting at station → play Standing animation, then Idle
         const standingClip = Animator.getClip(petEntity, 'Standing')
         if (standingClip) {
-          // Stop any currently playing animations first
           Animator.stopAllAnimations(petEntity)
-          // Play Standing animation
           Animator.playSingleAnimation(petEntity, 'Standing', true)
           animState.currentAnimation = 'Standing'
           animState.isTransitioning = true
-          animState.transitionStartTime = 0 // Reset timer
+          animState.transitionStartTime = 0
         } else {
-          // Fallback to Idle if Standing doesn't exist
           Animator.playSingleAnimation(petEntity, 'Idle', true)
           animState.currentAnimation = 'Idle'
           animState.isTransitioning = false
@@ -70,7 +107,8 @@ export function animationSystem(dt: number) {
       }
     }
 
-    // Update last menu visible state
+    // Update last states
     animState.lastMenuVisible = isMenuVisible
+    animState.lastWaitingAtStation = isWaitingAtStation
   }
 }

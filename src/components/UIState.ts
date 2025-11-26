@@ -64,11 +64,12 @@ export const CursorFollowComponent = engine.defineComponent('CursorFollowCompone
 
 /**
  * Tracks pet animation state for smooth transitions
- * Handles Idle <-> Sitting transitions when entering/exiting Focus Mode
+ * Handles Idle <-> Sitting transitions when entering/exiting Focus Mode or waiting at stations
  */
 export const PetAnimationStateComponent = engine.defineComponent('PetAnimationStateComponent', {
   currentAnimation: Schemas.String, // Current clip: 'Idle', 'Sitting', 'Standing'
   lastMenuVisible: Schemas.Boolean, // Detects menu visibility changes
+  lastWaitingAtStation: Schemas.Boolean, // Detects station waiting state changes
   isTransitioning: Schemas.Boolean, // True during Standing animation
   transitionStartTime: Schemas.Number // When Standing animation started
 })

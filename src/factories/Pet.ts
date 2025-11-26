@@ -105,6 +105,7 @@ export function createPet(species: Species) {
   PetAnimationStateComponent.create(entity, {
     currentAnimation: 'Idle',
     lastMenuVisible: false,
+    lastWaitingAtStation: false,
     isTransitioning: false,
     transitionStartTime: 0
   })

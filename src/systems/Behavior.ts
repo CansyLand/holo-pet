@@ -39,7 +39,15 @@ export enum BehaviorState {
   APPROACHING_PLAYER = 'approaching_player',
   WANDERING = 'wandering',
   SITTING = 'sitting',
-  POOPING = 'pooping'
+  POOPING = 'pooping',
+  WAITING_AT_STATION = 'waiting_at_station' // Sitting at station until need is satisfied
+}
+
+// Station types the pet can wait at
+export enum WaitingStationType {
+  FOOD = 'food',
+  BATH = 'bath',
+  NONE = 'none'
 }
 
 // Preferred activity types based on personality
@@ -64,6 +72,9 @@ const petBehaviorState: Map<
     followThinkingStart: number // When pet started "thinking" about following
     followLastUpdate: number // Last time follow target was updated
     followLastPlayerPos: Vector3 | null // Last known player position for hysteresis
+    // Station waiting behavior
+    waitingStationType: WaitingStationType // Which station type pet is waiting at
+    shouldFacePlayer: boolean // 50/50 decision for facing player, set once per wait session
   }
 > = new Map()
 
@@ -100,7 +111,9 @@ export function behaviorSystem(dt: number) {
         preferredActivity: null,
         followThinkingStart: 0,
         followLastUpdate: 0,
-        followLastPlayerPos: null
+        followLastPlayerPos: null,
+        waitingStationType: WaitingStationType.NONE,
+        shouldFacePlayer: false
       })
     }
 
@@ -199,11 +212,36 @@ function determineBehavior(
     followThinkingStart: number
     followLastUpdate: number
     followLastPlayerPos: Vector3 | null
+    waitingStationType: WaitingStationType
+    shouldFacePlayer: boolean
   },
   now: number,
   playerNearby: boolean,
   currentPos: Vector3
 ): BehaviorState {
+  // ==========================================================================
+  // WAITING AT STATION CHECK: Stay waiting until need is satisfied
+  // ==========================================================================
+  if (currentData.state === BehaviorState.WAITING_AT_STATION) {
+    // Check if need is satisfied and we can exit waiting state
+    if (currentData.waitingStationType === WaitingStationType.FOOD) {
+      // Exit food station if hunger is below threshold
+      if (pet.hunger < HUNGRY_THRESHOLD) {
+        currentData.waitingStationType = WaitingStationType.NONE
+        return BehaviorState.IDLE
+      }
+      // Still hungry - keep waiting
+      return BehaviorState.WAITING_AT_STATION
+    } else if (currentData.waitingStationType === WaitingStationType.BATH) {
+      // Exit bath station if cleanliness is above threshold
+      if (hygiene && hygiene.cleanliness >= NEEDS_BATH_THRESHOLD) {
+        currentData.waitingStationType = WaitingStationType.NONE
+        return BehaviorState.IDLE
+      }
+      // Still dirty - keep waiting
+      return BehaviorState.WAITING_AT_STATION
+    }
+  }
   // ==========================================================================
   // CRITICAL OVERRIDE: Very hungry pet seeks food (unless already at food station)
   // ==========================================================================
@@ -355,11 +393,32 @@ function executeBehavior(
     followThinkingStart: number
     followLastUpdate: number
     followLastPlayerPos: Vector3 | null
+    waitingStationType: WaitingStationType
+    shouldFacePlayer: boolean
   },
   personality: ReturnType<typeof PersonalityComponent.get>,
   dt: number,
   now: number
 ) {
+  // Handle WAITING_AT_STATION state - pet sits and optionally faces player
+  if (behaviorData.state === BehaviorState.WAITING_AT_STATION) {
+    behaviorData.idleTime += dt
+    const currentPos = transform.position
+    const playerPos = getPlayerPosition()
+
+    // Only face player if the 50/50 decision was "yes"
+    if (behaviorData.shouldFacePlayer && playerPos) {
+      const toPlayer = Vector3.subtract(playerPos, currentPos)
+      const distToPlayer = Vector3.length(toPlayer)
+
+      // Face player when they're close enough
+      if (distToPlayer < PLAYER_PROXIMITY_RADIUS) {
+        faceDirection(transform, toPlayer)
+      }
+    }
+    return
+  }
+
   if (!behaviorData.targetPosition) {
     behaviorData.idleTime += dt
 
@@ -431,6 +490,30 @@ function executeBehavior(
 
   // Arrived at destination
   if (distance < 0.5) {
+    // Check if arriving at a need-driven station - transition to WAITING_AT_STATION
+    if (behaviorData.state === BehaviorState.SEEKING_FOOD) {
+      behaviorData.state = BehaviorState.WAITING_AT_STATION
+      behaviorData.waitingStationType = WaitingStationType.FOOD
+      behaviorData.shouldFacePlayer = Math.random() >= 0.5 // 50/50 chance to face player
+      behaviorData.targetPosition = null
+      behaviorData.idleTime = 0
+      // Face toward the food bowl (station)
+      const toStation = Vector3.subtract(FOOD_BOWL_POSITION, currentPos)
+      faceDirection(transform, toStation)
+      return
+    } else if (behaviorData.state === BehaviorState.SEEKING_BATH) {
+      behaviorData.state = BehaviorState.WAITING_AT_STATION
+      behaviorData.waitingStationType = WaitingStationType.BATH
+      behaviorData.shouldFacePlayer = Math.random() >= 0.5 // 50/50 chance to face player
+      behaviorData.targetPosition = null
+      behaviorData.idleTime = 0
+      // Face toward the bathtub (station)
+      const toStation = Vector3.subtract(BATHTUB_POSITION, currentPos)
+      faceDirection(transform, toStation)
+      return
+    }
+
+    // Normal arrival - transition to IDLE
     behaviorData.state = BehaviorState.IDLE
     behaviorData.targetPosition = null
     behaviorData.idleTime = 0
