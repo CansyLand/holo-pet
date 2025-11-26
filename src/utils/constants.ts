@@ -121,6 +121,8 @@ export const HUNGRY_THRESHOLD = 70 // Hunger above this = seek food
 export const NEEDS_BATH_THRESHOLD = 40 // Cleanliness below this = seek bath
 export const BORED_THRESHOLD = 30 // Seconds idle before wandering
 export const PLAYER_PROXIMITY_RADIUS = 8.0 // Distance to detect player nearby
+export const BEHAVIOR_COMMITMENT_TIME = 5.0 // Seconds to commit to a behavior before re-evaluating
+export const PLAYER_IDLE_PREFERENCE_TIME = 20.0 // Seconds of player inactivity before seeking preferred activity
 
 // =============================================================================
 // RENDER SYSTEM CONSTANTS
@@ -144,3 +146,5 @@ export const MENU_HEIGHT_OFFSET = 1.5 // units above pet position
 // =============================================================================
 export const SCENE_CENTER_X = 16 // Center of 2x2 parcel
 export const SCENE_CENTER_Z = 16
+export const PLAY_AREA_POSITION_X = SCENE_CENTER_X - 3 // X position of play area (toy ball)
+export const PLAY_AREA_POSITION_Z = SCENE_CENTER_Z - 2 // Z position of play area (toy ball)
