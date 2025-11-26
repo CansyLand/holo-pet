@@ -123,6 +123,9 @@ export const BORED_THRESHOLD = 30 // Seconds idle before wandering
 export const PLAYER_PROXIMITY_RADIUS = 8.0 // Distance to detect player nearby
 export const BEHAVIOR_COMMITMENT_TIME = 5.0 // Seconds to commit to a behavior before re-evaluating
 export const PLAYER_IDLE_PREFERENCE_TIME = 20.0 // Seconds of player inactivity before seeking preferred activity
+export const FOLLOW_THINKING_DELAY = 2.0 // Seconds pet "thinks" before starting to follow player
+export const FOLLOW_UPDATE_INTERVAL = 1.5 // How often to update follow target (seconds)
+export const FOLLOW_HYSTERESIS_DISTANCE = 3.0 // Minimum distance player must move before pet reacts
 
 // =============================================================================
 // RENDER SYSTEM CONSTANTS

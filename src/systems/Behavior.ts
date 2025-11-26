@@ -19,7 +19,10 @@ import {
   BEHAVIOR_COMMITMENT_TIME,
   PLAYER_IDLE_PREFERENCE_TIME,
   PLAY_AREA_POSITION_X,
-  PLAY_AREA_POSITION_Z
+  PLAY_AREA_POSITION_Z,
+  FOLLOW_THINKING_DELAY,
+  FOLLOW_UPDATE_INTERVAL,
+  FOLLOW_HYSTERESIS_DISTANCE
 } from '../utils/constants'
 
 // =============================================================================
@@ -57,6 +60,10 @@ const petBehaviorState: Map<
     commitmentEndTime: number // Timestamp when commitment expires
     playerIdleTime: number // Accumulated time without player nearby/interaction
     preferredActivity: PreferredActivity | null // Cached preferred activity
+    // Following behavior tracking
+    followThinkingStart: number // When pet started "thinking" about following
+    followLastUpdate: number // Last time follow target was updated
+    followLastPlayerPos: Vector3 | null // Last known player position for hysteresis
   }
 > = new Map()
 
@@ -90,7 +97,10 @@ export function behaviorSystem(dt: number) {
         lastStateChange: Date.now(),
         commitmentEndTime: 0,
         playerIdleTime: 0,
-        preferredActivity: null
+        preferredActivity: null,
+        followThinkingStart: 0,
+        followLastUpdate: 0,
+        followLastPlayerPos: null
       })
     }
 
@@ -139,10 +149,16 @@ export function behaviorSystem(dt: number) {
       if (newState !== BehaviorState.IDLE) {
         behaviorData.playerIdleTime = 0
       }
+
+      // Reset following timers when not approaching player
+      if (newState !== BehaviorState.APPROACHING_PLAYER) {
+        behaviorData.followThinkingStart = 0
+        behaviorData.followLastPlayerPos = null
+      }
     }
 
     // Execute current behavior
-    executeBehavior(entity, transform, behaviorData, personality, dt)
+    executeBehavior(entity, transform, behaviorData, personality, dt, now)
   }
 }
 
@@ -180,6 +196,9 @@ function determineBehavior(
     commitmentEndTime: number
     playerIdleTime: number
     preferredActivity: PreferredActivity | null
+    followThinkingStart: number
+    followLastUpdate: number
+    followLastPlayerPos: Vector3 | null
   },
   now: number,
   playerNearby: boolean,
@@ -232,8 +251,25 @@ function determineBehavior(
     // Sociability affects likelihood - higher sociability = more likely to approach
     // Threshold: sociability 30+ means pet will approach
     if (personality.sociability >= 30) {
-      return BehaviorState.APPROACHING_PLAYER
+      // Check if pet is already "thinking" about following
+      const thinkingElapsed = now - currentData.followThinkingStart
+      if (currentData.followThinkingStart === 0 || thinkingElapsed >= FOLLOW_THINKING_DELAY * 1000) {
+        // Start thinking phase or continue to following
+        if (currentData.followThinkingStart === 0) {
+          currentData.followThinkingStart = now
+          return BehaviorState.IDLE // Stay idle while "thinking"
+        } else {
+          // Thinking delay passed, now follow
+          return BehaviorState.APPROACHING_PLAYER
+        }
+      } else {
+        // Still thinking, stay idle
+        return BehaviorState.IDLE
+      }
     }
+  } else {
+    // Not approaching player, reset thinking timer
+    currentData.followThinkingStart = 0
   }
 
   // Priority 4: Energetic pet wanders when bored (and has energy)
@@ -312,9 +348,17 @@ function getTargetPosition(
 function executeBehavior(
   entity: number,
   transform: ReturnType<typeof Transform.getMutable>,
-  behaviorData: { state: BehaviorState; targetPosition: Vector3 | null; idleTime: number },
+  behaviorData: {
+    state: BehaviorState
+    targetPosition: Vector3 | null
+    idleTime: number
+    followThinkingStart: number
+    followLastUpdate: number
+    followLastPlayerPos: Vector3 | null
+  },
   personality: ReturnType<typeof PersonalityComponent.get>,
-  dt: number
+  dt: number,
+  now: number
 ) {
   if (!behaviorData.targetPosition) {
     behaviorData.idleTime += dt
@@ -339,30 +383,46 @@ function executeBehavior(
   const currentPos = transform.position
   let targetPos = behaviorData.targetPosition
 
-  // For APPROACHING_PLAYER, dynamically update target to track the player
+  // For APPROACHING_PLAYER, update target thoughtfully (not every frame)
   if (behaviorData.state === BehaviorState.APPROACHING_PLAYER) {
     const playerPos = getPlayerPosition()
     if (playerPos) {
-      // Update target to stay near current player position
       const toPlayer = Vector3.subtract(playerPos, currentPos)
       const distToPlayer = Vector3.length(toPlayer)
 
-      // If close enough to player, stop
+      // If close enough to player, stop following
       if (distToPlayer <= PET_APPROACH_DISTANCE) {
         behaviorData.state = BehaviorState.IDLE
         behaviorData.targetPosition = null
         behaviorData.idleTime = 0
+        behaviorData.followThinkingStart = 0 // Reset thinking timer
+        behaviorData.followLastPlayerPos = null
         // Face the player when stopped
         faceDirection(transform, toPlayer)
         return
       }
 
-      // Update target position to track player
-      const dirFromPlayer = Vector3.normalize(Vector3.subtract(currentPos, playerPos))
-      targetPos = Vector3.add(playerPos, Vector3.scale(dirFromPlayer, PET_APPROACH_DISTANCE))
-      behaviorData.targetPosition = targetPos
+      // Check if enough time has passed since last update (less reactive)
+      const timeSinceLastUpdate = (now - behaviorData.followLastUpdate) / 1000
+      if (timeSinceLastUpdate >= FOLLOW_UPDATE_INTERVAL) {
+        // Check hysteresis - only update if player moved significantly
+        let shouldUpdateTarget = true
+        if (behaviorData.followLastPlayerPos) {
+          const playerMovement = Vector3.distance(behaviorData.followLastPlayerPos, playerPos)
+          shouldUpdateTarget = playerMovement >= FOLLOW_HYSTERESIS_DISTANCE
+        }
 
-      // Face the player (not the movement direction)
+        if (shouldUpdateTarget) {
+          // Update target position to track player thoughtfully
+          const dirFromPlayer = Vector3.normalize(Vector3.subtract(currentPos, playerPos))
+          targetPos = Vector3.add(playerPos, Vector3.scale(dirFromPlayer, PET_APPROACH_DISTANCE))
+          behaviorData.targetPosition = targetPos
+          behaviorData.followLastUpdate = now
+          behaviorData.followLastPlayerPos = playerPos
+        }
+      }
+
+      // Face the player (not the movement direction) - do this every frame for smooth rotation
       faceDirection(transform, toPlayer)
     }
   }
