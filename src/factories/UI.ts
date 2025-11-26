@@ -25,6 +25,8 @@ import {
   CursorFollowComponent
 } from '../components/UIState'
 import { startCameraFocusMonitoring, stopCameraFocusMonitoring } from '../systems/CameraFocus'
+import { updatePetHoverText } from './Pet'
+import { PetIdentityComponent } from '../components/Personality'
 
 export function createPetMenu(petEntity: Entity) {
   const petPos = Transform.get(petEntity).position
@@ -348,6 +350,15 @@ export function activatePetCamera(cameraEntity: Entity) {
     }
   }
 
+  // Update hover text to "pet" since we're now in focused mode
+  const cameraForHoverText = VirtualCamera.get(cameraEntity)
+  if (cameraForHoverText?.lookAtEntity) {
+    const petEntity = cameraForHoverText.lookAtEntity as Entity
+    const identity = PetIdentityComponent.getOrNull(petEntity)
+    const petName = identity ? identity.name : ''
+    updatePetHoverText(petEntity, petName)
+  }
+
   console.log(`Camera focused on pet - cursor unlocked (was ${originalCursorLocked ? 'locked' : 'unlocked'})`)
 }
 
@@ -394,6 +405,12 @@ export function deactivatePetCamera() {
       mutableCursorFollow.isActive = false
       console.log(`Cursor follow disabled for pet - rotation reset to base`)
     }
+  }
+
+  // Update hover text back to pet names since we're exiting focused mode
+  for (const [petEntity] of engine.getEntitiesWith(PetIdentityComponent)) {
+    const identity = PetIdentityComponent.get(petEntity)
+    updatePetHoverText(petEntity, identity.name)
   }
 
   // Deactivate virtual camera

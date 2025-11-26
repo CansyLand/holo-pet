@@ -15,7 +15,7 @@ import {
 import { Vector3, Color4, Quaternion } from '@dcl/sdk/math'
 import { PetComponent, Species, PetState } from '../components/Pet'
 import { Interactable, InteractionType } from '../components/Interaction'
-import { PetAnimationStateComponent, CursorFollowComponent } from '../components/UIState'
+import { PetAnimationStateComponent, CursorFollowComponent, CameraFocusComponent } from '../components/UIState'
 import {
   PersonalityComponent,
   BondComponent,
@@ -33,8 +33,8 @@ export function createEgg() {
   const entity = engine.addEntity()
 
   Transform.create(entity, {
-    position: Vector3.create(SCENE_CENTER_X, 1, SCENE_CENTER_Z),
-    scale: Vector3.create(1, 1, 1)
+    position: Vector3.create(SCENE_CENTER_X, 3, SCENE_CENTER_Z),
+    scale: Vector3.create(3.6, 5, 3.6)
   })
 
   MeshRenderer.setSphere(entity)
@@ -202,7 +202,7 @@ export function setPetName(petEntity: Entity, name: string) {
 }
 
 /**
- * Update the pet's hover text to show its name
+ * Update the pet's hover text to show its name (or "pet" when in focused mode)
  */
 export function updatePetHoverText(petEntity: Entity, name: string) {
   // Remove old PointerEvents and create new one with updated text
@@ -210,13 +210,25 @@ export function updatePetHoverText(petEntity: Entity, name: string) {
     PointerEvents.deleteFrom(petEntity)
   }
 
+  // Check if we're in focused mode (camera is active)
+  let isFocusedMode = false
+  for (const [cameraEntity, focusComponent] of engine.getEntitiesWith(CameraFocusComponent)) {
+    if (focusComponent.isCameraFocused) {
+      isFocusedMode = true
+      break
+    }
+  }
+
+  // Use "pet" as hover text when in focused mode, otherwise use the pet's name
+  const hoverText = isFocusedMode ? 'pet' : name || 'Pet'
+
   PointerEvents.create(petEntity, {
     pointerEvents: [
       {
         eventType: PointerEventType.PET_DOWN,
         eventInfo: {
           button: InputAction.IA_POINTER,
-          hoverText: name || 'Pet'
+          hoverText: hoverText
         }
       }
     ]

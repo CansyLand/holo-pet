@@ -131,8 +131,8 @@ export const MOOD_BAR_MIN_SCALE = 0.01 // minimum width to avoid invisible bar
 // =============================================================================
 // CURSOR FOLLOW SYSTEM CONSTANTS
 // =============================================================================
-export const CURSOR_FOLLOW_MAX_TILT = 15      // Max tilt in degrees
-export const CURSOR_FOLLOW_LERP_SPEED = 5     // Smoothing factor
+export const CURSOR_FOLLOW_MAX_TILT = 15 // Max tilt in degrees
+export const CURSOR_FOLLOW_LERP_SPEED = 5 // Smoothing factor
 
 // =============================================================================
 // MENU POSITION CONSTANTS

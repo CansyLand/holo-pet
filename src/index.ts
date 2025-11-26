@@ -22,10 +22,7 @@ import { StatsUI } from './factories/StatsUI'
 
 // Combined UI renderer that shows all UI components
 function CombinedUI() {
-  return [
-    NamingUI(),
-    StatsUI()
-  ]
+  return [NamingUI(), StatsUI()]
 }
 
 export function main() {

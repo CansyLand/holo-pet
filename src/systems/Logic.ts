@@ -2,7 +2,7 @@ import { engine, Transform, Entity } from '@dcl/sdk/ecs'
 import { InteractionEvent, InteractionType } from '../components/Interaction'
 import { PetComponent, PetState, Species } from '../components/Pet'
 import { GameState, GamePhase } from '../components/GameState'
-import { MenuStateComponent, MenuElementComponent } from '../components/UIState'
+import { MenuStateComponent, MenuElementComponent, CameraFocusComponent } from '../components/UIState'
 import { BondComponent, PersonalityComponent } from '../components/Personality'
 import { HygieneComponent } from '../components/Hygiene'
 import { PoopComponent } from '../components/Poop'
@@ -132,8 +132,35 @@ export function logicSystem(dt: number) {
 function handlePetInteraction(entity: Entity) {
   // Check if this entity has PetComponent (direct pet click) or is a menu button
   if (PetComponent.has(entity)) {
-    // This is a direct pet entity click - show menu
-    handlePetClick(entity)
+    // Check if we're in focused mode (camera is active)
+    let isFocusedMode = false
+    for (const [cameraEntity, focusComponent] of engine.getEntitiesWith(CameraFocusComponent)) {
+      if (focusComponent.isCameraFocused) {
+        isFocusedMode = true
+        break
+      }
+    }
+
+    if (isFocusedMode) {
+      // In focused mode, petting the pet directly increases mood instead of showing menu
+      const petData = PetComponent.getMutable(entity)
+
+      // Get personality modifier for petting
+      const personality = PersonalityComponent.getOrNull(entity)
+      const socialModifier = personality ? personality.sociability / 50 : 1
+
+      const oldMood = petData.mood
+      petData.mood = Math.min(MAX_MOOD, petData.mood + PET_MOOD_BOOST * socialModifier)
+
+      // Add bond
+      addBond(entity, PET_BOND_BOOST * socialModifier)
+      recordPlayerVisit(entity)
+
+      console.log(`Pet directly petted in focused mode: mood ${oldMood} -> ${petData.mood}`)
+    } else {
+      // Not in focused mode - show menu and activate camera
+      handlePetClick(entity)
+    }
   } else {
     // This is a menu button click - find the menu this button belongs to and update the pet's mood
     const menuElement = MenuElementComponent.getOrNull(entity)
@@ -145,10 +172,10 @@ function handlePetInteraction(entity: Entity) {
 
       // Get personality modifier for petting
       const personality = PersonalityComponent.getOrNull(petEntity)
-      const socialModifier = personality ? (personality.sociability / 50) : 1
+      const socialModifier = personality ? personality.sociability / 50 : 1
 
       const oldMood = petData.mood
-      petData.mood = Math.min(MAX_MOOD, petData.mood + (PET_MOOD_BOOST * socialModifier))
+      petData.mood = Math.min(MAX_MOOD, petData.mood + PET_MOOD_BOOST * socialModifier)
 
       // Add bond
       addBond(petEntity, PET_BOND_BOOST * socialModifier)
@@ -166,10 +193,10 @@ function handleFeed(entity: Entity, petData: ReturnType<typeof PetComponent.getM
 
   const targetPetData = PetComponent.getMutable(targetPet)
   const personality = PersonalityComponent.getOrNull(targetPet)
-  const appetiteModifier = personality ? (personality.appetite / 50) : 1
+  const appetiteModifier = personality ? personality.appetite / 50 : 1
 
   targetPetData.hunger = Math.max(MIN_HUNGER, targetPetData.hunger - FEED_HUNGER_REDUCTION)
-  targetPetData.mood = Math.min(MAX_MOOD, targetPetData.mood + (FEED_MOOD_BOOST * appetiteModifier))
+  targetPetData.mood = Math.min(MAX_MOOD, targetPetData.mood + FEED_MOOD_BOOST * appetiteModifier)
 
   addBond(targetPet, FEED_BOND_BOOST)
   recordPlayerVisit(targetPet)
@@ -205,11 +232,11 @@ function handleTreat(entity: Entity) {
 
   const petData = PetComponent.getMutable(targetPet)
   const personality = PersonalityComponent.getOrNull(targetPet)
-  const appetiteModifier = personality ? (personality.appetite / 50) : 1
+  const appetiteModifier = personality ? personality.appetite / 50 : 1
 
   // Treats: less hunger reduction, more mood and bond
   petData.hunger = Math.max(MIN_HUNGER, petData.hunger - TREAT_HUNGER_REDUCTION)
-  petData.mood = Math.min(MAX_MOOD, petData.mood + (TREAT_MOOD_BOOST * appetiteModifier))
+  petData.mood = Math.min(MAX_MOOD, petData.mood + TREAT_MOOD_BOOST * appetiteModifier)
 
   addBond(targetPet, TREAT_BOND_BOOST)
   recordPlayerVisit(targetPet)
@@ -400,4 +427,3 @@ export function getPendingNamingEntity(): Entity | null {
 export function clearPendingNaming() {
   pendingNamingEntity = null
 }
-
