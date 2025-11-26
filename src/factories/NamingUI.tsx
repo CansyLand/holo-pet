@@ -1,9 +1,10 @@
-import { Entity } from '@dcl/sdk/ecs'
+import { Entity, PointerLock, engine } from '@dcl/sdk/ecs'
 import { Color4 } from '@dcl/sdk/math'
 import ReactEcs, { ReactEcsRenderer, UiEntity, Input, Label, Button } from '@dcl/sdk/react-ecs'
 import { PetIdentityComponent } from '../components/Personality'
 import { getPendingNamingEntity, clearPendingNaming } from '../systems/Logic'
 import { setPetName } from './Pet'
+import { startCameraFocusMonitoring } from '../systems/CameraFocus'
 
 // =============================================================================
 // PET NAMING UI
@@ -15,6 +16,7 @@ import { setPetName } from './Pet'
 let isNamingActive = false
 let currentName = ''
 let targetPetEntity: Entity | null = null
+let originalCursorLocked = true // Store original cursor state
 
 // Default names for random selection if player doesn't want to type
 const DEFAULT_NAMES = [
@@ -35,7 +37,13 @@ export function startNaming(petEntity: Entity) {
   targetPetEntity = petEntity
   currentName = ''
   isNamingActive = true
-  console.log('Naming popup opened')
+
+  // Detach cursor like when focusing on pet
+  originalCursorLocked = PointerLock.get(engine.CameraEntity).isPointerLocked
+  PointerLock.getMutable(engine.CameraEntity).isPointerLocked = false
+  startCameraFocusMonitoring()
+
+  console.log(`Naming popup opened, cursor unlocked (was ${originalCursorLocked ? 'locked' : 'unlocked'})`)
 }
 
 /**
@@ -50,11 +58,16 @@ function submitName() {
   // Set the pet's name and update hover text
   setPetName(targetPetEntity, finalName)
 
+  // Restore cursor state
+  PointerLock.getMutable(engine.CameraEntity).isPointerLocked = originalCursorLocked
+
   // Clear state
   isNamingActive = false
   currentName = ''
   targetPetEntity = null
   clearPendingNaming()
+
+  console.log(`Naming completed, cursor restored to ${originalCursorLocked ? 'locked' : 'unlocked'}`)
 }
 
 /**
@@ -145,7 +158,7 @@ export function NamingUI() {
         <Input
           placeholder="Enter name..."
           placeholderColor={Color4.create(0.5, 0.5, 0.5, 1)}
-          color={Color4.White()}
+          color={Color4.Black()}
           fontSize={20}
           onChange={(value) => updateName(value)}
           uiTransform={{

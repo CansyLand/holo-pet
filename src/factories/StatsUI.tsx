@@ -9,10 +9,12 @@ import { getActivePoopCount, forcePoop } from '../systems/Poop'
 import {
   MAX_MOOD,
   MAX_HUNGER,
+  MAX_ENERGY,
   MAX_BOND,
   MAX_CLEANLINESS,
   MIN_MOOD,
   MIN_HUNGER,
+  MIN_ENERGY,
   MIN_BOND,
   MIN_CLEANLINESS
 } from '../utils/constants'
@@ -38,14 +40,17 @@ interface PetStats {
   name: string
   mood: number
   hunger: number
+  energy: number
   bond: number
   trustLevel: string
   cleanliness: number
   poopCount: number
-  energy: number
-  sociability: number
-  cleanlinessT: number
-  appetite: number
+  personalityTraits: {
+    energy: number
+    sociability: number
+    cleanliness: number
+    appetite: number
+  }
 }
 
 let cachedStats: PetStats | null = null
@@ -71,14 +76,24 @@ function updateCachedStats() {
           name: identity?.name || 'Unnamed',
           mood: Math.round(pet.mood),
           hunger: Math.round(pet.hunger),
+          energy: Math.round(pet.energy),
           bond: bond ? Math.round(bond.bond) : 0,
           trustLevel: bond?.trustLevel || TrustLevel.STRANGER,
           cleanliness: hygiene ? Math.round(hygiene.cleanliness) : 100,
           poopCount: getActivePoopCount(),
-          energy: personality?.energy || 50,
-          sociability: personality?.sociability || 50,
-          cleanlinessT: personality?.cleanliness || 50,
-          appetite: personality?.appetite || 50
+          personalityTraits: personality
+            ? {
+                energy: personality.energy,
+                sociability: personality.sociability,
+                cleanliness: personality.cleanliness,
+                appetite: personality.appetite
+              }
+            : {
+                energy: 50,
+                sociability: 50,
+                cleanliness: 50,
+                appetite: 50
+              }
         }
       }
       return
@@ -91,7 +106,7 @@ function updateCachedStats() {
 /**
  * Modify a stat by amount
  */
-function modifyStat(stat: 'mood' | 'hunger' | 'bond' | 'cleanliness', delta: number) {
+function modifyStat(stat: 'mood' | 'hunger' | 'energy' | 'bond' | 'cleanliness', delta: number) {
   if (!activePetEntity) return
 
   switch (stat) {
@@ -106,6 +121,13 @@ function modifyStat(stat: 'mood' | 'hunger' | 'bond' | 'cleanliness', delta: num
       const pet = PetComponent.getMutableOrNull(activePetEntity)
       if (pet) {
         pet.hunger = Math.max(MIN_HUNGER, Math.min(MAX_HUNGER, pet.hunger + delta))
+      }
+      break
+    }
+    case 'energy': {
+      const pet = PetComponent.getMutableOrNull(activePetEntity)
+      if (pet) {
+        pet.energy = Math.max(MIN_ENERGY, Math.min(MAX_ENERGY, pet.energy + delta))
       }
       break
     }
@@ -176,10 +198,15 @@ function minAllStats() {
 // UI COMPONENTS
 // =============================================================================
 
-function StatRow({ label, value, stat, showButtons = true }: {
+function StatRow({
+  label,
+  value,
+  stat,
+  showButtons = true
+}: {
   label: string
   value: number | string
-  stat?: 'mood' | 'hunger' | 'bond' | 'cleanliness'
+  stat?: 'mood' | 'hunger' | 'energy' | 'bond' | 'cleanliness'
   showButtons?: boolean
 }) {
   return (
@@ -192,18 +219,8 @@ function StatRow({ label, value, stat, showButtons = true }: {
         justifyContent: 'space-between'
       }}
     >
-      <Label
-        value={label}
-        fontSize={12}
-        color={STAT_LABEL_COLOR}
-        uiTransform={{ width: 80 }}
-      />
-      <Label
-        value={String(value)}
-        fontSize={14}
-        color={STAT_VALUE_COLOR}
-        uiTransform={{ width: 60 }}
-      />
+      <Label value={label} fontSize={12} color={STAT_LABEL_COLOR} uiTransform={{ width: 80 }} />
+      <Label value={String(value)} fontSize={14} color={STAT_VALUE_COLOR} uiTransform={{ width: 60 }} />
       {showButtons && stat && (
         <UiEntity
           uiTransform={{
@@ -241,18 +258,8 @@ function PersonalityRow({ label, value }: { label: string; value: number }) {
         alignItems: 'center'
       }}
     >
-      <Label
-        value={label}
-        fontSize={10}
-        color={STAT_LABEL_COLOR}
-        uiTransform={{ width: 80 }}
-      />
-      <Label
-        value={String(value)}
-        fontSize={11}
-        color={Color4.create(0.5, 0.8, 0.5, 1)}
-        uiTransform={{ width: 40 }}
-      />
+      <Label value={label} fontSize={10} color={STAT_LABEL_COLOR} uiTransform={{ width: 80 }} />
+      <Label value={String(value)} fontSize={11} color={Color4.create(0.5, 0.8, 0.5, 1)} uiTransform={{ width: 40 }} />
     </UiEntity>
   )
 }
@@ -284,7 +291,9 @@ export function StatsUI() {
           variant="secondary"
           fontSize={16}
           uiTransform={{ width: 40, height: 30 }}
-          onMouseDown={() => { isCollapsed = false }}
+          onMouseDown={() => {
+            isCollapsed = false
+          }}
         />
       </UiEntity>
     )
@@ -312,33 +321,27 @@ export function StatsUI() {
           margin: { bottom: 8 }
         }}
       >
-        <Label
-          value={`🐕 ${cachedStats.name}`}
-          fontSize={16}
-          color={HEADER_COLOR}
-        />
+        <Label value={`PET: ${cachedStats.name}`} fontSize={16} color={HEADER_COLOR} />
         <Button
           value="−"
           variant="secondary"
           fontSize={16}
           uiTransform={{ width: 25, height: 25 }}
-          onMouseDown={() => { isCollapsed = true }}
+          onMouseDown={() => {
+            isCollapsed = true
+          }}
         />
       </UiEntity>
 
       {/* Stats Section */}
-      <Label
-        value="─── Stats ───"
-        fontSize={10}
-        color={STAT_LABEL_COLOR}
-        uiTransform={{ height: 18 }}
-      />
+      <Label value="─── Stats ───" fontSize={10} color={STAT_LABEL_COLOR} uiTransform={{ height: 18 }} />
 
       <StatRow label="Mood" value={cachedStats.mood} stat="mood" />
       <StatRow label="Hunger" value={cachedStats.hunger} stat="hunger" />
+      <StatRow label="Energy" value={cachedStats.energy} stat="energy" />
       <StatRow label="Bond" value={`${cachedStats.bond} (${cachedStats.trustLevel})`} stat="bond" />
       <StatRow label="Clean" value={cachedStats.cleanliness} stat="cleanliness" />
-      <StatRow label="Poop 💩" value={cachedStats.poopCount} showButtons={false} />
+      <StatRow label="Poop Count" value={cachedStats.poopCount} showButtons={false} />
 
       {/* Personality Section */}
       <Label
@@ -348,10 +351,10 @@ export function StatsUI() {
         uiTransform={{ height: 22, margin: { top: 6 } }}
       />
 
-      <PersonalityRow label="Energy" value={cachedStats.energy} />
-      <PersonalityRow label="Social" value={cachedStats.sociability} />
-      <PersonalityRow label="Clean (T)" value={cachedStats.cleanlinessT} />
-      <PersonalityRow label="Appetite" value={cachedStats.appetite} />
+      <PersonalityRow label="Energy (T)" value={cachedStats.personalityTraits.energy} />
+      <PersonalityRow label="Social (T)" value={cachedStats.personalityTraits.sociability} />
+      <PersonalityRow label="Clean (T)" value={cachedStats.personalityTraits.cleanliness} />
+      <PersonalityRow label="Appetite (T)" value={cachedStats.personalityTraits.appetite} />
 
       {/* Action Buttons */}
       <Label
@@ -384,7 +387,7 @@ export function StatsUI() {
           onMouseDown={() => minAllStats()}
         />
         <Button
-          value="💩 Poop"
+          value="Poop"
           variant="secondary"
           fontSize={11}
           uiTransform={{ width: 65, height: 26 }}
@@ -394,4 +397,3 @@ export function StatsUI() {
     </UiEntity>
   )
 }
-

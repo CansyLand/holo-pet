@@ -1,7 +1,19 @@
-import { engine, Transform, GltfContainer, MeshCollider, MeshRenderer, Material, ColliderLayer } from '@dcl/sdk/ecs'
+import {
+  engine,
+  Transform,
+  GltfContainer,
+  MeshCollider,
+  MeshRenderer,
+  Material,
+  ColliderLayer,
+  PointerEvents,
+  PointerEventType,
+  InputAction
+} from '@dcl/sdk/ecs'
 import { Vector3, Color4 } from '@dcl/sdk/math'
 import { SceneElement, SceneType } from '../components/Scene'
 import { Theme } from '../components/GameState'
+import { Interactable, InteractionType } from '../components/Interaction'
 import { getThemeDisplayName } from '../utils/theme'
 
 // =============================================================================
@@ -150,8 +162,26 @@ function createFoodBowl(color: Color4) {
     metallic: 0.3,
     roughness: 0.5
   })
-  MeshCollider.setCylinder(entity, ColliderLayer.CL_PHYSICS)
+  MeshCollider.setCylinder(entity, ColliderLayer.CL_POINTER)
   SceneElement.create(entity, { sceneType: SceneType.PET })
+
+  // Make it clickable for feeding
+  Interactable.create(entity, {
+    type: InteractionType.FEED
+  })
+
+  PointerEvents.create(entity, {
+    pointerEvents: [
+      {
+        eventType: PointerEventType.PET_DOWN,
+        eventInfo: {
+          button: InputAction.IA_POINTER,
+          hoverText: 'Feed Pet'
+        }
+      }
+    ]
+  })
+
   return entity
 }
 
@@ -167,8 +197,26 @@ function createWaterBowl(color: Color4) {
     metallic: 0.3,
     roughness: 0.5
   })
-  MeshCollider.setCylinder(entity, ColliderLayer.CL_PHYSICS)
+  MeshCollider.setCylinder(entity, ColliderLayer.CL_POINTER)
   SceneElement.create(entity, { sceneType: SceneType.PET })
+
+  // Make it clickable for drinking
+  Interactable.create(entity, {
+    type: InteractionType.DRINK_WATER
+  })
+
+  PointerEvents.create(entity, {
+    pointerEvents: [
+      {
+        eventType: PointerEventType.PET_DOWN,
+        eventInfo: {
+          button: InputAction.IA_POINTER,
+          hoverText: 'Give Water'
+        }
+      }
+    ]
+  })
+
   return entity
 }
 
@@ -184,8 +232,26 @@ function createToyBall(color: Color4) {
     metallic: 0.1,
     roughness: 0.3
   })
-  MeshCollider.setSphere(entity, ColliderLayer.CL_PHYSICS)
+  MeshCollider.setSphere(entity, ColliderLayer.CL_POINTER)
   SceneElement.create(entity, { sceneType: SceneType.PET })
+
+  // Make it clickable for play
+  Interactable.create(entity, {
+    type: InteractionType.PLAY
+  })
+
+  PointerEvents.create(entity, {
+    pointerEvents: [
+      {
+        eventType: PointerEventType.PET_DOWN,
+        eventInfo: {
+          button: InputAction.IA_POINTER,
+          hoverText: 'Play with Pet'
+        }
+      }
+    ]
+  })
+
   return entity
 }
 

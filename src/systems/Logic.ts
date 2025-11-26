@@ -17,7 +17,9 @@ import { collectPoop } from './Poop'
 import {
   MAX_MOOD,
   MAX_HUNGER,
+  MAX_ENERGY,
   MAX_CLEANLINESS,
+  MIN_ENERGY,
   MIN_HUNGER,
   MIN_CLEANLINESS,
   SAD_MOOD_THRESHOLD,
@@ -28,6 +30,7 @@ import {
   FEED_BOND_BOOST,
   PLAY_MOOD_BOOST,
   PLAY_HUNGER_INCREASE,
+  PLAY_ENERGY_DECREASE,
   PLAY_BOND_BOOST,
   PLAY_CLEANLINESS_DECREASE,
   TREAT_HUNGER_REDUCTION,
@@ -41,7 +44,9 @@ import {
   BRUSH_BOND_BOOST,
   COLLECT_POOP_MOOD_BOOST,
   COLLECT_POOP_CLEANLINESS_BOOST,
-  COLLECT_POOP_BOND_BOOST
+  COLLECT_POOP_BOND_BOOST,
+  WATER_MOOD_BOOST,
+  WATER_BOND_BOOST
 } from '../utils/constants'
 
 // Track if naming popup should be shown
@@ -83,6 +88,10 @@ export function logicSystem(dt: number) {
 
       case InteractionType.COLLECT_POOP:
         handleCollectPoop(entity)
+        break
+
+      case InteractionType.DRINK_WATER:
+        handleDrinkWater(entity)
         break
 
       case InteractionType.CLEAN:
@@ -177,6 +186,7 @@ function handlePlay(entity: Entity, petData: ReturnType<typeof PetComponent.getM
 
   targetPetData.mood = Math.min(MAX_MOOD, targetPetData.mood + PLAY_MOOD_BOOST)
   targetPetData.hunger = Math.min(MAX_HUNGER, targetPetData.hunger + PLAY_HUNGER_INCREASE)
+  targetPetData.energy = Math.max(MIN_ENERGY, targetPetData.energy - PLAY_ENERGY_DECREASE)
 
   // Playing makes pet dirty
   if (hygieneData) {
@@ -186,7 +196,7 @@ function handlePlay(entity: Entity, petData: ReturnType<typeof PetComponent.getM
   addBond(targetPet, PLAY_BOND_BOOST)
   recordPlayerVisit(targetPet)
 
-  console.log(`Played with pet. Mood: ${targetPetData.mood}`)
+  console.log(`Played with pet. Mood: ${targetPetData.mood}, Energy: ${targetPetData.energy}`)
 }
 
 function handleTreat(entity: Entity) {
@@ -262,6 +272,20 @@ function handleCollectPoop(poopEntity: Entity) {
 
     console.log(`Collected poop. Mood: ${petData.mood}`)
   }
+}
+
+function handleDrinkWater(entity: Entity) {
+  const targetPet = findActivePet()
+  if (!targetPet) return
+
+  const petData = PetComponent.getMutable(targetPet)
+
+  petData.mood = Math.min(MAX_MOOD, petData.mood + WATER_MOOD_BOOST)
+
+  addBond(targetPet, WATER_BOND_BOOST)
+  recordPlayerVisit(targetPet)
+
+  console.log(`Gave water to pet. Mood: ${petData.mood}`)
 }
 
 // =============================================================================

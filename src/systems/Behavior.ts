@@ -1,5 +1,5 @@
 import { engine, Transform } from '@dcl/sdk/ecs'
-import { Vector3 } from '@dcl/sdk/math'
+import { Vector3, Quaternion } from '@dcl/sdk/math'
 import { PetComponent, PetState } from '../components/Pet'
 import { PersonalityComponent, BondComponent, TrustLevel } from '../components/Personality'
 import { HygieneComponent } from '../components/Hygiene'
@@ -12,6 +12,7 @@ import {
   PET_MOVE_SPEED,
   PET_WANDER_RADIUS,
   PET_APPROACH_DISTANCE,
+  ENERGY_REST_THRESHOLD,
   SCENE_CENTER_X,
   SCENE_CENTER_Z
 } from '../utils/constants'
@@ -108,8 +109,8 @@ function determineBehavior(
     }
   }
 
-  // Priority 3: Social pet approaches player (if bond is high enough)
-  if (bond && bond.trustLevel !== TrustLevel.STRANGER) {
+  // Priority 3: Social pet approaches player (if bond is high enough and has energy)
+  if (bond && bond.trustLevel !== TrustLevel.STRANGER && pet.energy > ENERGY_REST_THRESHOLD) {
     const playerPos = getPlayerPosition()
     if (playerPos && isPlayerNearby(playerPos)) {
       // High sociability = more likely to approach
@@ -120,8 +121,8 @@ function determineBehavior(
     }
   }
 
-  // Priority 4: Energetic pet wanders when bored
-  if (currentData.state === BehaviorState.IDLE) {
+  // Priority 4: Energetic pet wanders when bored (and has energy)
+  if (currentData.state === BehaviorState.IDLE && pet.energy > ENERGY_REST_THRESHOLD) {
     currentData.idleTime += 1
     if (currentData.idleTime > BORED_THRESHOLD) {
       // High energy = more likely to wander
@@ -144,7 +145,8 @@ function getTargetPosition(
 ): Vector3 | null {
   switch (state) {
     case BehaviorState.SEEKING_FOOD:
-      return FOOD_BOWL_POSITION
+      // Position pet 1m in front of the food bowl (along the scene's forward direction)
+      return Vector3.create(FOOD_BOWL_POSITION.x, FOOD_BOWL_POSITION.y, FOOD_BOWL_POSITION.z - 1.0)
 
     case BehaviorState.SEEKING_BATH:
       return BATHTUB_POSITION

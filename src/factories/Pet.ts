@@ -116,6 +116,7 @@ export function createPet(species: Species) {
     species: species,
     mood: 100,
     hunger: 0,
+    energy: 100,
     state: PetState.IDLE
   })
 
@@ -132,7 +133,7 @@ export function createPet(species: Species) {
 
   // Initialize bond component - starts as stranger
   BondComponent.create(entity, {
-    bond: 30, // Start with some bond so pet doesn't immediately run away
+    bond: 50, // Start with some bond so pet doesn't immediately run away
     trustLevel: TrustLevel.ACQUAINTANCE,
     lastVisitTime: Date.now() / 1000
   })

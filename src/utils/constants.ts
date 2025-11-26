@@ -6,16 +6,19 @@
 export const TIME_UPDATE_INTERVAL = 1.0 // seconds between time updates
 export const MOOD_DECAY_RATE = 5 // mood points lost per update
 export const HUNGER_GROWTH_RATE = 1 // hunger points gained per update
+export const ENERGY_RECOVERY_RATE = 2 // energy points gained per update when resting
 
 // =============================================================================
 // PET STATS CONSTANTS
 // =============================================================================
 export const MAX_MOOD = 100
 export const MAX_HUNGER = 100
+export const MAX_ENERGY = 100
 export const MAX_CLEANLINESS = 100
 export const MAX_BOND = 100
 export const MIN_MOOD = 0
 export const MIN_HUNGER = 0
+export const MIN_ENERGY = 0
 export const MIN_CLEANLINESS = 0
 export const MIN_BOND = 0
 export const SAD_MOOD_THRESHOLD = 20 // mood below this = SAD state
@@ -68,6 +71,8 @@ export const FEED_MOOD_BOOST = 5 // mood increase when feeding
 export const FEED_BOND_BOOST = 2 // bond increase when feeding
 export const PLAY_MOOD_BOOST = 15 // mood increase when playing
 export const PLAY_HUNGER_INCREASE = 5 // hunger increase when playing
+export const PLAY_ENERGY_DECREASE = 20 // energy decrease when playing
+export const ENERGY_REST_THRESHOLD = 20 // energy below this = pet only sits
 export const PLAY_BOND_BOOST = 3 // bond increase when playing
 export const PLAY_CLEANLINESS_DECREASE = 5 // cleanliness decrease when playing
 
@@ -93,6 +98,13 @@ export const BRUSH_BOND_BOOST = 1
 export const COLLECT_POOP_MOOD_BOOST = 10
 export const COLLECT_POOP_CLEANLINESS_BOOST = 5
 export const COLLECT_POOP_BOND_BOOST = 1
+
+// Poop Cleanliness Penalty (per active poop)
+export const POOP_CLEANLINESS_PENALTY = 10
+
+// Water Bowl
+export const WATER_MOOD_BOOST = 3
+export const WATER_BOND_BOOST = 1
 
 // =============================================================================
 // MOVEMENT SYSTEM CONSTANTS

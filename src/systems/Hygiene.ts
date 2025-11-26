@@ -2,6 +2,7 @@ import { engine, Entity } from '@dcl/sdk/ecs'
 import { PetComponent } from '../components/Pet'
 import { PersonalityComponent } from '../components/Personality'
 import { HygieneComponent } from '../components/Hygiene'
+import { getActivePoopCount } from './Poop'
 import {
   HYGIENE_DECAY_RATE,
   HYGIENE_INTERVAL,
@@ -9,6 +10,7 @@ import {
   FILTHY_THRESHOLD,
   DIRTY_MOOD_PENALTY,
   FILTHY_MOOD_PENALTY,
+  POOP_CLEANLINESS_PENALTY,
   MIN_CLEANLINESS,
   MAX_CLEANLINESS,
   MIN_MOOD
@@ -50,6 +52,16 @@ export function hygieneSystem(dt: number) {
       hygieneData.cleanliness = Math.max(
         MIN_CLEANLINESS,
         hygieneData.cleanliness - decayAmount
+      )
+    }
+
+    // Apply cleanliness penalty from active poops
+    const activePoops = getActivePoopCount()
+    if (activePoops > 0) {
+      const poopPenalty = activePoops * POOP_CLEANLINESS_PENALTY
+      hygieneData.cleanliness = Math.max(
+        MIN_CLEANLINESS,
+        hygieneData.cleanliness - poopPenalty
       )
     }
 
