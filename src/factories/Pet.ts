@@ -12,10 +12,10 @@ import {
   GltfContainer,
   Animator
 } from '@dcl/sdk/ecs'
-import { Vector3, Color4 } from '@dcl/sdk/math'
+import { Vector3, Color4, Quaternion } from '@dcl/sdk/math'
 import { PetComponent, Species, PetState } from '../components/Pet'
 import { Interactable, InteractionType } from '../components/Interaction'
-import { PetAnimationStateComponent } from '../components/UIState'
+import { PetAnimationStateComponent, CursorFollowComponent } from '../components/UIState'
 import {
   PersonalityComponent,
   BondComponent,
@@ -27,7 +27,7 @@ import { HygieneComponent } from '../components/Hygiene'
 import { createPetMenu } from './UI'
 import { createPoopPool } from './PoopPool'
 import { createAllStations } from './Station'
-import { SCENE_CENTER_X, SCENE_CENTER_Z, MAX_CLEANLINESS, MAX_BOND } from '../utils/constants'
+import { SCENE_CENTER_X, SCENE_CENTER_Z, MAX_CLEANLINESS, MAX_BOND, CURSOR_FOLLOW_MAX_TILT } from '../utils/constants'
 
 export function createEgg() {
   const entity = engine.addEntity()
@@ -150,6 +150,13 @@ export function createPet(species: Species) {
     name: '', // Will be set after naming popup
     hatchedAt: Date.now(),
     ownerId: '' // Will be set when persistence is implemented
+  })
+
+  // Cursor follow - starts disabled, activated when camera focuses
+  CursorFollowComponent.create(entity, {
+    isActive: false,
+    baseRotation: Quaternion.Identity(), // Will be set when activated
+    maxTiltAngle: CURSOR_FOLLOW_MAX_TILT
   })
 
   Interactable.create(entity, {

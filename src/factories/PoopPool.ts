@@ -96,4 +96,3 @@ export function createPoopPool(): Entity {
 
   return managerEntity
 }
-

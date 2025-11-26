@@ -11,6 +11,7 @@ import { renderSystem } from './systems/Render'
 import { movementSystem } from './systems/Movement'
 import { menuPositionSystem } from './systems/MenuPosition'
 import { animationSystem } from './systems/Animation'
+import { cursorFollowSystem } from './systems/CursorFollow'
 // Tamagotchi systems
 import { behaviorSystem } from './systems/Behavior'
 import { bondSystem } from './systems/Bond'
@@ -36,6 +37,7 @@ export function main() {
   engine.addSystem(movementSystem) // Movement system closes menu when player walks away
   engine.addSystem(animationSystem) // After Movement so menu state changes are processed
   engine.addSystem(menuPositionSystem)
+  engine.addSystem(cursorFollowSystem) // Cursor follow when camera is focused
 
   // 2. Setup Tamagotchi Systems (Personality & Care)
   engine.addSystem(behaviorSystem) // Pet autonomous movement

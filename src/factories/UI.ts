@@ -15,9 +15,15 @@ import {
   ColliderLayer,
   PointerLock
 } from '@dcl/sdk/ecs'
-import { Vector3, Color4 } from '@dcl/sdk/math'
+import { Vector3, Color4, Quaternion } from '@dcl/sdk/math'
 import { Interactable, InteractionType } from '../components/Interaction'
-import { MoodBarComponent, MenuStateComponent, MenuElementComponent, CameraFocusComponent } from '../components/UIState'
+import {
+  MoodBarComponent,
+  MenuStateComponent,
+  MenuElementComponent,
+  CameraFocusComponent,
+  CursorFollowComponent
+} from '../components/UIState'
 import { startCameraFocusMonitoring, stopCameraFocusMonitoring } from '../systems/CameraFocus'
 
 export function createPetMenu(petEntity: Entity) {
@@ -295,6 +301,27 @@ export function activatePetCamera(cameraEntity: Entity) {
   // Unlock cursor when focused
   PointerLock.getMutable(engine.CameraEntity).isPointerLocked = false
 
+  // Enable cursor follow for the pet
+  const virtualCamera = VirtualCamera.get(cameraEntity)
+  if (virtualCamera?.lookAtEntity) {
+    const petEntity = virtualCamera.lookAtEntity
+    const cursorFollow = CursorFollowComponent.getMutableOrNull(petEntity as Entity)
+    if (cursorFollow) {
+      const petTransform = Transform.get(petEntity as Entity)
+
+      const mutableCursorFollow = CursorFollowComponent.getMutable(petEntity as Entity)
+      mutableCursorFollow.isActive = true
+      mutableCursorFollow.baseRotation = {
+        x: petTransform.rotation.x,
+        y: petTransform.rotation.y,
+        z: petTransform.rotation.z,
+        w: petTransform.rotation.w
+      }
+
+      console.log(`Cursor follow enabled for pet`)
+    }
+  }
+
   console.log(`Camera focused on pet - cursor unlocked (was ${originalCursorLocked ? 'locked' : 'unlocked'})`)
 }
 
@@ -323,6 +350,25 @@ export function deactivatePetCamera() {
 
   // Stop camera focus monitoring since no cameras are focused
   stopCameraFocusMonitoring()
+
+  // Disable cursor follow for all pets and reset their rotation
+  for (const [petEntity, cursorFollow] of engine.getEntitiesWith(CursorFollowComponent)) {
+    if (cursorFollow.isActive) {
+      const petTransform = Transform.getMutable(petEntity)
+
+      // Reset rotation to base rotation
+      petTransform.rotation = {
+        x: cursorFollow.baseRotation.x,
+        y: cursorFollow.baseRotation.y,
+        z: cursorFollow.baseRotation.z,
+        w: cursorFollow.baseRotation.w
+      }
+
+      const mutableCursorFollow = CursorFollowComponent.getMutable(petEntity)
+      mutableCursorFollow.isActive = false
+      console.log(`Cursor follow disabled for pet - rotation reset to base`)
+    }
+  }
 
   // Deactivate virtual camera
   const mainCamera = MainCamera.getMutableOrNull(engine.CameraEntity)

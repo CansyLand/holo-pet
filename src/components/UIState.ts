@@ -48,6 +48,16 @@ export const CameraFocusComponent = engine.defineComponent('CameraFocusComponent
   originalCursorLocked: Schemas.Optional(Schemas.Boolean) // Restore cursor state when exiting
 })
 
+/**
+ * Tracks cursor follow state for pet interaction
+ * Controls whether pet looks at cursor when camera is focused
+ */
+export const CursorFollowComponent = engine.defineComponent('CursorFollowComponent', {
+  isActive: Schemas.Boolean, // Only active when camera is focused
+  baseRotation: Schemas.Quaternion, // Store pet's original rotation
+  maxTiltAngle: Schemas.Number // Max rotation angle (degrees)
+})
+
 // -----------------------------------------------------------------------------
 // Animation State
 // -----------------------------------------------------------------------------
