@@ -1,12 +1,20 @@
 import { Schemas, engine } from '@dcl/sdk/ecs'
 
 export enum InteractionType {
+  // Existing interactions
   PET = 'pet',
   FEED = 'feed',
   PLAY = 'play',
   CLEAN = 'clean',
   HATCH = 'hatch',
-  CLOSE_MENU = 'close_menu'
+  CLOSE_MENU = 'close_menu',
+
+  // New Tamagotchi interactions
+  BATHE = 'bathe',
+  BRUSH = 'brush',
+  GIVE_TREAT = 'give_treat',
+  COLLECT_POOP = 'collect_poop',
+  NAME_PET = 'name_pet'
 }
 
 // Tag for entities that can be interacted with

@@ -1,5 +1,6 @@
 import {
   engine,
+  Entity,
   Transform,
   MeshRenderer,
   MeshCollider,
@@ -15,11 +16,18 @@ import { Vector3, Color4 } from '@dcl/sdk/math'
 import { PetComponent, Species, PetState } from '../components/Pet'
 import { Interactable, InteractionType } from '../components/Interaction'
 import { PetAnimationStateComponent } from '../components/UIState'
-import { createPetMenu } from './UI' // We will create this next
-
-// Scene center for 2x2 parcels (32m x 32m)
-const SCENE_CENTER_X = 16
-const SCENE_CENTER_Z = 16
+import {
+  PersonalityComponent,
+  BondComponent,
+  PetIdentityComponent,
+  TrustLevel,
+  generatePersonality
+} from '../components/Personality'
+import { HygieneComponent } from '../components/Hygiene'
+import { createPetMenu } from './UI'
+import { createPoopPool } from './PoopPool'
+import { createAllStations } from './Station'
+import { SCENE_CENTER_X, SCENE_CENTER_Z, MAX_CLEANLINESS, MAX_BOND } from '../utils/constants'
 
 export function createEgg() {
   const entity = engine.addEntity()
@@ -62,8 +70,8 @@ export function createPet(species: Species) {
   const entity = engine.addEntity()
 
   Transform.create(entity, {
-    position: Vector3.create(SCENE_CENTER_X, 0.5, SCENE_CENTER_Z), // Centered in 2x2 parcel
-    scale: Vector3.create(1.5, 1.5, 1.5) // Slightly larger scale for better visibility
+    position: Vector3.create(SCENE_CENTER_X, 0.5, SCENE_CENTER_Z),
+    scale: Vector3.create(1.5, 1.5, 1.5)
   })
 
   // Load the 3D dog model
@@ -71,7 +79,7 @@ export function createPet(species: Species) {
     src: 'assets/models/BlockDog.glb'
   })
 
-  // Add Animator component with three animation states
+  // Add Animator component with animation states
   Animator.create(entity, {
     states: [
       {
@@ -103,11 +111,44 @@ export function createPet(species: Species) {
   // Add collision for interaction
   MeshCollider.setBox(entity, ColliderLayer.CL_POINTER)
 
+  // Core pet component
   PetComponent.create(entity, {
     species: species,
     mood: 100,
     hunger: 0,
     state: PetState.IDLE
+  })
+
+  // Generate unique personality for this pet
+  const personality = generatePersonality()
+  PersonalityComponent.create(entity, {
+    energy: personality.energy,
+    sociability: personality.sociability,
+    cleanliness: personality.cleanliness,
+    appetite: personality.appetite
+  })
+
+  console.log(`Pet personality generated:`, personality)
+
+  // Initialize bond component - starts as stranger
+  BondComponent.create(entity, {
+    bond: 30, // Start with some bond so pet doesn't immediately run away
+    trustLevel: TrustLevel.ACQUAINTANCE,
+    lastVisitTime: Date.now() / 1000
+  })
+
+  // Initialize hygiene component - starts clean
+  HygieneComponent.create(entity, {
+    cleanliness: MAX_CLEANLINESS,
+    lastBathTime: Date.now() / 1000,
+    lastBrushTime: Date.now() / 1000
+  })
+
+  // Pet identity - name will be set by naming popup
+  PetIdentityComponent.create(entity, {
+    name: '', // Will be set after naming popup
+    hatchedAt: Date.now(),
+    ownerId: '' // Will be set when persistence is implemented
   })
 
   Interactable.create(entity, {
@@ -129,5 +170,47 @@ export function createPet(species: Species) {
   // Spawn UI attached to pet and get menu state entity
   const menuStateEntity = createPetMenu(entity)
 
+  // Create poop pool for this pet environment
+  createPoopPool()
+
+  // Create care stations
+  createAllStations()
+
   return { petEntity: entity, menuStateEntity }
+}
+
+/**
+ * Set the pet's name and update hover text (called from naming UI)
+ */
+export function setPetName(petEntity: Entity, name: string) {
+  const identity = PetIdentityComponent.getMutableOrNull(petEntity)
+  if (identity) {
+    identity.name = name
+    console.log(`Pet named: ${name}`)
+
+    // Update the hover text to show the pet's name
+    updatePetHoverText(petEntity, name)
+  }
+}
+
+/**
+ * Update the pet's hover text to show its name
+ */
+export function updatePetHoverText(petEntity: Entity, name: string) {
+  // Remove old PointerEvents and create new one with updated text
+  if (PointerEvents.has(petEntity)) {
+    PointerEvents.deleteFrom(petEntity)
+  }
+
+  PointerEvents.create(petEntity, {
+    pointerEvents: [
+      {
+        eventType: PointerEventType.PET_DOWN,
+        eventInfo: {
+          button: InputAction.IA_POINTER,
+          hoverText: name || 'Pet'
+        }
+      }
+    ]
+  })
 }
