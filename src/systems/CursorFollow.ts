@@ -43,7 +43,7 @@ export function cursorFollowSystem(dt: number) {
 
     // Calculate target rotations based on cursor position (in degrees)
     const targetRotY = -normalizedX * cursorFollow.maxTiltAngle
-    const targetRotX = normalizedY * (cursorFollow.maxTiltAngle * 0.5) // Less vertical tilt
+    const targetRotX = -normalizedY * (cursorFollow.maxTiltAngle * 0.5) // Less vertical tilt
 
     // Create target rotation by modifying the base rotation
     const tiltRotation = Quaternion.fromEulerDegrees(targetRotX, targetRotY, 0)

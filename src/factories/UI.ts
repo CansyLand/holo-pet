@@ -293,6 +293,32 @@ export function activatePetCamera(cameraEntity: Entity) {
   // Start camera focus monitoring to prevent cursor locking
   startCameraFocusMonitoring()
 
+  // Update camera position to be in front of pet's facing direction
+  const cameraConfig = VirtualCamera.get(cameraEntity)
+  if (cameraConfig?.lookAtEntity) {
+    const petEntity = cameraConfig.lookAtEntity as Entity
+
+    // Get pet's current transform
+    const petTransform = Transform.get(petEntity)
+    const petPos = petTransform.position
+    const petRotation = petTransform.rotation
+
+    // Calculate forward direction from pet's rotation
+    const forward = Vector3.rotate(Vector3.Forward(), petRotation)
+
+    // Position camera 2m in front of pet + height offset
+    const cameraPos = Vector3.add(
+      petPos,
+      Vector3.add(
+        Vector3.scale(forward, 2), // 2m in front
+        Vector3.create(0, 2.5, 0) // height offset for good viewing angle
+      )
+    )
+
+    // Update camera transform
+    Transform.getMutable(cameraEntity).position = cameraPos
+  }
+
   // Activate virtual camera
   MainCamera.createOrReplace(engine.CameraEntity, {
     virtualCameraEntity: cameraEntity
