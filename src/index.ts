@@ -17,6 +17,7 @@ import { behaviorSystem } from './systems/Behavior'
 import { bondSystem } from './systems/Bond'
 import { hygieneSystem } from './systems/Hygiene'
 import { poopSystem } from './systems/Poop'
+import { heartParticleSystem } from './systems/HeartParticle'
 import { namingSystem, NamingUI } from './factories/NamingUI'
 import { StatsUI } from './factories/StatsUI'
 
@@ -41,6 +42,7 @@ export function main() {
   engine.addSystem(bondSystem) // Bond decay and runaway
   engine.addSystem(hygieneSystem) // Cleanliness decay
   engine.addSystem(poopSystem) // Poop spawning and collection
+  engine.addSystem(heartParticleSystem) // Heart particles when petting
   engine.addSystem(namingSystem) // Pet naming popup trigger
 
   // 3. Setup ReactECS UI (naming popup + debug stats)

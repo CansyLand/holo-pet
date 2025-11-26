@@ -26,6 +26,7 @@ import {
 import { HygieneComponent } from '../components/Hygiene'
 import { createPetMenu } from './UI'
 import { createPoopPool } from './PoopPool'
+import { createHeartPool } from './HeartPool'
 import { createAllStations } from './Station'
 import { SCENE_CENTER_X, SCENE_CENTER_Z, MAX_CLEANLINESS, MAX_BOND, CURSOR_FOLLOW_MAX_TILT } from '../utils/constants'
 
@@ -180,6 +181,9 @@ export function createPet(species: Species) {
 
   // Create poop pool for this pet environment
   createPoopPool()
+
+  // Create heart particle pool for visual feedback
+  createHeartPool()
 
   // Create care stations
   createAllStations()

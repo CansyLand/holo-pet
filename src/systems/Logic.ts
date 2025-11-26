@@ -14,6 +14,7 @@ import { getCurrentTheme, getThemeDisplayName } from '../utils/theme'
 import { addBond, recordPlayerVisit } from './Bond'
 import { applyBath, applyBrush } from './Hygiene'
 import { collectPoop } from './Poop'
+import { spawnHearts } from './HeartParticle'
 import {
   MAX_MOOD,
   MAX_HUNGER,
@@ -156,6 +157,9 @@ function handlePetInteraction(entity: Entity) {
       addBond(entity, PET_BOND_BOOST * socialModifier)
       recordPlayerVisit(entity)
 
+      // Spawn heart particles!
+      spawnHearts(entity)
+
       console.log(`Pet directly petted in focused mode: mood ${oldMood} -> ${petData.mood}`)
     } else {
       // Not in focused mode - show menu and activate camera
@@ -180,6 +184,9 @@ function handlePetInteraction(entity: Entity) {
       // Add bond
       addBond(petEntity, PET_BOND_BOOST * socialModifier)
       recordPlayerVisit(petEntity)
+
+      // Spawn heart particles!
+      spawnHearts(petEntity)
 
       console.log(`Pet button clicked: mood ${oldMood} -> ${petData.mood}`)
     }
