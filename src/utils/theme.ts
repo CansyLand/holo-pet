@@ -85,5 +85,3 @@ export function getThemeDisplayName(theme: Theme): string {
       return '🌿 Default'
   }
 }
-
-

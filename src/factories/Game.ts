@@ -9,8 +9,3 @@ export function createGameEntity() {
   })
   return entity
 }
-
-
-
-
-

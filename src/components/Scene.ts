@@ -8,6 +8,3 @@ export enum SceneType {
 export const SceneElement = engine.defineComponent('SceneElement', {
   sceneType: Schemas.EnumString<SceneType>(SceneType, SceneType.TECH)
 })
-
-
-

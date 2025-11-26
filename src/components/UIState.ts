@@ -14,9 +14,9 @@ import { Schemas, engine } from '@dcl/sdk/ecs'
  * Created per-pet to manage their individual menu visibility
  */
 export const MenuStateComponent = engine.defineComponent('MenuStateComponent', {
-  isVisible: Schemas.Boolean,                          // true = Focus Mode, false = Idle Mode
-  petEntity: Schemas.Entity,                           // The pet this menu belongs to
-  menuRootEntity: Schemas.Entity,                      // Root entity for menu positioning
+  isVisible: Schemas.Boolean, // true = Focus Mode, false = Idle Mode
+  petEntity: Schemas.Entity, // The pet this menu belongs to
+  menuRootEntity: Schemas.Entity, // Root entity for menu positioning
   virtualCameraEntity: Schemas.Optional(Schemas.Entity) // Camera used during Focus Mode
 })
 
@@ -44,7 +44,7 @@ export const MoodBarComponent = engine.defineComponent('MoodBarComponent', {
  * Used to manage cursor lock/unlock during pet interaction
  */
 export const CameraFocusComponent = engine.defineComponent('CameraFocusComponent', {
-  isCameraFocused: Schemas.Boolean,                      // true when in Focus Mode
+  isCameraFocused: Schemas.Boolean, // true when in Focus Mode
   originalCursorLocked: Schemas.Optional(Schemas.Boolean) // Restore cursor state when exiting
 })
 
@@ -57,9 +57,9 @@ export const CameraFocusComponent = engine.defineComponent('CameraFocusComponent
  * Handles Idle <-> Sitting transitions when entering/exiting Focus Mode
  */
 export const PetAnimationStateComponent = engine.defineComponent('PetAnimationStateComponent', {
-  currentAnimation: Schemas.String,   // Current clip: 'Idle', 'Sitting', 'Standing'
-  lastMenuVisible: Schemas.Boolean,   // Detects menu visibility changes
-  isTransitioning: Schemas.Boolean,   // True during Standing animation
+  currentAnimation: Schemas.String, // Current clip: 'Idle', 'Sitting', 'Standing'
+  lastMenuVisible: Schemas.Boolean, // Detects menu visibility changes
+  isTransitioning: Schemas.Boolean, // True during Standing animation
   transitionStartTime: Schemas.Number // When Standing animation started
 })
 
@@ -82,9 +82,6 @@ export const AnimationComponent = engine.defineComponent('AnimationComponent', {
  */
 export const MoodFeedbackComponent = engine.defineComponent('MoodFeedbackComponent', {
   particleEntity: Schemas.Optional(Schemas.Entity), // Associated particle effect
-  animationState: Schemas.String,                    // Current animation name
-  lastFeedbackTime: Schemas.Number                   // Timestamp for cooldowns
+  animationState: Schemas.String, // Current animation name
+  lastFeedbackTime: Schemas.Number // Timestamp for cooldowns
 })
-
-
-
