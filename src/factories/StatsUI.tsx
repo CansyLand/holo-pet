@@ -5,7 +5,30 @@ import { PetComponent } from '../components/Pet'
 import { PersonalityComponent, BondComponent, PetIdentityComponent, TrustLevel } from '../components/Personality'
 import { HygieneComponent } from '../components/Hygiene'
 import { GameState, GamePhase } from '../components/GameState'
-import { getActivePoopCount, forcePoop } from '../systems/Poop'
+import { PoopComponent, PoopPoolManager } from '../components/Poop'
+import { HeartParticleComponent, HeartPoolManager } from '../components/HeartParticle'
+import {
+  MenuElementComponent,
+  MenuStateComponent,
+  MoodBarComponent,
+  CameraFocusComponent,
+  CursorFollowComponent,
+  PetAnimationStateComponent
+} from '../components/UIState'
+import { SceneElement, SceneType } from '../components/Scene'
+import { getActivePoopCount, forcePoop, resetPoopSystem } from '../systems/Poop'
+import { resetHeartSystem } from '../systems/HeartParticle'
+import { resetBondSystem } from '../systems/Bond'
+import { resetHygieneSystem } from '../systems/Hygiene'
+import { resetTimeSystem } from '../systems/Time'
+import { resetBehaviorSystem } from '../systems/Behavior'
+import { resetLogicSystem } from '../systems/Logic'
+import { resetNamingSystem } from './NamingUI'
+import { createTechEnvironment, removeSceneByType } from './Environment'
+import { createEgg } from './Pet'
+import { deactivatePetCamera } from './UI'
+import { deletePet } from '../persistence/api'
+import { getWalletAddress } from '../utils/wallet'
 import {
   MAX_MOOD,
   MAX_HUNGER,
@@ -192,6 +215,125 @@ function minAllStats() {
   if (hygiene) {
     hygiene.cleanliness = 15
   }
+}
+
+/**
+ * Reset the game - remove pet, return to egg state
+ */
+function resetGame() {
+  console.log('=== RESETTING GAME ===')
+
+  // 0. Delete from Firebase first
+  const wallet = getWalletAddress()
+  if (wallet) {
+    console.log('🗑️ Deleting pet from Firebase...')
+    deletePet()
+      .then((success) => {
+        if (success) {
+          console.log('✅ Pet deleted from Firebase')
+        } else {
+          console.error('❌ Failed to delete pet from Firebase')
+        }
+      })
+      .catch((error) => {
+        console.error('❌ Firebase delete error:', error)
+      })
+  }
+
+  // 1. Deactivate any focused camera first
+  deactivatePetCamera()
+
+  // 2. Collect all entities to remove
+  const entitiesToRemove: Entity[] = []
+
+  // Remove poop pool entities
+  for (const [entity] of engine.getEntitiesWith(PoopComponent)) {
+    entitiesToRemove.push(entity)
+  }
+
+  // Remove poop pool manager
+  for (const [entity] of engine.getEntitiesWith(PoopPoolManager)) {
+    entitiesToRemove.push(entity)
+  }
+
+  // Remove heart pool entities
+  for (const [entity] of engine.getEntitiesWith(HeartParticleComponent)) {
+    entitiesToRemove.push(entity)
+  }
+
+  // Remove heart pool manager
+  for (const [entity] of engine.getEntitiesWith(HeartPoolManager)) {
+    entitiesToRemove.push(entity)
+  }
+
+  // Remove menu elements (buttons, mood bar)
+  for (const [entity] of engine.getEntitiesWith(MenuElementComponent)) {
+    entitiesToRemove.push(entity)
+  }
+
+  // Remove menu state entities
+  for (const [entity] of engine.getEntitiesWith(MenuStateComponent)) {
+    entitiesToRemove.push(entity)
+  }
+
+  // Remove camera focus entities (virtual cameras)
+  for (const [entity] of engine.getEntitiesWith(CameraFocusComponent)) {
+    entitiesToRemove.push(entity)
+  }
+
+  // Remove mood bar entities (if any not caught by MenuElement)
+  for (const [entity] of engine.getEntitiesWith(MoodBarComponent)) {
+    if (!entitiesToRemove.includes(entity)) {
+      entitiesToRemove.push(entity)
+    }
+  }
+
+  // Remove the pet entity
+  if (activePetEntity) {
+    entitiesToRemove.push(activePetEntity)
+  }
+
+  // 3. Remove all PET scene elements (ground, bowls, stations, decorations)
+  removeSceneByType(SceneType.PET)
+
+  // 4. Actually remove collected entities
+  for (const entity of entitiesToRemove) {
+    try {
+      engine.removeEntity(entity)
+    } catch (e) {
+      // Entity might already be removed
+    }
+  }
+
+  console.log(`Removed ${entitiesToRemove.length} entities`)
+
+  // 5. Reset all system states
+  resetPoopSystem()
+  resetHeartSystem()
+  resetBondSystem()
+  resetHygieneSystem()
+  resetTimeSystem()
+  resetBehaviorSystem()
+  resetLogicSystem()
+  resetNamingSystem()
+
+  // 6. Reset game state to EGG phase
+  for (const [gameEntity] of engine.getEntitiesWith(GameState)) {
+    const gameState = GameState.getMutable(gameEntity)
+    gameState.phase = GamePhase.EGG
+    gameState.activePetEntity = 0 as Entity // Use 0 as "no entity"
+    gameState.menuStateEntity = undefined
+  }
+
+  // 7. Clear local cached state
+  cachedStats = null
+  activePetEntity = null
+
+  // 8. Recreate tech environment and egg
+  createTechEnvironment()
+  createEgg()
+
+  console.log('=== GAME RESET COMPLETE ===')
 }
 
 // =============================================================================
@@ -392,6 +534,25 @@ export function StatsUI() {
           fontSize={11}
           uiTransform={{ width: 65, height: 26 }}
           onMouseDown={() => forcePoop()}
+        />
+      </UiEntity>
+
+      {/* Reset Button - Separate row for safety */}
+      <UiEntity
+        uiTransform={{
+          width: '100%',
+          flexDirection: 'row',
+          justifyContent: 'center',
+          margin: { top: 8 }
+        }}
+      >
+        <Button
+          value="Reset Game"
+          variant="secondary"
+          fontSize={11}
+          color={Color4.create(1, 0.3, 0.3, 1)}
+          uiTransform={{ width: 120, height: 26 }}
+          onMouseDown={() => resetGame()}
         />
       </UiEntity>
     </UiEntity>

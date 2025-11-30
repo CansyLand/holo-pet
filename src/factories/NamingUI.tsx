@@ -247,3 +247,16 @@ export function namingSystem(dt: number) {
     namingDelayTimer = 0
   }
 }
+
+/**
+ * Reset the naming system state
+ * Called when resetting the game
+ */
+export function resetNamingSystem() {
+  isNamingActive = false
+  currentName = ''
+  targetPetEntity = null
+  namingDelayTimer = 0
+  pendingNamingTriggered = false
+  console.log('Naming system reset')
+}

@@ -19,33 +19,33 @@ Pets are no longer simple state machines. They have:
 
 ### Stats
 
-| Stat | Type | Decay | Description |
-|------|------|-------|-------------|
-| **Mood** | Temporary | Yes (fast) | Current happiness, affected by all needs |
-| **Bond** | Relationship | Yes (slow) | Trust level with owner. At 0: pet runs away |
-| **Hunger** | Need | Grows | Increases over time, reduced by feeding |
-| **Cleanliness** | Need | Decays | Decreases over time, restored by bathing/brushing |
+| Stat            | Type         | Decay      | Description                                       |
+| --------------- | ------------ | ---------- | ------------------------------------------------- |
+| **Mood**        | Temporary    | Yes (fast) | Current happiness, affected by all needs          |
+| **Bond**        | Relationship | Yes (slow) | Trust level with owner. At 0: pet runs away       |
+| **Hunger**      | Need         | Grows      | Increases over time, reduced by feeding           |
+| **Cleanliness** | Need         | Decays     | Decreases over time, restored by bathing/brushing |
 
 ### Trust Levels (Bond Thresholds)
 
-| Level | Bond Range | Visual Cue |
-|-------|------------|------------|
-| `stranger` | 0-20 | Pet avoids player |
-| `acquaintance` | 21-40 | Pet tolerates player |
-| `friend` | 41-60 | Pet approaches player |
-| `bonded` | 61-80 | Pet follows player, occasional hearts |
-| `soulmate` | 81-100 | Constant hearts, special animations |
+| Level          | Bond Range | Visual Cue                            |
+| -------------- | ---------- | ------------------------------------- |
+| `stranger`     | 0-20       | Pet avoids player                     |
+| `acquaintance` | 21-40      | Pet tolerates player                  |
+| `friend`       | 41-60      | Pet approaches player                 |
+| `bonded`       | 61-80      | Pet follows player, occasional hearts |
+| `soulmate`     | 81-100     | Constant hearts, special animations   |
 
 ### Personality Traits
 
 Generated at hatch, permanent for the pet's lifetime (0-100 scale):
 
-| Trait | High Value Effect | Low Value Effect |
-|-------|-------------------|------------------|
-| `energy` | Moves more, hunger grows faster | Lazy, hunger grows slower |
+| Trait         | High Value Effect                         | Low Value Effect                   |
+| ------------- | ----------------------------------------- | ---------------------------------- |
+| `energy`      | Moves more, hunger grows faster           | Lazy, hunger grows slower          |
 | `sociability` | Seeks player, big mood boost from petting | Independent, smaller petting boost |
-| `cleanliness` | Gets dirty faster, hates being dirty | Tolerates dirt, slower decay |
-| `appetite` | Gets hungry faster, loves food | Eats less, smaller food boost |
+| `cleanliness` | Gets dirty faster, hates being dirty      | Tolerates dirt, slower decay       |
+| `appetite`    | Gets hungry faster, loves food            | Eats less, smaller food boost      |
 
 ---
 
@@ -54,26 +54,26 @@ Generated at hatch, permanent for the pet's lifetime (0-100 scale):
 ### A. Pet Identity (`PetIdentityComponent`)
 
 ```typescript
-name: string           // Player-given name after hatch
-hatchedAt: number      // Unix timestamp
-ownerId: string        // Wallet address for persistence
+name: string // Player-given name after hatch
+hatchedAt: number // Unix timestamp
+ownerId: string // Wallet address for persistence
 ```
 
 ### B. Personality (`PersonalityComponent`)
 
 ```typescript
-energy: number         // 0-100, affects movement and hunger rate
-sociability: number    // 0-100, affects player-seeking and petting boost
-cleanliness: number    // 0-100, affects dirt rate and dirt penalty
-appetite: number       // 0-100, affects hunger rate and food boost
+energy: number // 0-100, affects movement and hunger rate
+sociability: number // 0-100, affects player-seeking and petting boost
+cleanliness: number // 0-100, affects dirt rate and dirt penalty
+appetite: number // 0-100, affects hunger rate and food boost
 ```
 
 ### C. Bond (`BondComponent`)
 
 ```typescript
-bond: number           // 0-100, relationship level
-trustLevel: string     // 'stranger' | 'acquaintance' | 'friend' | 'bonded' | 'soulmate'
-lastVisitTime: number  // Timestamp of last player interaction
+bond: number // 0-100, relationship level
+trustLevel: string // 'stranger' | 'acquaintance' | 'friend' | 'bonded' | 'soulmate'
+lastVisitTime: number // Timestamp of last player interaction
 ```
 
 **Key Mechanic:** Bond decays when player is absent. If bond reaches 0, pet runs away (game over state).
@@ -81,17 +81,17 @@ lastVisitTime: number  // Timestamp of last player interaction
 ### D. Hygiene (`HygieneComponent`)
 
 ```typescript
-cleanliness: number    // 0-100, current cleanliness level
-lastBathTime: number   // Timestamp
-lastBrushTime: number  // Timestamp
+cleanliness: number // 0-100, current cleanliness level
+lastBathTime: number // Timestamp
+lastBrushTime: number // Timestamp
 ```
 
 ### E. Poop (`PoopComponent`) - Entity Pooling Pattern
 
 ```typescript
-isActive: boolean      // false = pooled/hidden, true = visible
-spawnedAt: number      // When this poop appeared
-poolIndex: number      // Index in pre-allocated pool (0-9)
+isActive: boolean // false = pooled/hidden, true = visible
+spawnedAt: number // When this poop appeared
+poolIndex: number // Index in pre-allocated pool (0-9)
 ```
 
 **Entity Pooling:** Pre-create 10 poop entities at scene load. Never create/destroy - only toggle `isActive` and visibility.
@@ -125,7 +125,7 @@ Every POOP_INTERVAL seconds:
     Set isActive = true
     Position behind pet
     Play pet sitting animation
-    
+
 On COLLECT_POOP interaction:
   Set isActive = false
   Hide entity (move to pooled position)
@@ -137,11 +137,11 @@ On COLLECT_POOP interaction:
 ```
 Every HYGIENE_INTERVAL seconds:
   cleanliness -= HYGIENE_DECAY_RATE * (personality.cleanliness / 50)
-  
+
   If cleanliness < 40:
     Show stink visual effect
     Apply mood penalty
-    
+
   If cleanliness < 20:
     Show flies visual effect
 ```
@@ -152,16 +152,16 @@ Every HYGIENE_INTERVAL seconds:
 On any player interaction:
   lastVisitTime = now()
   bond += INTERACTION_BOND_BOOST
-  
+
 Every BOND_CHECK_INTERVAL:
   timeSinceVisit = now() - lastVisitTime
-  
+
   If timeSinceVisit > ABANDON_THRESHOLD:
     bond -= BOND_DECAY_RATE
-    
+
   If bond <= 0:
     Trigger PET_RAN_AWAY state (game over)
-    
+
   Update trustLevel based on bond thresholds
 ```
 
@@ -171,16 +171,16 @@ Every BOND_CHECK_INTERVAL:
 
 All pet states are communicated through visual cues in the game world:
 
-| State | Visual Cue | Implementation |
-|-------|------------|----------------|
-| Dirty | Stink lines + flies | GLB animation attached to pet |
-| High Bond | Hearts floating | Particle system / animated sprites |
-| Hungry | Sits at food bowl | BehaviorSystem navigation |
-| Needs Bath | Walks to bathtub | BehaviorSystem navigation |
-| Pooping | Sits down | Animation + poop spawn |
-| Happy | Wagging tail, bouncy | Animation state |
-| Sad | Droopy, slow | Animation state |
-| Ran Away | Empty scene | Pet entity removed |
+| State      | Visual Cue           | Implementation                     |
+| ---------- | -------------------- | ---------------------------------- |
+| Dirty      | Stink lines + flies  | GLB animation attached to pet      |
+| High Bond  | Hearts floating      | Particle system / animated sprites |
+| Hungry     | Sits at food bowl    | BehaviorSystem navigation          |
+| Needs Bath | Walks to bathtub     | BehaviorSystem navigation          |
+| Pooping    | Sits down            | Animation + poop spawn             |
+| Happy      | Wagging tail, bouncy | Animation state                    |
+| Sad        | Droopy, slow         | Animation state                    |
+| Ran Away   | Empty scene          | Pet entity removed                 |
 
 ---
 
@@ -197,7 +197,7 @@ export enum InteractionType {
   CLEAN = 'clean',
   HATCH = 'hatch',
   CLOSE_MENU = 'close_menu',
-  
+
   // New
   BATHE = 'bathe',
   BRUSH = 'brush',
@@ -209,15 +209,15 @@ export enum InteractionType {
 
 ### Interaction Effects
 
-| Action | Hunger | Cleanliness | Mood | Bond | Notes |
-|--------|--------|-------------|------|------|-------|
-| Feed (bowl) | -30 | - | +5 | +2 | Healthy |
-| Give Treat | -10 | - | +15 | +5 | Less healthy, more love |
-| Pet | - | - | +10 | +3 | Boosted by sociability |
-| Play | +5 | -5 | +15 | +3 | Makes hungry and dirty |
-| Bathe | - | +50 | +10 | +2 | Full bath |
-| Brush | - | +20 | +5 | +1 | Quick groom |
-| Collect Poop | - | +5 | +10 | +1 | Per poop collected |
+| Action       | Hunger | Cleanliness | Mood | Bond | Notes                   |
+| ------------ | ------ | ----------- | ---- | ---- | ----------------------- |
+| Feed (bowl)  | -30    | -           | +5   | +2   | Healthy                 |
+| Give Treat   | -10    | -           | +15  | +5   | Less healthy, more love |
+| Pet          | -      | -           | +10  | +3   | Boosted by sociability  |
+| Play         | +5     | -5          | +15  | +3   | Makes hungry and dirty  |
+| Bathe        | -      | +50         | +10  | +2   | Full bath               |
+| Brush        | -      | +20         | +5   | +1   | Quick groom             |
+| Collect Poop | -      | +5          | +10  | +1   | Per poop collected      |
 
 ---
 
@@ -227,7 +227,7 @@ export enum InteractionType {
 
 ```typescript
 const POOP_POOL_SIZE = 10
-const POOLED_POSITION = Vector3.create(0, -10, 0)  // Hidden below ground
+const POOLED_POSITION = Vector3.create(0, -10, 0) // Hidden below ground
 
 function createPoopPool(): Entity[] {
   const pool: Entity[] = []
@@ -277,9 +277,9 @@ export const PERSONALITY_MIN = 20
 export const PERSONALITY_MAX = 80
 
 // Bond System
-export const BOND_DECAY_RATE = 5        // Per check interval when abandoned
-export const ABANDON_THRESHOLD = 86400   // 24 hours in seconds
-export const BOND_CHECK_INTERVAL = 60    // Check every minute
+export const BOND_DECAY_RATE = 5 // Per check interval when abandoned
+export const ABANDON_THRESHOLD = 86400 // 24 hours in seconds
+export const BOND_CHECK_INTERVAL = 60 // Check every minute
 
 // Trust Level Thresholds
 export const TRUST_STRANGER = 20
@@ -289,15 +289,15 @@ export const TRUST_BONDED = 80
 
 // Hygiene System
 export const HYGIENE_DECAY_RATE = 2
-export const HYGIENE_INTERVAL = 30       // Seconds between decay
-export const DIRTY_THRESHOLD = 40        // Show stink effect
-export const FILTHY_THRESHOLD = 20       // Show flies
+export const HYGIENE_INTERVAL = 30 // Seconds between decay
+export const DIRTY_THRESHOLD = 40 // Show stink effect
+export const FILTHY_THRESHOLD = 20 // Show flies
 
 // Poop System
 export const POOP_POOL_SIZE = 10
-export const POOP_INTERVAL = 120         // Seconds between poop chances
-export const POOP_CHANCE = 0.3           // 30% chance per interval
-export const POOP_MOOD_PENALTY = 5       // Per active poop
+export const POOP_INTERVAL = 120 // Seconds between poop chances
+export const POOP_CHANCE = 0.3 // 30% chance per interval
+export const POOP_MOOD_PENALTY = 5 // Per active poop
 
 // Interaction Boosts
 export const TREAT_HUNGER_REDUCTION = 10
@@ -357,6 +357,41 @@ src/
 
 ---
 
+## 💾 Persistence
+
+Pet data is persisted across sessions using Firebase (Firestore + Cloud Functions). For full implementation details, see [6_ARCHITECTURE_persistence.md](6_ARCHITECTURE_persistence.md).
+
+### Persisted vs Transient Data
+
+| Component              | Persisted | Notes                              |
+| ---------------------- | --------- | ---------------------------------- |
+| `PetIdentityComponent` | Yes       | Name, hatch time, owner wallet     |
+| `PetComponent`         | Yes       | Mood, hunger, energy, state        |
+| `PersonalityComponent` | Yes       | Generated once, never changes      |
+| `BondComponent`        | Yes       | Bond level, trust, last visit time |
+| `HygieneComponent`     | Yes       | Cleanliness, bath/brush timestamps |
+| `PoopComponent`        | Partial   | Only `activePoopCount` saved       |
+| `MenuStateComponent`   | No        | UI state is always fresh           |
+| `CameraFocusComponent` | No        | Camera state resets on load        |
+
+### Key Concepts
+
+- **Wallet = Identity**: Player's Ethereum wallet address identifies their pet
+- **One Pet Per Wallet**: Simplifies data model, one document per player
+- **Server-Side Storage**: Firestore stores data securely via Cloud Functions
+- **Signed Requests**: DCL's `signedFetch` ensures wallet ownership
+
+### Save/Load Triggers
+
+| Trigger            | Action                                 |
+| ------------------ | -------------------------------------- |
+| Scene enter        | Load pet data (skip egg if pet exists) |
+| Player interaction | Debounced save (5 second window)       |
+| Scene exit         | Immediate save                         |
+| Periodic           | Auto-save every 60 seconds             |
+
+---
+
 ## 🏆 Design Decisions
 
 - **Entity Pooling for Poop:** Prevents hitting entity limits, better performance
@@ -364,4 +399,4 @@ src/
 - **Bond Decay:** Creates urgency to return, emotional stakes
 - **Personality Permanence:** Each pet is unique, encourages attachment
 - **Trust Levels:** Progressive relationship building with visible milestones
-
+- **Server-Authoritative Persistence:** Prevents cheating, enables cross-device play

@@ -20,6 +20,8 @@ import { poopSystem } from './systems/Poop'
 import { heartParticleSystem } from './systems/HeartParticle'
 import { namingSystem, NamingUI } from './factories/NamingUI'
 import { StatsUI } from './factories/StatsUI'
+// Persistence system
+import { initPersistence, persistenceSystem } from './systems/Persistence'
 
 // Combined UI renderer that shows all UI components
 function CombinedUI() {
@@ -45,17 +47,21 @@ export function main() {
   engine.addSystem(heartParticleSystem) // Heart particles when petting
   engine.addSystem(namingSystem) // Pet naming popup trigger
 
-  // 3. Setup ReactECS UI (naming popup + debug stats)
+  // 3. Setup Persistence System
+  engine.addSystem(persistenceSystem)
+  initPersistence() // Initialize persistence
+
+  // 4. Setup ReactECS UI (naming popup + debug stats)
   ReactEcsRenderer.setUiRenderer(CombinedUI)
 
-  // 4. Initialize cursor state (locked by default)
+  // 5. Initialize cursor state (locked by default)
   PointerLock.create(engine.CameraEntity, { isPointerLocked: true })
 
-  // 5. Setup Scene
+  // 6. Setup Scene
   createGameEntity()
   createBackgroundMusic()
   createTechEnvironment()
   createEgg()
 
-  console.log('Holo Pet initialized with Soul architecture (Personality System)')
+  console.log('Holo Pet initialized with persistence (local scene → production Firebase)')
 }

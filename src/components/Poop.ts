@@ -29,3 +29,5 @@ export const PoopPoolManager = engine.defineComponent('PoopPoolManager', {
 // POOP_POOL_SIZE = 10
 // POOLED_POSITION = { x: 0, y: -10, z: 0 }  // Hidden below ground
 
+
+

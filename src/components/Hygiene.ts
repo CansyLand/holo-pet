@@ -20,3 +20,5 @@ export const HygieneComponent = engine.defineComponent('HygieneComponent', {
 // DIRTY_THRESHOLD = 40  -> Show stink lines
 // FILTHY_THRESHOLD = 20 -> Show flies
 
+
+

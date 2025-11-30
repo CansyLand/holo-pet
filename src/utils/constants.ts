@@ -151,3 +151,11 @@ export const SCENE_CENTER_X = 16 // Center of 2x2 parcel
 export const SCENE_CENTER_Z = 16
 export const PLAY_AREA_POSITION_X = SCENE_CENTER_X - 3 // X position of play area (toy ball)
 export const PLAY_AREA_POSITION_Z = SCENE_CENTER_Z - 2 // Z position of play area (toy ball)
+
+// =============================================================================
+// PERSISTENCE CONSTANTS
+// =============================================================================
+export const API_BASE_URL = 'https://us-central1-cansy-decentraland.cloudfunctions.net/petApi'
+export const AUTO_SAVE_INTERVAL = 60 // seconds
+export const SAVE_DEBOUNCE_TIME = 30 // Increased debounce time
+export const PERSISTENCE_VERSION = '1.0.0' // Schema version

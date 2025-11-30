@@ -192,3 +192,14 @@ export function forcePoop() {
   console.log('Cannot force poop - no pet found')
 }
 
+/**
+ * Reset the poop system - clears pool references
+ * Called when resetting the game
+ */
+export function resetPoopSystem() {
+  poopPool = []
+  poolManagerEntity = null
+  timeSinceLastPoopCheck = 0
+  console.log('Poop system reset')
+}
+

@@ -139,3 +139,13 @@ export function getHygieneVisualState(entity: number): { isDirty: boolean; isFil
   return petHygieneVisualState.get(entity)
 }
 
+/**
+ * Reset the hygiene system state
+ * Called when resetting the game
+ */
+export function resetHygieneSystem() {
+  timeSinceLastDecay = 0
+  petHygieneVisualState.clear()
+  console.log('Hygiene system reset')
+}
+

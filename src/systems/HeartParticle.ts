@@ -128,3 +128,13 @@ export function heartParticleSystem(dt: number) {
   }
 }
 
+/**
+ * Reset the heart system - clears pool references
+ * Called when resetting the game
+ */
+export function resetHeartSystem() {
+  heartPool = []
+  managerEntity = null
+  console.log('Heart system reset')
+}
+

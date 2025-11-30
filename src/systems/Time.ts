@@ -43,3 +43,12 @@ export function timeSystem(dt: number) {
     // console.log(`Time Update - Mood: ${petData.mood}, Hunger: ${petData.hunger}, Energy: ${petData.energy}`)
   }
 }
+
+/**
+ * Reset the time system state
+ * Called when resetting the game
+ */
+export function resetTimeSystem() {
+  timer = 0
+  console.log('Time system reset')
+}

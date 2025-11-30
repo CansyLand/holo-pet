@@ -25,3 +25,5 @@ export const HeartPoolManager = engine.defineComponent('HeartPoolManager', {
   lastSpawnTime: Schemas.Number    // Cooldown between spawn bursts
 })
 
+
+

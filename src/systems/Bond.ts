@@ -125,3 +125,13 @@ export function resetGameOver() {
   gameOverTriggered = false
 }
 
+/**
+ * Reset the bond system state completely
+ * Called when resetting the game
+ */
+export function resetBondSystem() {
+  gameOverTriggered = false
+  timeSinceLastCheck = 0
+  console.log('Bond system reset')
+}
+

@@ -434,3 +434,12 @@ export function getPendingNamingEntity(): Entity | null {
 export function clearPendingNaming() {
   pendingNamingEntity = null
 }
+
+/**
+ * Reset the logic system state
+ * Called when resetting the game
+ */
+export function resetLogicSystem() {
+  pendingNamingEntity = null
+  console.log('Logic system reset')
+}
