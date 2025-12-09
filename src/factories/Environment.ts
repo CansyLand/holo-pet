@@ -156,11 +156,8 @@ function createFoodBowl(color: Color4) {
     position: Vector3.create(SCENE_CENTER_X - 2, 0.15, SCENE_CENTER_Z + 2),
     scale: Vector3.create(0.6, 0.3, 0.6)
   })
-  MeshRenderer.setCylinder(entity)
-  Material.setPbrMaterial(entity, {
-    albedoColor: color,
-    metallic: 0.3,
-    roughness: 0.5
+  GltfContainer.create(entity, {
+    src: 'assets/models/bowl.glb'
   })
   MeshCollider.setCylinder(entity, ColliderLayer.CL_POINTER)
   SceneElement.create(entity, { sceneType: SceneType.PET })

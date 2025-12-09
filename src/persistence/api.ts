@@ -1,5 +1,6 @@
 import { signedFetch } from '~system/SignedFetch'
 import { API_BASE_URL } from '../utils/constants'
+import { getWalletAddress } from '../utils/wallet'
 
 export interface PetDocument {
   identity: { name: string; species: string; hatchedAt: number }
@@ -7,7 +8,7 @@ export interface PetDocument {
   personality: { energy: number; sociability: number; cleanliness: number; appetite: number }
   bond: { bond: number; trustLevel: string; lastVisitTime: number }
   hygiene: { cleanliness: number; lastBathTime: number; lastBrushTime: number }
-  meta: { version: string; createdAt: number; updatedAt: number; activePoopCount: number }
+  meta: { version: string; createdAt: number; updatedAt: number; activePoopCount: number; gamePhase: 'egg' | 'pet'; hatchCount: number }
 }
 
 /**
@@ -15,9 +16,15 @@ export interface PetDocument {
  * Uses signedFetch to automatically include wallet signature
  */
 export async function loadPet(): Promise<PetDocument | null> {
+  const userId = getWalletAddress()
+  if (!userId) {
+    console.error('No wallet connected')
+    return null
+  }
+
   try {
     const response = await signedFetch({
-      url: `${API_BASE_URL}/pet`,
+      url: `${API_BASE_URL}/pet/${userId}`,
       init: {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
@@ -39,9 +46,15 @@ export async function loadPet(): Promise<PetDocument | null> {
  * Save pet data to your deployed Firebase functions
  */
 export async function savePet(petData: PetDocument): Promise<boolean> {
+  const userId = getWalletAddress()
+  if (!userId) {
+    console.error('No wallet connected')
+    return false
+  }
+
   try {
     const response = await signedFetch({
-      url: `${API_BASE_URL}/pet`,
+      url: `${API_BASE_URL}/pet/${userId}`,
       init: {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -58,22 +71,52 @@ export async function savePet(petData: PetDocument): Promise<boolean> {
 }
 
 /**
- * Delete pet data (reset game) from your deployed Firebase functions
+ * Reset pet to egg stage (doesn't delete data, tracks hatch count)
  */
-export async function deletePet(): Promise<boolean> {
+export async function resetPet(): Promise<boolean> {
+  const userId = getWalletAddress()
+  if (!userId) {
+    console.error('No wallet connected')
+    return false
+  }
+
   try {
-    const response = await signedFetch({
-      url: `${API_BASE_URL}/pet`,
+    // First load current data to get existing hatch count
+    const loadResponse = await signedFetch({
+      url: `${API_BASE_URL}/pet/${userId}`,
       init: {
-        method: 'DELETE',
+        method: 'GET',
         headers: { 'Content-Type': 'application/json' }
+      }
+    })
+
+    const loadData = JSON.parse(loadResponse.body)
+    const currentHatchCount = (loadData.success && loadData.pet) ? loadData.pet.meta.hatchCount || 0 : 0
+
+    // Create reset data with incremented hatch count
+    const resetData = {
+      meta: {
+        version: '1.0.0',
+        updatedAt: Date.now(),
+        gamePhase: 'egg',
+        hatchCount: currentHatchCount + 1,
+        activePoopCount: 0
+      }
+    }
+
+    const response = await signedFetch({
+      url: `${API_BASE_URL}/pet/${userId}`,
+      init: {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(resetData)
       }
     })
 
     const data = JSON.parse(response.body)
     return data.success === true
   } catch (error) {
-    console.error('Failed to delete pet:', error)
+    console.error('Failed to reset pet:', error)
     return false
   }
 }

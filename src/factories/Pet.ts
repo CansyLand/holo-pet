@@ -16,6 +16,7 @@ import { Vector3, Color4, Quaternion } from '@dcl/sdk/math'
 import { PetComponent, Species, PetState } from '../components/Pet'
 import { Interactable, InteractionType } from '../components/Interaction'
 import { PetAnimationStateComponent, CursorFollowComponent, CameraFocusComponent } from '../components/UIState'
+import { SceneElement, SceneType } from '../components/Scene'
 import {
   PersonalityComponent,
   BondComponent,
@@ -51,6 +52,8 @@ export function createEgg() {
   Interactable.create(entity, {
     type: InteractionType.HATCH
   })
+
+  SceneElement.create(entity, { sceneType: SceneType.TECH })
 
   PointerEvents.create(entity, {
     pointerEvents: [

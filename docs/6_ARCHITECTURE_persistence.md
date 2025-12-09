@@ -6,8 +6,10 @@ Building on the Soul architecture, this document defines how pet data persists a
 
 - **Wallet = Identity**: The player's Ethereum wallet address is the unique identifier
 - **One Pet Per Wallet**: Each wallet can own one pet (simplifies data model)
+- **Game State Persistence**: Tracks both pet data and game phase (egg vs pet)
+- **Hatch Counter**: Counts how many times a player has hatched pets
 - **Server-Side Storage**: Firestore stores all persistent data securely
-- **DCL Crypto Middleware**: Battle-tested authentication for Decentraland scenes
+- **DCL SignedFetch**: Uses Decentraland's signed authentication system
 
 ---
 
@@ -68,13 +70,15 @@ interface PetDocument {
     lastBrushTime: number // Unix timestamp (seconds)
   }
 
-  // Metadata
-  meta: {
-    version: string // Schema version for migrations (e.g., '1.0.0')
-    createdAt: number // Document creation timestamp
-    updatedAt: number // Last save timestamp
-    activePoopCount: number // Number of active poops (for state restoration)
-  }
+	// Metadata
+	meta: {
+		version: string // Schema version for migrations (e.g., '1.0.0')
+		createdAt: number // Document creation timestamp
+		updatedAt: number // Last save timestamp
+		activePoopCount: number // Number of active poops (for state restoration)
+		gamePhase: 'egg' | 'pet' // Current game phase
+		hatchCount: number // Number of times player has hatched pets
+	}
 }
 ```
 
@@ -101,13 +105,12 @@ server/
 
 ### Endpoints
 
-| Method | Path   | Description                   | Auth Required |
-| ------ | ------ | ----------------------------- | ------------- |
-| GET    | `/pet` | Load pet data for signed user | Yes           |
-| POST   | `/pet` | Save pet data for signed user | Yes           |
-| DELETE | `/pet` | Delete pet (reset) for user   | Yes           |
+| Method | Path         | Description                           | Auth Required |
+| ------ | ------------ | ------------------------------------- | ------------- |
+| GET    | `/pet/:userId` | Load pet data for user              | Yes           |
+| POST   | `/pet/:userId` | Save/update pet data for user       | Yes           |
 
-> **Note:** No wallet address in URL - it's extracted from the signed request via `req.auth`.
+> **Note:** User ID is included in URL path and verified via signed request.
 
 ---
 
@@ -421,8 +424,9 @@ src/
 
 ```typescript
 import { signedFetch } from '~system/SignedFetch'
+import { getWalletAddress } from '../utils/wallet'
 
-const API_BASE_URL = 'https://your-server.com' // Update with your server URL
+const API_BASE_URL = 'https://us-central1-cansy-decentraland.cloudfunctions.net/petApi'
 
 export interface PetDocument {
   identity: { name: string; species: string; hatchedAt: number }
@@ -430,18 +434,27 @@ export interface PetDocument {
   personality: { energy: number; sociability: number; cleanliness: number; appetite: number }
   bond: { bond: number; trustLevel: string; lastVisitTime: number }
   hygiene: { cleanliness: number; lastBathTime: number; lastBrushTime: number }
-  meta: { version: string; createdAt: number; updatedAt: number; activePoopCount: number }
+  meta: { version: string; createdAt: number; updatedAt: number; activePoopCount: number; gamePhase: 'egg' | 'pet'; hatchCount: number }
 }
 
 /**
- * Load pet data from server
- * Wallet address is automatically included in the signed request
+ * Load pet data from Firebase functions
+ * Uses signedFetch to automatically include wallet signature
  */
 export async function loadPet(): Promise<PetDocument | null> {
+  const userId = getWalletAddress()
+  if (!userId) {
+    console.error('No wallet connected')
+    return null
+  }
+
   try {
     const response = await signedFetch({
-      url: `${API_BASE_URL}/pet`,
-      init: { method: 'GET' }
+      url: `${API_BASE_URL}/pet/${userId}`,
+      init: {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      }
     })
 
     const data = JSON.parse(response.body)
@@ -456,12 +469,18 @@ export async function loadPet(): Promise<PetDocument | null> {
 }
 
 /**
- * Save pet data to server
+ * Save pet data to Firebase functions
  */
 export async function savePet(petData: PetDocument): Promise<boolean> {
+  const userId = getWalletAddress()
+  if (!userId) {
+    console.error('No wallet connected')
+    return false
+  }
+
   try {
     const response = await signedFetch({
-      url: `${API_BASE_URL}/pet`,
+      url: `${API_BASE_URL}/pet/${userId}`,
       init: {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -478,19 +497,52 @@ export async function savePet(petData: PetDocument): Promise<boolean> {
 }
 
 /**
- * Delete pet data (reset game)
+ * Reset pet to egg stage (doesn't delete data, tracks hatch count)
  */
-export async function deletePet(): Promise<boolean> {
+export async function resetPet(): Promise<boolean> {
+  const userId = getWalletAddress()
+  if (!userId) {
+    console.error('No wallet connected')
+    return false
+  }
+
   try {
+    // First load current data to get existing hatch count
+    const loadResponse = await signedFetch({
+      url: `${API_BASE_URL}/pet/${userId}`,
+      init: {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      }
+    })
+
+    const loadData = JSON.parse(loadResponse.body)
+    const currentHatchCount = (loadData.success && loadData.pet) ? loadData.pet.meta.hatchCount || 0 : 0
+
+    // Create reset data with incremented hatch count
+    const resetData = {
+      meta: {
+        version: '1.0.0',
+        updatedAt: Date.now(),
+        gamePhase: 'egg',
+        hatchCount: currentHatchCount + 1,
+        activePoopCount: 0
+      }
+    }
+
     const response = await signedFetch({
-      url: `${API_BASE_URL}/pet`,
-      init: { method: 'DELETE' }
+      url: `${API_BASE_URL}/pet/${userId}`,
+      init: {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(resetData)
+      }
     })
 
     const data = JSON.parse(response.body)
     return data.success === true
   } catch (error) {
-    console.error('Failed to delete pet:', error)
+    console.error('Failed to reset pet:', error)
     return false
   }
 }
@@ -636,12 +688,23 @@ export function isWalletConnected(): boolean {
 | Scene enters      | Load pet data, skip egg phase if pet exists |
 | Player reconnects | Refresh data from server                    |
 
+### Reset Behavior
+
+Instead of deleting the Firebase document when resetting the game, the system:
+
+1. **Preserves the document** with all historical data
+2. **Sets gamePhase to 'egg'** to indicate the game is in egg stage
+3. **Increments hatchCount** to track how many times the player has hatched pets
+4. **Clears active pet data** but keeps identity and personality for potential future features
+
+This allows for analytics on player engagement while maintaining a seamless reset experience.
+
 ### Implementation: `src/systems/Persistence.ts`
 
 ```typescript
 import { engine } from '@dcl/sdk/ecs'
 import { onEnterScene, onLeaveScene } from '@dcl/sdk/observables'
-import { loadPet, savePet, PetDocument } from '../persistence/api'
+import { loadPet, savePet, resetPet, PetDocument } from '../persistence/api'
 import { serializePet } from '../persistence/serialization'
 import { getWalletAddress } from '../utils/wallet'
 import { GameState, GamePhase } from '../components/GameState'
@@ -658,19 +721,8 @@ let pendingSave = false
 export function initPersistence() {
   // Load on scene enter
   onEnterScene.add(async () => {
-    const wallet = getWalletAddress()
-    if (!wallet) {
-      console.log('No wallet connected, starting fresh')
-      return
-    }
-
-    const petData = await loadPet()
-    if (petData) {
-      console.log('Loaded existing pet:', petData.identity.name)
-      restorePetFromData(petData)
-    } else {
-      console.log('No saved pet, starting with egg')
-    }
+    console.log('🎮 Scene entered, checking for saved pet...')
+    await loadPetData()
   })
 
   // Save on scene leave
@@ -849,7 +901,7 @@ function migrateDocument(doc: PetDocument): PetDocument {
 - [ ] After hatch: Data saved to Firestore
 - [ ] Reload scene: Pet restored with correct stats
 - [ ] Modify stats: Changes persist after reload
-- [ ] Reset game: Deletes Firestore document, shows egg again
+- [ ] Reset game: Sets gamePhase to 'egg', increments hatchCount, shows egg again
 - [ ] Different wallet: Shows different pet (or egg)
 - [ ] No wallet: Works in local mode (no persistence)
 
@@ -863,8 +915,9 @@ Add to `src/utils/constants.ts`:
 // =============================================================================
 // PERSISTENCE CONSTANTS
 // =============================================================================
-export const API_BASE_URL = 'https://your-server.com'
+export const API_BASE_URL = 'https://us-central1-cansy-decentraland.cloudfunctions.net/petApi'
 export const AUTO_SAVE_INTERVAL = 60 // seconds
-export const SAVE_DEBOUNCE_TIME = 5 // seconds
+export const SAVE_DEBOUNCE_TIME = 30 // Increased debounce time (min time between saves)
+export const SAVE_RETRY_DELAY = 10 // seconds to wait before retrying failed saves
 export const PERSISTENCE_VERSION = '1.0.0' // Schema version
 ```

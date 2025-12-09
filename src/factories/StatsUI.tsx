@@ -27,7 +27,7 @@ import { resetNamingSystem } from './NamingUI'
 import { createTechEnvironment, removeSceneByType } from './Environment'
 import { createEgg } from './Pet'
 import { deactivatePetCamera } from './UI'
-import { deletePet } from '../persistence/api'
+import { resetPet } from '../persistence/api'
 import { getWalletAddress } from '../utils/wallet'
 import {
   MAX_MOOD,
@@ -227,7 +227,7 @@ function resetGame() {
   const wallet = getWalletAddress()
   if (wallet) {
     console.log('🗑️ Deleting pet from Firebase...')
-    deletePet()
+    resetPet()
       .then((success) => {
         if (success) {
           console.log('✅ Pet deleted from Firebase')

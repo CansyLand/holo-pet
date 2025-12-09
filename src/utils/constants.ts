@@ -157,5 +157,6 @@ export const PLAY_AREA_POSITION_Z = SCENE_CENTER_Z - 2 // Z position of play are
 // =============================================================================
 export const API_BASE_URL = 'https://us-central1-cansy-decentraland.cloudfunctions.net/petApi'
 export const AUTO_SAVE_INTERVAL = 60 // seconds
-export const SAVE_DEBOUNCE_TIME = 30 // Increased debounce time
+export const SAVE_DEBOUNCE_TIME = 30 // Increased debounce time (min time between saves)
+export const SAVE_RETRY_DELAY = 10 // seconds to wait before retrying failed saves
 export const PERSISTENCE_VERSION = '1.0.0' // Schema version

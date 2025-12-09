@@ -1,17 +1,17 @@
 import { engine } from '@dcl/sdk/ecs'
 import { onEnterScene, onLeaveScene } from '@dcl/sdk/observables'
-import { loadPet, savePet, PetDocument } from '../persistence/api'
+import { loadPet, savePet, resetPet, PetDocument } from '../persistence/api'
 import { serializePet, deserializePet } from '../persistence/serialization'
 import { getWalletAddress } from '../utils/wallet'
 import { GameState, GamePhase } from '../components/GameState'
 import { PetComponent, Species, PetState } from '../components/Pet'
-import { createPet } from '../factories/Pet'
+import { createPet, updatePetHoverText } from '../factories/Pet'
 import { removeSceneByType, createPetEnvironment } from '../factories/Environment'
 import { SceneType } from '../components/Scene'
 import { getThemeDisplayName, getCurrentTheme } from '../utils/theme'
 import { PersonalityComponent, BondComponent, PetIdentityComponent, TrustLevel } from '../components/Personality'
 import { HygieneComponent } from '../components/Hygiene'
-import { AUTO_SAVE_INTERVAL, SAVE_DEBOUNCE_TIME } from '../utils/constants'
+import { AUTO_SAVE_INTERVAL, SAVE_DEBOUNCE_TIME, SAVE_RETRY_DELAY } from '../utils/constants'
 
 let lastSaveTime = 0
 let pendingSave = false
@@ -55,10 +55,16 @@ async function loadPetData() {
   try {
     const petData = await loadPet()
     if (petData) {
-      console.log('✅ Found saved pet:', petData.identity.name)
-      await restorePetFromData(petData)
+      const gamePhase = petData.meta?.gamePhase || 'pet'
+      if (gamePhase === 'pet') {
+        console.log('✅ Found saved pet:', petData.identity.name)
+        await restorePetFromData(petData)
+      } else {
+        console.log('🐣 Game in egg phase, showing egg')
+        // Game stays in egg phase, no pet restoration needed
+      }
     } else {
-      console.log('🐣 No saved pet found, starting with egg')
+      console.log('🐣 No saved data found, starting fresh with egg')
     }
   } catch (error) {
     console.error('❌ Failed to load pet data:', error)
@@ -119,6 +125,9 @@ async function restorePetFromData(data: PetDocument) {
         identityComp.hatchedAt = deserialized.identity.hatchedAt
         identityComp.ownerId = getWalletAddress() || ''
 
+        // Update hover text to show the pet's name
+        updatePetHoverText(petResult.petEntity, deserialized.identity.name)
+
         console.log(`🐾 Pet "${deserialized.identity.name}" restored with ${deserialized.bond.bond}% bond`)
       }
 
@@ -166,9 +175,14 @@ export async function triggerSave(immediate = false) {
             console.log('💾 Pet saved to Firebase successfully')
           } else {
             console.error('❌ Failed to save pet to Firebase')
+            // Update lastSaveTime even on failure to prevent immediate retry
+            // Use a shorter retry interval for failed saves
+            lastSaveTime = now - (AUTO_SAVE_INTERVAL - SAVE_RETRY_DELAY)
           }
         } catch (error) {
           console.error('❌ Save error:', error)
+          // Update lastSaveTime even on exception to prevent immediate retry
+          lastSaveTime = now - (AUTO_SAVE_INTERVAL - SAVE_RETRY_DELAY)
         }
       }
     }

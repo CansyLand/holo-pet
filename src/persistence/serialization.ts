@@ -51,7 +51,9 @@ export function serializePet(petEntity: Entity): PetDocument | null {
       version: '1.0.0',
       createdAt: identity.hatchedAt,
       updatedAt: Date.now(),
-      activePoopCount: getActivePoopCount()
+      activePoopCount: getActivePoopCount(),
+      gamePhase: 'pet',
+      hatchCount: 1
     }
   }
 }
