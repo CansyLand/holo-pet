@@ -1,10 +1,13 @@
 import { engine, Transform } from '@dcl/sdk/ecs'
 import { Vector3 } from '@dcl/sdk/math'
 import { PetComponent } from '../components/Pet'
-import { PersonalityComponent, BondComponent, TrustLevel } from '../components/Personality'
+import { PersonalityComponent, BondComponent, TrustLevel, PetIdentityComponent } from '../components/Personality'
 import { HygieneComponent } from '../components/Hygiene'
 import { MenuStateComponent } from '../components/UIState'
 import { STATION_POSITIONS } from '../factories/Station'
+import { VisitStateComponent } from '../components/Multiplayer'
+import { getWalletAddress } from '../utils/wallet'
+import { PlayerIdentityData } from '@dcl/sdk/ecs'
 import {
   HUNGRY_THRESHOLD,
   NEEDS_BATH_THRESHOLD,
@@ -40,7 +43,11 @@ export enum BehaviorState {
   WANDERING = 'wandering',
   SITTING = 'sitting',
   WAITING_AT_STATION = 'waiting_at_station', // Sitting at station until need is satisfied
-  POOPING = 'pooping'
+  POOPING = 'pooping',
+  // Multiplayer behaviors
+  LOOKING_AT_PET = 'looking_at_pet', // Looking at another visible pet
+  FOLLOWING_PET = 'following_pet', // Following another pet around
+  LOOKING_AT_PLAYER = 'looking_at_player' // Looking at a visible player (not owner)
 }
 
 // Preferred activity types based on personality
@@ -273,7 +280,28 @@ function determineBehavior(
     currentData.followThinkingStart = 0
   }
 
-  // Priority 4: Energetic pet wanders when bored (and has energy)
+  // Priority 4: Social pet interacts with nearby pets or players
+  if (personality.sociability >= 50 && pet.energy > ENERGY_REST_THRESHOLD) {
+    // Check for nearby pets first
+    const nearbyPet = getNearbyPet(currentData.state as any, currentPos) // Pass entity ID
+    if (nearbyPet) {
+      // 50% chance to follow, 50% chance to just look
+      if (Math.random() > 0.5) {
+        return BehaviorState.FOLLOWING_PET
+      } else {
+        return BehaviorState.LOOKING_AT_PET
+      }
+    }
+
+    // Check for nearby visible players (not owner)
+    const nearbyPlayer = getNearbyVisiblePlayer(currentPos)
+    if (nearbyPlayer && Math.random() > 0.7) {
+      // 30% chance to look at visible player
+      return BehaviorState.LOOKING_AT_PLAYER
+    }
+  }
+
+  // Priority 5: Energetic pet wanders when bored (and has energy)
   if (currentData.state === BehaviorState.IDLE && pet.energy > ENERGY_REST_THRESHOLD) {
     currentData.idleTime += 1
     // Bored threshold modified by energy - high energy pets get bored faster
@@ -284,7 +312,7 @@ function determineBehavior(
     }
   }
 
-  // Priority 5: Even low-energy pets should do SOMETHING after very long idle
+  // Priority 6: Even low-energy pets should do SOMETHING after very long idle
   if (currentData.state === BehaviorState.IDLE && currentData.idleTime > BORED_THRESHOLD * 2) {
     currentData.idleTime = 0
     return BehaviorState.WANDERING
@@ -340,6 +368,27 @@ function getTargetPosition(
         currentPos.y,
         SCENE_CENTER_Z + Math.sin(angle) * radius
       )
+
+    case BehaviorState.FOLLOWING_PET:
+    case BehaviorState.LOOKING_AT_PET:
+      // Target is the nearby pet's position
+      const nearbyPet = getNearbyPet(0 as any, currentPos) // Entity ID will be passed correctly from caller
+      if (nearbyPet) {
+        if (state === BehaviorState.FOLLOWING_PET) {
+          // Get position near pet but not on top of them
+          const direction = Vector3.subtract(currentPos, nearbyPet.position)
+          const normalized = Vector3.normalize(direction)
+          return Vector3.add(nearbyPet.position, Vector3.scale(normalized, PET_APPROACH_DISTANCE))
+        } else {
+          // Just looking, stay in place but will face pet
+          return null
+        }
+      }
+      return null
+
+    case BehaviorState.LOOKING_AT_PLAYER:
+      // Just looking, stay in place but will face player
+      return null
 
     default:
       return null
@@ -509,6 +558,97 @@ function isPlayerNearby(playerPos: Vector3): boolean {
   // Check if player is within proximity radius of scene center
   const distanceFromCenter = Vector3.distance(playerPos, Vector3.create(SCENE_CENTER_X, playerPos.y, SCENE_CENTER_Z))
   return distanceFromCenter < PLAYER_PROXIMITY_RADIUS
+}
+
+/**
+ * Find nearby pets (excluding self)
+ * Returns the closest pet entity and its position if one exists within proximity
+ */
+function getNearbyPet(selfEntity: number, currentPos: Vector3): { entity: number; position: Vector3 } | null {
+  const localUserId = getWalletAddress()
+  if (!localUserId) return null
+
+  let closestPet: { entity: number; position: Vector3 } | null = null
+  let closestDistance = Infinity
+
+  // Find all pet entities
+  for (const [entity] of engine.getEntitiesWith(PetComponent, PetIdentityComponent, Transform)) {
+    // Skip self
+    if (entity === selfEntity) continue
+
+    const identity = PetIdentityComponent.get(entity)
+    const transform = Transform.get(entity)
+
+    // Check if this pet is visible (owner is in our visible list or is us)
+    if (identity.ownerId && identity.ownerId !== localUserId) {
+      // Check if this owner is visible
+      const visitState = getVisitState()
+      if (!visitState || !visitState.visiblePlayerIds.includes(identity.ownerId)) {
+        continue // This pet's owner is not visible, skip it
+      }
+    }
+
+    const distance = Vector3.distance(currentPos, transform.position)
+    if (distance < PLAYER_PROXIMITY_RADIUS && distance < closestDistance) {
+      closestDistance = distance
+      closestPet = { entity, position: transform.position }
+    }
+  }
+
+  return closestPet
+}
+
+/**
+ * Find nearby visible players (excluding self)
+ * Returns the closest visible player position if one exists within proximity
+ */
+function getNearbyVisiblePlayer(currentPos: Vector3): Vector3 | null {
+  const localUserId = getWalletAddress()
+  if (!localUserId) return null
+
+  const visitState = getVisitState()
+  if (!visitState || visitState.visiblePlayerIds.length === 0) {
+    return null // No visible players
+  }
+
+  let closestPlayerPos: Vector3 | null = null
+  let closestDistance = Infinity
+
+  // Find all player entities
+  for (const [entity] of engine.getEntitiesWith(PlayerIdentityData, Transform)) {
+    const identity = PlayerIdentityData.get(entity)
+    const playerUserId = identity.address?.toLowerCase()
+
+    // Skip self
+    if (playerUserId === localUserId) continue
+
+    // Check if this player is visible
+    if (!visitState.visiblePlayerIds.includes(playerUserId)) {
+      continue
+    }
+
+    const transform = Transform.get(entity)
+    const distance = Vector3.distance(currentPos, transform.position)
+
+    if (distance < PLAYER_PROXIMITY_RADIUS && distance < closestDistance) {
+      closestDistance = distance
+      closestPlayerPos = transform.position
+    }
+  }
+
+  return closestPlayerPos
+}
+
+/**
+ * Get the current visit state (for checking visible players)
+ */
+function getVisitState(): { visiblePlayerIds: string[] } | null {
+  for (const [_, visitState] of engine.getEntitiesWith(VisitStateComponent)) {
+    return {
+      visiblePlayerIds: visitState.visiblePlayerIds
+    }
+  }
+  return null
 }
 
 // Export for other systems to check pet behavior

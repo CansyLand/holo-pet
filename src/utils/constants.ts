@@ -160,3 +160,10 @@ export const AUTO_SAVE_INTERVAL = 60 // seconds
 export const SAVE_DEBOUNCE_TIME = 30 // Increased debounce time (min time between saves)
 export const SAVE_RETRY_DELAY = 10 // seconds to wait before retrying failed saves
 export const PERSISTENCE_VERSION = '1.0.0' // Schema version
+
+// =============================================================================
+// MULTIPLAYER CONSTANTS
+// =============================================================================
+export const MAX_VISIBLE_PETS = 3 // Maximum number of pets visible at once (performance)
+export const SCENE_HIDING_AREA_SIZE = { x: 32, y: 10, z: 32 } // 2x2 parcels = 32x32 meters
+export const MAX_SYNC_ENTITY_ID = 8000 // Max ID for manually synced entities (8001+ reserved for Creator Hub)

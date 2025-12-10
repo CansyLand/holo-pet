@@ -20,12 +20,28 @@ import { poopSystem } from './systems/Poop'
 import { heartParticleSystem } from './systems/HeartParticle'
 import { namingSystem, NamingUI } from './factories/NamingUI'
 import { StatsUI } from './factories/StatsUI'
+import { VisitUI } from './factories/VisitUI'
 // Persistence system
 import { initPersistence, persistenceSystem } from './systems/Persistence'
+// Multiplayer system
+import { initVisitSystem } from './systems/Visit'
+import { createAvatarHider, ensureLocalPlayerVisible } from './factories/AvatarHider'
+
+// =============================================================================
+// SYSTEMS
+// =============================================================================
+
+/**
+ * System to ensure local player avatar is always visible
+ * Player data may not be available during initialization
+ */
+function avatarVisibilitySystem() {
+  ensureLocalPlayerVisible()
+}
 
 // Combined UI renderer that shows all UI components
 function CombinedUI() {
-  return [NamingUI(), StatsUI()]
+  return [NamingUI(), StatsUI(), VisitUI()]
 }
 
 export function main() {
@@ -51,17 +67,22 @@ export function main() {
   engine.addSystem(persistenceSystem)
   initPersistence() // Initialize persistence
 
-  // 4. Setup ReactECS UI (naming popup + debug stats)
+  // 4. Setup Multiplayer System
+  initVisitSystem() // Initialize visit coordination
+  createAvatarHider() // Create avatar hiding area
+  engine.addSystem(avatarVisibilitySystem) // Ensure local player is always visible
+
+  // 5. Setup ReactECS UI (naming popup + debug stats + visit UI)
   ReactEcsRenderer.setUiRenderer(CombinedUI)
 
-  // 5. Initialize cursor state (locked by default)
+  // 6. Initialize cursor state (locked by default)
   PointerLock.create(engine.CameraEntity, { isPointerLocked: true })
 
-  // 6. Setup Scene
+  // 7. Setup Scene
   createGameEntity()
   createBackgroundMusic()
   createTechEnvironment()
   createEgg()
 
-  console.log('Holo Pet initialized with persistence (local scene → production Firebase)')
+  console.log('Holo Pet initialized with multiplayer visit system')
 }

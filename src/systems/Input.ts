@@ -1,5 +1,17 @@
 import { engine, inputSystem, InputAction, PointerEventType, Entity } from '@dcl/sdk/ecs'
 import { Interactable, InteractionEvent, InteractionType } from '../components/Interaction'
+import { canInteractWithStations } from './Visit'
+
+// Interactions that are blocked when visiting (stations and care actions)
+const STATION_INTERACTIONS = [
+  InteractionType.FEED,
+  InteractionType.PLAY,
+  InteractionType.CLEAN,
+  InteractionType.BATHE,
+  InteractionType.BRUSH,
+  InteractionType.GIVE_TREAT,
+  InteractionType.COLLECT_POOP
+]
 
 export function inputSystemCallback(dt: number) {
   // Iterate over all interactable entities
@@ -10,6 +22,12 @@ export function inputSystemCallback(dt: number) {
 
     const cmd = inputSystem.getInputCommand(InputAction.IA_POINTER, PointerEventType.PET_DOWN, entity)
     if (cmd) {
+      // Block station interactions when visiting someone
+      if (STATION_INTERACTIONS.includes(interactable.type) && !canInteractWithStations()) {
+        console.log(`Interaction blocked while visiting: ${interactable.type}`)
+        continue
+      }
+
       // Add InteractionEvent to the entity
       // This event will be consumed by the LogicSystem
       if (!InteractionEvent.getOrNull(entity)) {

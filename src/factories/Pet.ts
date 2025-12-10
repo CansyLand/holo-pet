@@ -13,6 +13,7 @@ import {
   Animator
 } from '@dcl/sdk/ecs'
 import { Vector3, Color4, Quaternion } from '@dcl/sdk/math'
+import { syncEntity } from '@dcl/sdk/network'
 import { PetComponent, Species, PetState } from '../components/Pet'
 import { Interactable, InteractionType } from '../components/Interaction'
 import { PetAnimationStateComponent, CursorFollowComponent, CameraFocusComponent } from '../components/UIState'
@@ -30,6 +31,7 @@ import { createPoopPool } from './PoopPool'
 import { createHeartPool } from './HeartPool'
 import { createAllStations } from './Station'
 import { SCENE_CENTER_X, SCENE_CENTER_Z, MAX_CLEANLINESS, MAX_BOND, CURSOR_FOLLOW_MAX_TILT } from '../utils/constants'
+import { getWalletAddress, hashWalletToId } from '../utils/wallet'
 
 export function createEgg() {
   const entity = engine.addEntity()
@@ -151,10 +153,11 @@ export function createPet(species: Species) {
   })
 
   // Pet identity - name will be set by naming popup
+  const walletAddress = getWalletAddress()
   PetIdentityComponent.create(entity, {
     name: '', // Will be set after naming popup
     hatchedAt: Date.now(),
-    ownerId: '' // Will be set when persistence is implemented
+    ownerId: walletAddress || '' // Set to current player's wallet address
   })
 
   // Cursor follow - starts disabled, activated when camera focuses
@@ -192,6 +195,9 @@ export function createPet(species: Species) {
   // Create care stations
   createAllStations()
 
+  // Note: Pet syncing is handled by the visit system when pets should be visible
+  // Pets are not synced by default to avoid showing them to everyone
+
   return { petEntity: entity, menuStateEntity }
 }
 
@@ -207,6 +213,49 @@ export function setPetName(petEntity: Entity, name: string) {
     // Update the hover text to show the pet's name
     updatePetHoverText(petEntity, name)
   }
+}
+
+/**
+ * Sync a pet entity so it's visible to other players
+ * Call this when the pet should be visible (during visits)
+ */
+export function syncPetForVisibility(petEntity: Entity) {
+  const walletAddress = getWalletAddress()
+  if (!walletAddress) {
+    console.log('[PET] No wallet address available, cannot sync pet')
+    return false
+  }
+
+  // Check if already synced
+  // Note: DCL SDK doesn't provide a way to check if entity is synced,
+  // so we'll just try to sync and it will be idempotent
+  try {
+    const syncId = hashWalletToId(walletAddress)
+    console.log(`[PET] Syncing pet entity with ID ${syncId} for wallet ${walletAddress}`)
+
+    syncEntity(
+      petEntity,
+      [Transform.componentId, Animator.componentId, PetComponent.componentId, PetIdentityComponent.componentId],
+      syncId
+    )
+    return true
+  } catch (error) {
+    console.error('[PET] Failed to sync pet:', error)
+    return false
+  }
+}
+
+/**
+ * Get the pet entity for a given owner (used by visit system)
+ */
+export function getPetEntityForOwner(ownerId: string): Entity | null {
+  for (const [entity] of engine.getEntitiesWith(PetIdentityComponent)) {
+    const identity = PetIdentityComponent.get(entity)
+    if (identity.ownerId === ownerId) {
+      return entity
+    }
+  }
+  return null
 }
 
 /**
