@@ -1,31 +1,26 @@
 import { engine, PointerLock } from '@dcl/sdk/ecs'
 import { CameraFocusComponent } from '../components/UIState'
+import { deactivatePetCamera } from '../factories/UI'
 
 // Track whether the system is currently active to prevent duplicate additions
 let isCameraFocusSystemActive = false
 
 /**
- * Camera Focus System - Prevents cursor locking while camera is focused on pet
- * This system is dynamically added/removed based on camera focus state
+ * Camera Focus System - Detects cursor locking to unfocus camera
+ * Only runs when cursor becomes locked during focus mode
  */
 export function cameraFocusSystem(dt: number) {
-  // Check current pointer lock state
+  // Only check when cursor becomes locked
   const pointerLock = PointerLock.getOrNull(engine.CameraEntity)
   if (!pointerLock || !pointerLock.isPointerLocked) return
 
   // Check if any camera is currently focused
-  let isAnyCameraFocused = false
   for (const [entity, focusComponent] of engine.getEntitiesWith(CameraFocusComponent)) {
     if (focusComponent.isCameraFocused) {
-      isAnyCameraFocused = true
-      break
+      console.log('User locked cursor while camera focused - unfocusing camera')
+      deactivatePetCamera()
+      return
     }
-  }
-
-  // If camera is focused on pet, prevent cursor from being locked
-  if (isAnyCameraFocused) {
-    PointerLock.getMutable(engine.CameraEntity).isPointerLocked = false
-    console.log('Cursor lock prevented - camera is focused on pet')
   }
 }
 
