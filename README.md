@@ -11,7 +11,8 @@ decentraland://realm=http://127.0.0.1:8000&local-scene=true&debug=true
 
 **Update SDK**
 npm i @dcl/sdk@latest
-npm install -g decentraland@latest
+npm i @dcl/js-runtime@latest
+npm i -g decentraland@latest
 
 1. Download this repository.
 
