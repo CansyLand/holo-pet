@@ -2,23 +2,29 @@ Open Discord
 
 =======
 
+leaderboard ui
+
+music playlist + track + track
+
+pet stats above pet (Biancas original) -> on pet click
+
+snow
+
+=======
+
+pet make it stand in front of food. so it is not so anxious if low energy pet. high energy pet keep as is
+
+show UI under pet camera that says pet type,name an XP
+
 What kind of pet is this?
 
 - ask prompt?
 
 =======
 
-pet stats above pet -> on pet click
-
 pet texture hearts, hunger, stink
 
-leaderboard ui
-
-music playlist
-
 change color -> egg, hologram,
-
-snow
 
 =====
 

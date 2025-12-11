@@ -308,3 +308,5 @@ export function getCurrentHost(): string {
   const state = VisitStateComponent.getOrNull(visitStateEntity)
   return state?.hostUserId || ''
 }
+
+

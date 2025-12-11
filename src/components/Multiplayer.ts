@@ -23,3 +23,5 @@ export const VisitStateComponent = engine.defineComponent('VisitStateComponent',
 export const AvatarModifierComponent = engine.defineComponent('AvatarModifierComponent', {
   isInitialized: Schemas.Boolean
 })
+
+
