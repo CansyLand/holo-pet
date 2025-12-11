@@ -17,6 +17,7 @@ let lastSaveTime = 0
 let pendingSave = false
 let isSaving = false
 let persistenceInitialized = false
+let currentPetMeta: PetDocument['meta'] | undefined = undefined
 
 /**
  * Initialize persistence system - called once in main()
@@ -75,6 +76,9 @@ async function loadPetData() {
  * Restore pet from saved data
  */
 async function restorePetFromData(data: PetDocument) {
+  // Store meta for future saves
+  currentPetMeta = data.meta
+
   // Query current game state
   for (const [gameEntity, gameState] of engine.getEntitiesWith(GameState)) {
     if (gameState.phase === GamePhase.EGG) {
@@ -165,8 +169,10 @@ export async function triggerSave(immediate = false) {
   // Find active pet
   for (const [_, gameState] of engine.getEntitiesWith(GameState)) {
     if (gameState.phase === GamePhase.PET && gameState.activePetEntity) {
-      const petData = serializePet(gameState.activePetEntity)
+      const petData = serializePet(gameState.activePetEntity, currentPetMeta)
       if (petData) {
+        // Update current meta with the new values (server will update them further)
+        currentPetMeta = petData.meta
         try {
           const success = await savePet(petData)
           if (success) {

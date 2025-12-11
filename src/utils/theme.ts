@@ -78,7 +78,7 @@ export function getThemeDisplayName(theme: Theme): string {
     case Theme.NEW_YEAR:
       return '🎆 New Year'
     case Theme.SUMMER:
-      return '☀️ Summer'
+      return 'Summer'
     case Theme.AUTUMN:
       return '🍂 Autumn'
     default:

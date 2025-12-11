@@ -429,10 +429,10 @@ export function StatsUI() {
         }}
       >
         <Button
-          value="📊"
+          value="Stats"
           variant="secondary"
-          fontSize={16}
-          uiTransform={{ width: 40, height: 30 }}
+          fontSize={12}
+          uiTransform={{ width: 50, height: 30 }}
           onMouseDown={() => {
             isCollapsed = false
           }}

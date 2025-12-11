@@ -21,6 +21,7 @@ import { heartParticleSystem } from './systems/HeartParticle'
 import { namingSystem, NamingUI } from './factories/NamingUI'
 import { StatsUI } from './factories/StatsUI'
 import { VisitUI } from './factories/VisitUI'
+import { LeaderboardUI } from './factories/LeaderboardUI'
 // Persistence system
 import { initPersistence, persistenceSystem } from './systems/Persistence'
 // Multiplayer system
@@ -41,7 +42,7 @@ function avatarVisibilitySystem() {
 
 // Combined UI renderer that shows all UI components
 function CombinedUI() {
-  return [NamingUI(), StatsUI(), VisitUI()]
+  return [NamingUI(), StatsUI(), VisitUI(), LeaderboardUI()]
 }
 
 export function main() {
@@ -72,7 +73,7 @@ export function main() {
   createAvatarHider() // Create avatar hiding area
   engine.addSystem(avatarVisibilitySystem) // Ensure local player is always visible
 
-  // 5. Setup ReactECS UI (naming popup + debug stats + visit UI)
+  // 5. Setup ReactECS UI (naming popup + debug stats + visit UI + leaderboard)
   ReactEcsRenderer.setUiRenderer(CombinedUI)
 
   // 6. Initialize cursor state (locked by default)

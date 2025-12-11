@@ -95,12 +95,14 @@ export function VisitUI() {
         positionType: 'absolute'
       }}
     >
-      {/* Bottom-left control buttons */}
+      {/* Bottom-center control buttons */}
       <UiEntity
         uiTransform={{
           positionType: 'absolute',
-          position: { left: 10, bottom: 10 },
+          position: { bottom: 10 },
+          width: '100%',
           flexDirection: 'row',
+          justifyContent: 'center',
           alignItems: 'center'
         }}
       >
@@ -131,9 +133,19 @@ export function VisitUI() {
             onMouseDown={handleGoHome}
           />
         )}
+      </UiEntity>
 
-        {/* Status label - show who we're visiting */}
-        {visitState.isVisiting && (
+      {/* Status label - show who we're visiting (above buttons) */}
+      {visitState.isVisiting && (
+        <UiEntity
+          uiTransform={{
+            positionType: 'absolute',
+            position: { bottom: 50 },
+            width: '100%',
+            flexDirection: 'row',
+            justifyContent: 'center'
+          }}
+        >
           <Label
             value={`Visiting: ${getPlayerName(visitState.hostUserId) || 'Unknown'}`}
             fontSize={12}
@@ -143,8 +155,8 @@ export function VisitUI() {
               height: 35
             }}
           />
-        )}
-      </UiEntity>
+        </UiEntity>
+      )}
 
       {/* Player List Popup */}
       {isPopupOpen && <PlayerListPopup currentHost={visitState.hostUserId} />}
@@ -291,5 +303,3 @@ function PlayerRow({
     </UiEntity>
   )
 }
-
-

@@ -37,3 +37,12 @@ visit a friends pet - merge holopets
 dcl creator hub setup
 
 place elements in scene
+
+crypto middleware / security
+
+=======
+FIXED: Save game after pet naming (prevents data loss)
+FIXED: Handle server validation rejections in UI (shows error messages for invalid names)
+FIXED: Removed emojis from UI components (Decentraland compatibility)
+FIXED: Removed Random name button from naming UI (requires explicit name entry)
+FIXED: Improved profane name error message (shows "Try a different name" instead of generic network error) - handles signedFetch exceptions for 4xx responses

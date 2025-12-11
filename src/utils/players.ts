@@ -64,3 +64,27 @@ export function getPlayerName(userId: string): string | null {
 
   return null
 }
+
+/**
+ * Get the local player's display name
+ * @returns Display name or truncated wallet as fallback
+ */
+export function getLocalPlayerName(): string {
+  const localPlayer = getPlayer()
+  if (!localPlayer) {
+    return 'Unknown'
+  }
+
+  // Try to get name from PlayerIdentityData
+  const localUserId = localPlayer.userId?.toLowerCase()
+  if (localUserId) {
+    const name = getPlayerName(localUserId)
+    if (name) {
+      return name
+    }
+    // Fallback: truncate wallet address
+    return `${localUserId.slice(0, 6)}...${localUserId.slice(-4)}`
+  }
+
+  return 'Unknown'
+}

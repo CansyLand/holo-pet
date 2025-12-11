@@ -5,6 +5,8 @@ import { PetIdentityComponent } from '../components/Personality'
 import { getPendingNamingEntity, clearPendingNaming } from '../systems/Logic'
 import { setPetName } from './Pet'
 import { startCameraFocusMonitoring } from '../systems/CameraFocus'
+import { serializePet } from '../persistence/serialization'
+import { savePetWithDetails, SaveResult } from '../persistence/api'
 
 // =============================================================================
 // PET NAMING UI
@@ -17,14 +19,8 @@ let isNamingActive = false
 let currentName = ''
 let targetPetEntity: Entity | null = null
 let originalCursorLocked = true // Store original cursor state
-
-// Default names for random selection if player doesn't want to type
-const DEFAULT_NAMES = [
-  'Buddy', 'Max', 'Luna', 'Charlie', 'Bella',
-  'Cooper', 'Daisy', 'Rocky', 'Lucy', 'Bear',
-  'Milo', 'Sadie', 'Duke', 'Molly', 'Tucker',
-  'Bailey', 'Maggie', 'Winston', 'Sophie', 'Bentley'
-]
+let saveError: string | null = null // Error message state
+let isSaving = false // Loading state
 
 // Delay timer for showing popup
 let namingDelayTimer = 0
@@ -49,32 +45,50 @@ export function startNaming(petEntity: Entity) {
 /**
  * Submit the name and close the popup
  */
-function submitName() {
-  if (!targetPetEntity) return
+async function submitName() {
+  if (!targetPetEntity || isSaving) return
 
-  // Use random name if empty
-  const finalName = currentName.trim() || getRandomName()
+  // Require explicit name entry
+  const finalName = currentName.trim()
+
+  // Clear any previous errors
+  saveError = null
+  isSaving = true
 
   // Set the pet's name and update hover text
   setPetName(targetPetEntity, finalName)
 
-  // Restore cursor state
-  PointerLock.getMutable(engine.CameraEntity).isPointerLocked = originalCursorLocked
+  try {
+    // Get pet data for saving
+    const petData = serializePet(targetPetEntity)
+    if (!petData) {
+      saveError = 'Failed to prepare pet data'
+      isSaving = false
+      return
+    }
 
-  // Clear state
-  isNamingActive = false
-  currentName = ''
-  targetPetEntity = null
-  clearPendingNaming()
+    // Try to save with detailed error handling
+    const result: SaveResult = await savePetWithDetails(petData)
 
-  console.log(`Naming completed, cursor restored to ${originalCursorLocked ? 'locked' : 'unlocked'}`)
-}
-
-/**
- * Get a random default name
- */
-function getRandomName(): string {
-  return DEFAULT_NAMES[Math.floor(Math.random() * DEFAULT_NAMES.length)]
+    if (result.success) {
+      // Success! Close the popup
+      PointerLock.getMutable(engine.CameraEntity).isPointerLocked = originalCursorLocked
+      isNamingActive = false
+      currentName = ''
+      targetPetEntity = null
+      clearPendingNaming()
+      console.log(`Naming completed and saved successfully`)
+    } else {
+      // Validation failed - show error and keep popup open
+      saveError = result.error || 'Unknown error occurred'
+      console.error('Pet naming validation failed:', saveError)
+    }
+  } catch (error) {
+    saveError = 'Network error - please try again'
+    console.error('Save operation failed:', error)
+  } finally {
+    isSaving = false
+  }
 }
 
 /**
@@ -139,12 +153,7 @@ export function NamingUI() {
         }}
       >
         {/* Title */}
-        <Label
-          value="Name Your Pet!"
-          fontSize={28}
-          color={Color4.White()}
-          uiTransform={{ height: 40 }}
-        />
+        <Label value="Name Your Pet!" fontSize={28} color={Color4.White()} uiTransform={{ height: 40 }} />
 
         {/* Subtitle */}
         <Label
@@ -153,6 +162,23 @@ export function NamingUI() {
           color={Color4.create(0.7, 0.7, 0.7, 1)}
           uiTransform={{ height: 25 }}
         />
+
+        {/* Error message - only show if there's an error */}
+        {saveError && (
+          <UiEntity
+            uiTransform={{
+              width: 350,
+              height: 40,
+              flexDirection: 'row',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: { left: 10, right: 10 }
+            }}
+            uiBackground={{ color: Color4.create(0.8, 0.2, 0.2, 0.9) }}
+          >
+            <Label value={`${saveError}`} fontSize={14} color={Color4.White()} uiTransform={{ width: '100%' }} />
+          </UiEntity>
+        )}
 
         {/* Text input */}
         <Input
@@ -180,26 +206,12 @@ export function NamingUI() {
             alignItems: 'center'
           }}
         >
-          {/* Random name button */}
-          <Button
-            value="Random"
-            variant="secondary"
-            fontSize={16}
-            uiTransform={{
-              width: 100,
-              height: 40,
-              margin: { right: 10 }
-            }}
-            onMouseDown={() => {
-              currentName = getRandomName()
-            }}
-          />
-
           {/* Confirm button */}
           <Button
-            value="Confirm"
+            value={isSaving ? 'Saving...' : 'Confirm'}
             variant="primary"
             fontSize={16}
+            disabled={isSaving}
             uiTransform={{
               width: 120,
               height: 40
@@ -210,7 +222,7 @@ export function NamingUI() {
 
         {/* Hint */}
         <Label
-          value="(Leave empty for a random name)"
+          value="Enter your pet's name"
           fontSize={12}
           color={Color4.create(0.5, 0.5, 0.5, 1)}
           uiTransform={{ height: 20 }}
@@ -256,6 +268,8 @@ export function resetNamingSystem() {
   isNamingActive = false
   currentName = ''
   targetPetEntity = null
+  saveError = null
+  isSaving = false
   namingDelayTimer = 0
   pendingNamingTriggered = false
   console.log('Naming system reset')

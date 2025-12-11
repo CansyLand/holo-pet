@@ -4,11 +4,13 @@ import { PersonalityComponent, BondComponent, PetIdentityComponent } from '../co
 import { HygieneComponent } from '../components/Hygiene'
 import { getActivePoopCount } from '../systems/Poop'
 import { PetDocument } from './api'
+import { getLocalPlayerName } from '../utils/players'
 
 /**
  * Serialize pet entity components to PetDocument for saving
+ * Note: visitStreak, lastVisitDate, and score are calculated/updated by the server
  */
-export function serializePet(petEntity: Entity): PetDocument | null {
+export function serializePet(petEntity: Entity, existingMeta?: PetDocument['meta']): PetDocument | null {
   const pet = PetComponent.getOrNull(petEntity)
   const identity = PetIdentityComponent.getOrNull(petEntity)
   const personality = PersonalityComponent.getOrNull(petEntity)
@@ -49,11 +51,16 @@ export function serializePet(petEntity: Entity): PetDocument | null {
     },
     meta: {
       version: '1.0.0',
-      createdAt: identity.hatchedAt,
+      createdAt: existingMeta?.createdAt || identity.hatchedAt,
       updatedAt: Date.now(),
       activePoopCount: getActivePoopCount(),
       gamePhase: 'pet',
-      hatchCount: 1
+      hatchCount: existingMeta?.hatchCount || 1,
+      // Server-calculated fields - preserve existing values or use defaults
+      visitStreak: existingMeta?.visitStreak || 0,
+      lastVisitDate: existingMeta?.lastVisitDate || '',
+      score: existingMeta?.score || 0,
+      ownerName: getLocalPlayerName() // Always update player name on save
     }
   }
 }
