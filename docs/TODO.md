@@ -2,8 +2,6 @@ Open Discord
 
 =======
 
-leaderboard ui
-
 music playlist + track + track
 
 pet stats above pet (Biancas original) -> on pet click
@@ -39,6 +37,8 @@ dcl creator hub setup
 place elements in scene
 
 crypto middleware / security
+
+Analytics with dashboard on my website
 
 =======
 FIXED: Save game after pet naming (prevents data loss)

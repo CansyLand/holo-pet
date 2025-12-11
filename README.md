@@ -9,6 +9,9 @@ npm run start -- --explorer-alpha
 **Open second Explorer**
 decentraland://realm=http://127.0.0.1:8000&local-scene=true&debug=true
 
+**Update SDK**
+npm i @dcl/sdk@latest
+
 1. Download this repository.
 
 2. Install the [Decentraland Editor](https://docs.decentraland.org/creator/development-guide/sdk7/editor/)
