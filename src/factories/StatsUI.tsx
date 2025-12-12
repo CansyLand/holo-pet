@@ -428,7 +428,7 @@ export function StatsUI() {
       <UiEntity
         uiTransform={{
           positionType: 'absolute',
-          position: { top: 10, right: 10 },
+          position: { bottom: 10, right: 10 },
           width: 40,
           height: 30
         }}
@@ -450,7 +450,7 @@ export function StatsUI() {
     <UiEntity
       uiTransform={{
         positionType: 'absolute',
-        position: { top: 10, right: 10 },
+        position: { bottom: 10, right: 10 },
         width: 240,
         flexDirection: 'column',
         padding: 10
