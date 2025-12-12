@@ -15,7 +15,12 @@
   "main": "bin/index.js",
   "tags": [],
   "scene": {
-    "parcels": ["0,0", "0,1", "1,0", "1,1"],
+    "parcels": [
+      "0,0",
+      "0,1",
+      "1,0",
+      "1,1"
+    ],
     "base": "0,0"
   },
   "spawnPoints": [
@@ -23,9 +28,18 @@
       "name": "spawn1",
       "default": true,
       "position": {
-        "x": [0, 3],
-        "y": [0, 0],
-        "z": [0, 3]
+        "x": [
+          0,
+          3
+        ],
+        "y": [
+          0,
+          0
+        ],
+        "z": [
+          0,
+          3
+        ]
       },
       "cameraTarget": {
         "x": 8,
@@ -40,5 +54,10 @@
   },
   "worldConfiguration": {
     "name": "cansy.dcl.eth"
+  },
+  "skyboxConfig": {},
+  "source": {
+    "origin": "creator-hub",
+    "projectId": "258ed295-832b-4591-8059-ea135d3fb3b1"
   }
 }

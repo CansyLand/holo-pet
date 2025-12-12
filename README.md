@@ -14,6 +14,9 @@ npm i @dcl/sdk@latest
 npm i @dcl/js-runtime@latest
 npm i -g decentraland@latest
 
+**Deploy**
+npm run deploy -- --target-content https://worlds-content-server.decentraland.org
+
 1. Download this repository.
 
 2. Install the [Decentraland Editor](https://docs.decentraland.org/creator/development-guide/sdk7/editor/)

@@ -34,10 +34,67 @@
       "data": {}
     },
     {
-      "name": "inspector::SceneMetadata",
+      "name": "core-schema::Tags",
       "jsonSchema": {
         "type": "object",
         "properties": {
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "serializationType": "utf8-string"
+            },
+            "serializationType": "array"
+          }
+        },
+        "serializationType": "map"
+      },
+      "data": {
+        "0": {
+          "json": {
+            "tags": [
+              "Tag Group 1",
+              "Tag Group 2",
+              "Tag Group 3",
+              "Tag Group 4"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "inspector::Selection",
+      "jsonSchema": {
+        "type": "object",
+        "properties": {
+          "gizmo": {
+            "type": "integer",
+            "serializationType": "int32"
+          }
+        },
+        "serializationType": "map"
+      },
+      "data": {
+        "0": {
+          "json": {
+            "gizmo": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "inspector::SceneMetadata-v1",
+      "jsonSchema": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "serializationType": "optional",
+            "optionalJsonSchema": {
+              "type": "integer",
+              "serializationType": "int32"
+            }
+          },
           "name": {
             "type": "string",
             "serializationType": "optional",
@@ -200,6 +257,43 @@
               "serializationType": "boolean"
             }
           },
+          "skyboxConfig": {
+            "type": "object",
+            "serializationType": "optional",
+            "optionalJsonSchema": {
+              "type": "object",
+              "properties": {
+                "fixedTime": {
+                  "type": "integer",
+                  "serializationType": "optional",
+                  "optionalJsonSchema": {
+                    "type": "integer",
+                    "serializationType": "int32"
+                  }
+                },
+                "transitionMode": {
+                  "type": "integer",
+                  "serializationType": "optional",
+                  "optionalJsonSchema": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1
+                    ],
+                    "default": 0,
+                    "serializationType": "enum-int",
+                    "enumObject": {
+                      "0": "TM_FORWARD",
+                      "1": "TM_BACKWARD",
+                      "TM_FORWARD": 0,
+                      "TM_BACKWARD": 1
+                    }
+                  }
+                }
+              },
+              "serializationType": "map"
+            }
+          },
           "spawnPoints": {
             "type": "array",
             "serializationType": "optional",
@@ -314,8 +408,8 @@
       "data": {
         "0": {
           "json": {
-            "name": "SDK7 Scene Template",
-            "description": "template scene with SDK7",
+            "name": "HoloPet - Companion",
+            "description": " A lonely egg needs love to bloom. Care for your pet and watch it grow.",
             "thumbnail": "images/scene-thumbnail.png",
             "categories": [],
             "author": "SDK",
@@ -326,6 +420,18 @@
                 {
                   "x": 0,
                   "y": 0
+                },
+                {
+                  "x": 0,
+                  "y": 1
+                },
+                {
+                  "x": 1,
+                  "y": 0
+                },
+                {
+                  "x": 1,
+                  "y": 1
                 }
               ],
               "base": {
@@ -335,6 +441,7 @@
             },
             "silenceVoiceChat": false,
             "disablePortableExperiences": false,
+            "skyboxConfig": {},
             "spawnPoints": [
               {
                 "name": "spawn1",
@@ -493,7 +600,7 @@
               },
               {
                 "type": "play_sound",
-                "jsonSchema": "{\"type\":\"object\",\"properties\":{\"src\":{\"type\":\"string\",\"serializationType\":\"utf8-string\"},\"loop\":{\"type\":\"boolean\",\"serializationType\":\"optional\",\"optionalJsonSchema\":{\"type\":\"boolean\",\"serializationType\":\"boolean\"}},\"volume\":{\"type\":\"number\",\"serializationType\":\"optional\",\"optionalJsonSchema\":{\"type\":\"number\",\"serializationType\":\"float32\"}}},\"serializationType\":\"map\"}"
+                "jsonSchema": "{\"type\":\"object\",\"properties\":{\"src\":{\"type\":\"string\",\"serializationType\":\"utf8-string\"},\"loop\":{\"type\":\"boolean\",\"serializationType\":\"optional\",\"optionalJsonSchema\":{\"type\":\"boolean\",\"serializationType\":\"boolean\"}},\"volume\":{\"type\":\"number\",\"serializationType\":\"optional\",\"optionalJsonSchema\":{\"type\":\"number\",\"serializationType\":\"float32\"}},\"global\":{\"type\":\"boolean\",\"serializationType\":\"optional\",\"optionalJsonSchema\":{\"type\":\"boolean\",\"serializationType\":\"boolean\"}}},\"serializationType\":\"map\"}"
               },
               {
                 "type": "stop_sound",
@@ -642,6 +749,10 @@
               {
                 "type": "heal_player",
                 "jsonSchema": "{\"type\":\"object\",\"properties\":{\"multiplier\":{\"type\":\"integer\",\"serializationType\":\"int32\"}},\"serializationType\":\"map\"}"
+              },
+              {
+                "type": "claim_airdrop",
+                "jsonSchema": "{\"type\":\"object\",\"properties\":{},\"serializationType\":\"map\"}"
               }
             ]
           }

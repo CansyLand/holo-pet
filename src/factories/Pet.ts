@@ -30,6 +30,7 @@ import { createPetMenu } from './UI'
 import { createPoopPool } from './PoopPool'
 import { createHeartPool } from './HeartPool'
 import { createAllStations } from './Station'
+import { createNeedsUI } from './NeedsUI'
 import { SCENE_CENTER_X, SCENE_CENTER_Z, MAX_CLEANLINESS, MAX_BOND, CURSOR_FOLLOW_MAX_TILT } from '../utils/constants'
 import { getWalletAddress, hashWalletToId } from '../utils/wallet'
 
@@ -197,6 +198,9 @@ export function createPet(species: Species) {
 
   // Note: Pet syncing is handled by the visit system when pets should be visible
   // Pets are not synced by default to avoid showing them to everyone
+
+  // Create needs UI (cylindrical bars) - initially hidden
+  createNeedsUI(entity)
 
   return { petEntity: entity, menuStateEntity }
 }

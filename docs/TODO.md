@@ -2,9 +2,9 @@ Open Discord
 
 =======
 
-music playlist + track + track
+DCLHUB
 
-pet stats above pet (Biancas original) -> on pet click
+Check list of daily activity
 
 snow
 
@@ -13,7 +13,6 @@ snow
 pet make it stand in front of food. so it is not so anxious if low energy pet. high energy pet keep as is
 
 show UI under pet camera that says pet type,name an XP
-
 What kind of pet is this?
 
 - ask prompt?
@@ -24,11 +23,21 @@ pet texture hearts, hunger, stink
 
 change color -> egg, hologram,
 
+audo effects
+
+Make UI Look good
+
+Symbols. hunger, stink
+
+mini games - pet- brush - feed?
+
 =====
 
 photobooth
 
 visit a friends pet - merge holopets
+
+scene Image
 
 ======
 

@@ -331,7 +331,7 @@ function handlePetClick(petEntity: Entity) {
   for (const [menuStateEntity, menuState] of engine.getEntitiesWith(MenuStateComponent)) {
     if (menuState.petEntity === petEntity) {
       // Show menu and activate camera
-      showMenu(menuStateEntity)
+      // showMenu(menuStateEntity)
       if (menuState.virtualCameraEntity) {
         activatePetCamera(menuState.virtualCameraEntity)
       }

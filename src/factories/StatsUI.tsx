@@ -29,6 +29,7 @@ import { createEgg } from './Pet'
 import { deactivatePetCamera } from './UI'
 import { resetPet } from '../persistence/api'
 import { getWalletAddress } from '../utils/wallet'
+import { toggleNeedsUI, isNeedsUIEnabled } from '../systems/NeedsUI'
 import {
   MAX_MOOD,
   MAX_HUNGER,
@@ -57,6 +58,7 @@ const BUTTON_COLOR = Color4.create(0.3, 0.3, 0.4, 1)
 
 // Panel state
 let isCollapsed = false
+let needsUIEnabled = false // Cached state for needs UI toggle
 
 // Cached stats for display
 interface PetStats {
@@ -83,6 +85,9 @@ let activePetEntity: Entity | null = null
  * Find the active pet and cache its stats
  */
 function updateCachedStats() {
+  // Update needs UI state
+  needsUIEnabled = isNeedsUIEnabled()
+
   // Find game state to get active pet
   for (const [_, gameState] of engine.getEntitiesWith(GameState)) {
     if (gameState.phase === GamePhase.PET && gameState.activePetEntity) {
@@ -534,6 +539,27 @@ export function StatsUI() {
           fontSize={11}
           uiTransform={{ width: 65, height: 26 }}
           onMouseDown={() => forcePoop()}
+        />
+      </UiEntity>
+
+      {/* Needs UI Toggle */}
+      <UiEntity
+        uiTransform={{
+          width: '100%',
+          flexDirection: 'row',
+          justifyContent: 'center',
+          margin: { top: 8 }
+        }}
+      >
+        <Button
+          value={needsUIEnabled ? 'Hide Bars' : 'Show Bars'}
+          variant="secondary"
+          fontSize={11}
+          uiTransform={{ width: 120, height: 26 }}
+          onMouseDown={() => {
+            toggleNeedsUI()
+            needsUIEnabled = !needsUIEnabled
+          }}
         />
       </UiEntity>
 

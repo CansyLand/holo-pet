@@ -3,7 +3,7 @@ import { ReactEcsRenderer } from '@dcl/sdk/react-ecs'
 import { createGameEntity } from './factories/Game'
 import { createEgg } from './factories/Pet'
 import { createTechEnvironment } from './factories/Environment'
-import { createBackgroundMusic } from './factories/Audio'
+import { createHeadlessPlayer } from './playlistPlayer/jukeboxHeadless'
 import { inputSystemCallback } from './systems/Input'
 import { logicSystem } from './systems/Logic'
 import { timeSystem } from './systems/Time'
@@ -27,6 +27,8 @@ import { initPersistence, persistenceSystem } from './systems/Persistence'
 // Multiplayer system
 import { initVisitSystem } from './systems/Visit'
 import { createAvatarHider, ensureLocalPlayerVisible } from './factories/AvatarHider'
+// Needs UI system
+import { needsUISystem } from './systems/NeedsUI'
 
 // =============================================================================
 // SYSTEMS
@@ -55,6 +57,7 @@ export function main() {
   engine.addSystem(animationSystem) // After Movement so menu state changes are processed
   engine.addSystem(menuPositionSystem)
   engine.addSystem(cursorFollowSystem) // Cursor follow when camera is focused
+  engine.addSystem(needsUISystem) // Optional cylindrical bars above pet
 
   // 2. Setup Tamagotchi Systems (Personality & Care)
   engine.addSystem(behaviorSystem) // Pet autonomous movement
@@ -81,7 +84,7 @@ export function main() {
 
   // 7. Setup Scene
   createGameEntity()
-  createBackgroundMusic()
+  createHeadlessPlayer() // Initialize the playlist player jukebox
   createTechEnvironment()
   createEgg()
 

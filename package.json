@@ -7,12 +7,14 @@
     "deploy": "sdk-commands deploy",
     "build": "sdk-commands build",
     "upgrade-sdk": "npm install --save-dev @dcl/sdk@latest",
-    "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next"
+    "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next",
+    "generate-playlist": "node scripts/generate-playlist.js"
   },
   "devDependencies": {
     "@dcl/asset-packs": "latest",
-    "@dcl/js-runtime": "^7.15.2",
-    "@dcl/sdk": "^7.15.2"
+    "@dcl/js-runtime": "7.15.2",
+    "@dcl/sdk": "^7.15.2",
+    "chokidar": "^3.5.3"
   },
   "engines": {
     "node": ">=16.0.0",
