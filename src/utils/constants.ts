@@ -185,3 +185,16 @@ export const QUEST_COMPLETE_SCALE_PULSE = 1.2 // scale multiplier for completion
 export const MAX_VISIBLE_PETS = 3 // Maximum number of pets visible at once (performance)
 export const SCENE_HIDING_AREA_SIZE = { x: 32, y: 10, z: 32 } // 2x2 parcels = 32x32 meters
 export const MAX_SYNC_ENTITY_ID = 8000 // Max ID for manually synced entities (8001+ reserved for Creator Hub)
+
+// =============================================================================
+// SNOW SYSTEM CONTROL
+// =============================================================================
+
+// Manual snow control (for testing/development/seasonal events)
+// Set to true to force snow on, false to force off, null to use theme-based
+export const SNOW_OVERRIDE: boolean | null = null
+
+// Examples:
+// export const SNOW_OVERRIDE: boolean | null = true    // Always snow
+// export const SNOW_OVERRIDE: boolean | null = false   // Never snow
+// export const SNOW_OVERRIDE: boolean | null = null    // Theme-based (default)

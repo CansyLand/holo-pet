@@ -55,17 +55,19 @@ Use these terms when discussing game states and modes:
 
 Themes are **cosmetic variations** of the PET scene. They change colors and add decorations but don't affect gameplay.
 
-| Theme       | Ground Color  | Decorations                | Calendar Period  |
-| ----------- | ------------- | -------------------------- | ---------------- |
-| `DEFAULT`   | Green grass   | Pink flower                | Spring (default) |
-| `CHRISTMAS` | White snow    | Tree, presents, gold star  | Dec 15-26        |
-| `NEW_YEAR`  | Light snow    | Disco ball, champagne, hat | Dec 27 - Jan 7   |
-| `SUMMER`    | Vibrant green | Beach umbrella, sunflower  | Jun 1 - Aug 31   |
-| `AUTUMN`    | Brown earth   | Pumpkin, leaves, bare tree | Sep 1 - Nov 14   |
+| Theme       | Ground Color  | Decorations                | Calendar Period  | Snow |
+| ----------- | ------------- | -------------------------- | ---------------- | ---- |
+| `DEFAULT`   | Green grass   | Pink flower                | Spring (default) | ✅   |
+| `CHRISTMAS` | White snow    | Tree, presents, gold star  | Dec 15-26        | ✅   |
+| `NEW_YEAR`  | Light snow    | Disco ball, champagne, hat | Dec 27 - Jan 7   | ✅   |
+| `SUMMER`    | Vibrant green | Beach umbrella, sunflower  | Jun 1 - Aug 31   | ❌   |
+| `AUTUMN`    | Brown earth   | Pumpkin, leaves, bare tree | Sep 1 - Nov 14   | ❌   |
 
 Theme selection uses UTC time so all players see the same environment globally.
 
 **Manual Override:** Edit `THEME_OVERRIDE` in `src/utils/theme.ts` to force a specific theme during development.
+
+**Snow Override:** Edit `SNOW_OVERRIDE` in `src/utils/constants.ts` to force snow on/off regardless of theme.
 
 ---
 
@@ -84,11 +86,13 @@ src/
 │   ├── Logic.ts        # Consumes InteractionEvent -> Updates Data
 │   ├── Time.ts         # Handles decay/growth over time
 │   ├── CameraFocus.ts  # Manages cursor during Focus Mode
-│   └── Render.ts       # Syncs Visuals/UI to Data
+│   ├── Render.ts       # Syncs Visuals/UI to Data
+│   └── Snow.ts         # Snow particle system (entity pooling)
 ├── factories/          # ENTITY CREATORS
 │   ├── Game.ts         # Sets up global entities
 │   ├── Environment.ts  # Creates TECH/PET scenes with themes
 │   ├── Pet.ts          # Spawns Pet entities + meshes
+│   ├── SnowPool.ts     # Creates 50 billboarded snow particles
 │   └── UI.ts           # Spawns HUD/Menu, camera controls
 ├── utils/              # HELPERS & CONSTANTS
 │   ├── constants.ts
@@ -118,6 +122,14 @@ Instead of a `GameManager` class, we use a singleton entity with a `GameState` c
 - `mood`: number (0-100)
 - `hunger`: number (0-100)
 - `state`: 'IDLE' | 'EATING' | 'SLEEPING'
+
+### C. Snow Particles (`SnowComponent`)
+
+- `isActive`: boolean (pooling state)
+- `poolIndex`: number (entity pool management)
+- `velocityX/Y/Z`: number (physics simulation)
+- `size`: number (visual scale variation)
+- `rotationSpeed`: number (spin variation)
 
 ### C. The "Event" Component (`InteractionEvent`)
 
@@ -159,6 +171,15 @@ Systems run every frame. They are stateless functions.
   - **Visuals:** If `Pet.state` changed to 'SAD', play Sad Animation.
   - **UI:** Update the Health Bar scale based on `Pet.mood`.
   - **Feedback:** If `InteractionEvent` was processed, spawn particle hearts.
+
+### E. `SnowSystem` (The Weather)
+
+- **Role:** Manages falling snow particles with wind effects.
+- **Action:**
+  - **Pooling:** Recycles 50 billboarded snow planes (no entity creation/destruction).
+  - **Physics:** Applies gravity, wind drift, and rotation for natural movement.
+  - **Theme Integration:** Activates during DEFAULT, CHRISTMAS, and NEW_YEAR themes.
+  - **Performance:** Continuous spawning with automatic cleanup below ground level.
 
 ---
 

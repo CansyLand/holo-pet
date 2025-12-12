@@ -18,6 +18,7 @@ import { bondSystem } from './systems/Bond'
 import { hygieneSystem } from './systems/Hygiene'
 import { poopSystem } from './systems/Poop'
 import { heartParticleSystem } from './systems/HeartParticle'
+import { snowSystem } from './systems/Snow'
 import { namingSystem, NamingUI } from './factories/NamingUI'
 import { StatsUI } from './factories/StatsUI'
 import { VisitUI } from './factories/VisitUI'
@@ -28,6 +29,9 @@ import { initPersistence, persistenceSystem } from './systems/Persistence'
 // Multiplayer system
 import { initVisitSystem } from './systems/Visit'
 import { createAvatarHider, ensureLocalPlayerVisible } from './factories/AvatarHider'
+// Snow system
+import { createSnowPool } from './factories/SnowPool'
+import { shouldSnowBeActive } from './utils/theme'
 // Needs UI system
 import { needsUISystem } from './systems/NeedsUI'
 // Quest system
@@ -69,6 +73,7 @@ export function main() {
   engine.addSystem(hygieneSystem) // Cleanliness decay
   engine.addSystem(poopSystem) // Poop spawning and collection
   engine.addSystem(heartParticleSystem) // Heart particles when petting
+  engine.addSystem(snowSystem) // Snow particle system
   engine.addSystem(namingSystem) // Pet naming popup trigger
 
   // 3. Setup Quest System (Daily Quests)
@@ -98,5 +103,10 @@ export function main() {
   createTechEnvironment()
   createEgg()
 
-  console.log('Holo Pet initialized with multiplayer, quests, and persistence')
+  // 9. Setup Snow System (theme-based activation)
+  if (shouldSnowBeActive()) {
+    createSnowPool() // Creates 50 billboarded snow particles
+  }
+
+  console.log('Holo Pet initialized with multiplayer, quests, persistence, and snow')
 }

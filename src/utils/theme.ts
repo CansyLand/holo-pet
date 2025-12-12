@@ -1,4 +1,5 @@
 import { Theme } from '../components/GameState'
+import { SNOW_OVERRIDE } from './constants'
 
 // ============================================================
 // MANUAL OVERRIDE - Set to a Theme value to force that theme
@@ -84,4 +85,20 @@ export function getThemeDisplayName(theme: Theme): string {
     default:
       return '🌿 Default'
   }
+}
+
+/**
+ * Determine if snow should be active based on theme or manual override
+ * Snow is active during: DEFAULT, CHRISTMAS, NEW_YEAR themes (or when manually overridden)
+ */
+export function shouldSnowBeActive(): boolean {
+  // Manual override takes priority
+  if (SNOW_OVERRIDE !== null) {
+    console.log(`Snow override active: ${SNOW_OVERRIDE}`)
+    return SNOW_OVERRIDE
+  }
+
+  // Theme-based snow activation
+  const currentTheme = getCurrentTheme()
+  return currentTheme === Theme.DEFAULT || currentTheme === Theme.CHRISTMAS || currentTheme === Theme.NEW_YEAR
 }

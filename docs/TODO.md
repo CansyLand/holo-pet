@@ -4,8 +4,6 @@ Open Discord
 
 DCLHUB
 
-Check list of daily activity
-
 snow
 
 =======
