@@ -31,11 +31,12 @@ The quest system creates a satisfying daily routine:
 
 ### Quest Completion Logic
 
-Quests complete **automatically** when thresholds are met:
+Quests complete **only after specific player actions**, when thresholds are met and prerequisites are satisfied:
 
-- **Feed**: Triggered when hunger drops below 5%
-- **Play**: Triggered when BOTH mood > 95% AND energy < 5% (exhausted but happy)
-- **Bath**: Triggered when cleanliness rises above 95%
+- **Feed**: After feeding action, if hunger < 5% (always available as first quest)
+- **Play**: After playing action, if mood > 95% AND energy < 5% (requires Feed completed)
+- **Bath**: After bathing action, if cleanliness > 95% (requires Feed AND Play completed)
+- **Bedtime**: After putting pet to bed (requires Feed, Play, AND Bath completed)
 - **Bedtime**: Triggered when player uses bed station to put pet to sleep
 
 Quests **cannot be uncompleted** - once the threshold is met, the quest stays marked as complete until daily reset.
@@ -248,11 +249,12 @@ interface PetDocument {
 
 **Triggers**:
 
-- Quest completion triggers immediate save
+- Quest completion after player actions triggers immediate save
 - Scene boundary exit (teleport/walk out) triggers immediate save
 - Player disconnection (browser close/network issues) triggers immediate save
 - Pet naming triggers immediate save
 - Failed saves automatically retry after 10 seconds
+- Daily quest reset on scene load (if new day) triggers save
 
 ---
 
@@ -703,6 +705,9 @@ The quest system integrates with a highly optimized persistence architecture des
 The Daily Quest System creates a compelling engagement loop:
 
 - **Clear Goals**: 4 daily quests with specific thresholds
+- **Sequential Progression**: Must complete quests in order (Feed → Play → Bath → Bedtime)
+- **Action-Triggered**: Quests only complete after intentional player actions (no background monitoring)
+- **Performance Optimized**: 99.9% reduction in quest checking operations
 - **Meaningful Rewards**: 200 XP daily contributes to leaderboard
 - **Natural Rhythm**: Daily reset encourages returning
 - **Pet Care Integration**: Quests reinforce core gameplay

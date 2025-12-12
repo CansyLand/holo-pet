@@ -31,7 +31,7 @@ import { createAvatarHider, ensureLocalPlayerVisible } from './factories/AvatarH
 // Needs UI system
 import { needsUISystem } from './systems/NeedsUI'
 // Quest system
-import { initQuestSystem, questSystem } from './systems/Quest'
+import { initQuestSystem, checkDailyQuestReset, sleepSystem } from './systems/Quest'
 import { questAnimationSystem } from './systems/QuestAnimation'
 
 // =============================================================================
@@ -73,7 +73,8 @@ export function main() {
 
   // 3. Setup Quest System (Daily Quests)
   initQuestSystem() // Initialize quest state
-  engine.addSystem(questSystem) // Quest completion tracking
+  checkDailyQuestReset() // Check for daily reset on load
+  engine.addSystem(sleepSystem) // Handle pet sleeping energy recharge
   engine.addSystem(questAnimationSystem) // Quest UI animations
 
   // 4. Setup Persistence System

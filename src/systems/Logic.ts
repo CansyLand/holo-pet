@@ -15,7 +15,7 @@ import { addBond, recordPlayerVisit } from './Bond'
 import { applyBath, applyBrush } from './Hygiene'
 import { collectPoop } from './Poop'
 import { spawnHearts } from './HeartParticle'
-import { completeBedtimeQuest } from './Quest'
+import { checkQuestCompletion } from './Quest'
 import {
   MAX_MOOD,
   MAX_HUNGER,
@@ -213,6 +213,9 @@ function handleFeed(entity: Entity, petData: ReturnType<typeof PetComponent.getM
   addBond(targetPet, FEED_BOND_BOOST)
   recordPlayerVisit(targetPet)
 
+  // Check feed quest completion
+  checkQuestCompletion('feed', targetPetData)
+
   console.log(`Pet fed. Hunger: ${targetPetData.hunger}, Mood: ${targetPetData.mood}`)
 }
 
@@ -234,6 +237,9 @@ function handlePlay(entity: Entity, petData: ReturnType<typeof PetComponent.getM
 
   addBond(targetPet, PLAY_BOND_BOOST)
   recordPlayerVisit(targetPet)
+
+  // Check play quest completion
+  checkQuestCompletion('play', targetPetData, hygieneData)
 
   console.log(`Played with pet. Mood: ${targetPetData.mood}, Energy: ${targetPetData.energy}`)
 }
@@ -267,6 +273,9 @@ function handleBathe(entity: Entity) {
 
   addBond(targetPet, BATHE_BOND_BOOST)
   recordPlayerVisit(targetPet)
+
+  // Check bath quest completion
+  checkQuestCompletion('bath', petData, HygieneComponent.getMutable(targetPet))
 
   console.log(`Bathed pet. Cleanliness restored, Mood: ${petData.mood}`)
 }
@@ -336,8 +345,8 @@ function handleSleep(entity: Entity) {
   // Put pet to sleep
   petData.state = PetState.SLEEPING
 
-  // Complete bedtime quest
-  completeBedtimeQuest()
+  // Check bedtime quest completion (only if all previous quests are done)
+  checkQuestCompletion('bedtime', petData)
 
   recordPlayerVisit(targetPet)
 

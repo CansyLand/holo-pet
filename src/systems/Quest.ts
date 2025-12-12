@@ -61,10 +61,9 @@ export function getQuestStateEntity(): Entity | null {
 }
 
 /**
- * Quest system - runs every frame
- * Checks for quest completion thresholds and awards XP
+ * Check for daily quest reset (called on scene load)
  */
-export function questSystem(dt: number) {
+export function checkDailyQuestReset() {
   if (!questStateEntity) return
 
   const questState = DailyQuestComponent.getMutable(questStateEntity)
@@ -87,36 +86,83 @@ export function questSystem(dt: number) {
     // Trigger save to persist reset
     triggerSave()
   }
+}
 
-  // Find the active pet
-  for (const [_, gameState] of engine.getEntitiesWith(GameState)) {
-    if (gameState.phase === GamePhase.PET && gameState.activePetEntity) {
-      const petEntity = gameState.activePetEntity
-      const pet = PetComponent.getOrNull(petEntity)
-      const hygiene = HygieneComponent.getOrNull(petEntity)
+/**
+ * Check quest completion after specific player actions
+ * Only checks the currently active quest to avoid unnecessary computation
+ */
+export function checkQuestCompletion(
+  actionType: 'feed' | 'play' | 'bath' | 'bedtime',
+  pet: ReturnType<typeof PetComponent.getMutable>,
+  hygiene?: ReturnType<typeof HygieneComponent.getMutable> | null
+) {
+  if (!questStateEntity) return
 
-      if (!pet) continue
+  const questState = DailyQuestComponent.getMutable(questStateEntity)
 
-      // Check Feed Quest (hunger < 5%)
+  // Only check completion for the specific action and quest prerequisites
+  switch (actionType) {
+    case 'feed':
+      // Feed quest: always available as first quest
       if (!questState.feedCompleted && !completionFlags.feedAwarded) {
         if (pet.hunger < QUEST_FEED_THRESHOLD) {
           completeQuest('feed', questState)
         }
       }
+      break
 
-      // Check Play Quest (mood > 95% AND energy < 5%)
-      if (!questState.playCompleted && !completionFlags.playAwarded) {
+    case 'play':
+      // Play quest: only if Feed is completed
+      if (!questState.playCompleted && !completionFlags.playAwarded && questState.feedCompleted) {
         if (pet.mood > QUEST_PLAY_MOOD_THRESHOLD && pet.energy < QUEST_PLAY_ENERGY_THRESHOLD) {
           completeQuest('play', questState)
         }
       }
+      break
 
-      // Check Bath Quest (cleanliness > 95%)
-      if (!questState.bathCompleted && !completionFlags.bathAwarded && hygiene) {
+    case 'bath':
+      // Bath quest: only if Feed and Play are completed
+      if (
+        !questState.bathCompleted &&
+        !completionFlags.bathAwarded &&
+        questState.feedCompleted &&
+        questState.playCompleted &&
+        hygiene
+      ) {
         if (hygiene.cleanliness > QUEST_BATH_THRESHOLD) {
           completeQuest('bath', questState)
         }
       }
+      break
+
+    case 'bedtime':
+      // Bedtime quest: only if all previous quests are completed
+      if (
+        !questState.bedtimeCompleted &&
+        !completionFlags.bedtimeAwarded &&
+        questState.feedCompleted &&
+        questState.playCompleted &&
+        questState.bathCompleted
+      ) {
+        completeQuest('bedtime', questState)
+      }
+      break
+  }
+}
+
+/**
+ * Handle pet sleeping (energy recharge) - still runs as system for smooth animation
+ * This is separate from quest completion checking
+ */
+export function sleepSystem(dt: number) {
+  // Find the active pet
+  for (const [_, gameState] of engine.getEntitiesWith(GameState)) {
+    if (gameState.phase === GamePhase.PET && gameState.activePetEntity) {
+      const petEntity = gameState.activePetEntity
+      const pet = PetComponent.getOrNull(petEntity)
+
+      if (!pet) continue
 
       // Handle sleep energy recharge (if pet is sleeping)
       if (pet.state === PetState.SLEEPING) {
