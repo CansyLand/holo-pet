@@ -179,6 +179,31 @@ function modifyStat(stat: 'mood' | 'hunger' | 'energy' | 'bond' | 'cleanliness',
 }
 
 /**
+ * Modify a personality trait by amount
+ */
+function modifyPersonality(trait: 'energy' | 'sociability' | 'cleanliness' | 'appetite', delta: number) {
+  if (!activePetEntity) return
+
+  const personality = PersonalityComponent.getMutableOrNull(activePetEntity)
+  if (personality) {
+    switch (trait) {
+      case 'energy':
+        personality.energy = Math.max(20, Math.min(80, personality.energy + delta))
+        break
+      case 'sociability':
+        personality.sociability = Math.max(20, Math.min(80, personality.sociability + delta))
+        break
+      case 'cleanliness':
+        personality.cleanliness = Math.max(20, Math.min(80, personality.cleanliness + delta))
+        break
+      case 'appetite':
+        personality.appetite = Math.max(20, Math.min(80, personality.appetite + delta))
+        break
+    }
+  }
+}
+
+/**
  * Set all stats to max
  */
 function maxAllStats() {
@@ -399,18 +424,48 @@ function StatRow({
   )
 }
 
-function PersonalityRow({ label, value }: { label: string; value: number }) {
+function PersonalityRow({
+  label,
+  value,
+  trait
+}: {
+  label: string
+  value: number
+  trait: 'energy' | 'sociability' | 'cleanliness' | 'appetite'
+}) {
   return (
     <UiEntity
       uiTransform={{
         width: '100%',
-        height: 20,
+        height: 28,
         flexDirection: 'row',
-        alignItems: 'center'
+        alignItems: 'center',
+        justifyContent: 'space-between'
       }}
     >
       <Label value={label} fontSize={10} color={STAT_LABEL_COLOR} uiTransform={{ width: 80 }} />
       <Label value={String(value)} fontSize={11} color={Color4.create(0.5, 0.8, 0.5, 1)} uiTransform={{ width: 40 }} />
+      <UiEntity
+        uiTransform={{
+          flexDirection: 'row',
+          width: 80
+        }}
+      >
+        <Button
+          value="-10"
+          variant="secondary"
+          fontSize={10}
+          uiTransform={{ width: 35, height: 22, margin: { right: 4 } }}
+          onMouseDown={() => modifyPersonality(trait, -10)}
+        />
+        <Button
+          value="+10"
+          variant="secondary"
+          fontSize={10}
+          uiTransform={{ width: 35, height: 22 }}
+          onMouseDown={() => modifyPersonality(trait, 10)}
+        />
+      </UiEntity>
     </UiEntity>
   )
 }
@@ -502,10 +557,10 @@ export function StatsUI() {
         uiTransform={{ height: 22, margin: { top: 6 } }}
       />
 
-      <PersonalityRow label="Energy (T)" value={cachedStats.personalityTraits.energy} />
-      <PersonalityRow label="Social (T)" value={cachedStats.personalityTraits.sociability} />
-      <PersonalityRow label="Clean (T)" value={cachedStats.personalityTraits.cleanliness} />
-      <PersonalityRow label="Appetite (T)" value={cachedStats.personalityTraits.appetite} />
+      <PersonalityRow label="Energy (T)" value={cachedStats.personalityTraits.energy} trait="energy" />
+      <PersonalityRow label="Social (T)" value={cachedStats.personalityTraits.sociability} trait="sociability" />
+      <PersonalityRow label="Clean (T)" value={cachedStats.personalityTraits.cleanliness} trait="cleanliness" />
+      <PersonalityRow label="Appetite (T)" value={cachedStats.personalityTraits.appetite} trait="appetite" />
 
       {/* Action Buttons */}
       <Label

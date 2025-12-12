@@ -127,6 +127,9 @@ export const FOLLOW_THINKING_DELAY = 2.0 // Seconds pet "thinks" before starting
 export const FOLLOW_UPDATE_INTERVAL = 1.5 // How often to update follow target (seconds)
 export const FOLLOW_HYSTERESIS_DISTANCE = 3.0 // Minimum distance player must move before pet reacts
 
+// Hunger Behavior Constants (based on personality energy)
+export const ENERGY_LOW_THRESHOLD = 30 // Below this = sitting behavior
+
 // =============================================================================
 // RENDER SYSTEM CONSTANTS
 // =============================================================================

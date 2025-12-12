@@ -4,16 +4,7 @@ Open Discord
 
 DCLHUB
 
-snow
-
-=======
-
-pet make it stand in front of food. so it is not so anxious if low energy pet. high energy pet keep as is
-
-show UI under pet camera that says pet type,name an XP
-What kind of pet is this?
-
-- ask prompt?
+F
 
 =======
 
@@ -31,7 +22,7 @@ mini games - pet- brush - feed?
 
 =====
 
-photobooth
+photobooth, photo mode image selsection + poses 🤔
 
 visit a friends pet - merge holopets
 
@@ -46,6 +37,13 @@ place elements in scene
 crypto middleware / security
 
 Analytics with dashboard on my website
+
+=====
+
+show UI under pet camera that says pet type,name an XP
+What kind of pet is this?
+
+- ask prompt?
 
 =======
 FIXED: Save game after pet naming (prevents data loss)

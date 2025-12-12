@@ -25,7 +25,8 @@ import {
   PLAY_AREA_POSITION_Z,
   FOLLOW_THINKING_DELAY,
   FOLLOW_UPDATE_INTERVAL,
-  FOLLOW_HYSTERESIS_DISTANCE
+  FOLLOW_HYSTERESIS_DISTANCE,
+  ENERGY_LOW_THRESHOLD
 } from '../utils/constants'
 
 // =============================================================================
@@ -37,6 +38,8 @@ import {
 export enum BehaviorState {
   IDLE = 'idle',
   SEEKING_FOOD = 'seeking_food',
+  SEEKING_FOOD_WAITING = 'seeking_food_waiting', // Medium energy: stand and wait
+  SEEKING_FOOD_SITTING = 'seeking_food_sitting', // Low energy: sit and wait
   SEEKING_BATH = 'seeking_bath',
   SEEKING_PREFERRED = 'seeking_preferred', // New: personality-based preference
   APPROACHING_PLAYER = 'approaching_player',
@@ -79,6 +82,31 @@ const petBehaviorState: Map<
 export const FOOD_BOWL_POSITION = STATION_POSITIONS.FOOD_BOWL
 export const BATHTUB_POSITION = STATION_POSITIONS.BATHTUB
 export const PLAY_AREA_POSITION = Vector3.create(PLAY_AREA_POSITION_X, 0.5, PLAY_AREA_POSITION_Z)
+
+// #region agent log
+// Debug logging disabled to prevent file watcher reload loops
+const DEBUG_LOGGING_ENABLED = false
+// Debug throttle - only log once per second max
+let lastLogTime = 0
+const LOG_THROTTLE_MS = 1000
+function shouldLog(): boolean {
+  if (!DEBUG_LOGGING_ENABLED) return false
+  const now = Date.now()
+  if (now - lastLogTime > LOG_THROTTLE_MS) {
+    lastLogTime = now
+    return true
+  }
+  return false
+}
+function debugLog(data: any): void {
+  if (!DEBUG_LOGGING_ENABLED) return
+  fetch('http://127.0.0.1:7242/ingest/89718732-249b-4097-90be-e1bff8a448c5', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }).catch(() => {})
+}
+// #endregion
 
 export function behaviorSystem(dt: number) {
   // Skip if menu is open (pet should be sitting)
@@ -142,6 +170,23 @@ export function behaviorSystem(dt: number) {
 
     // State changed - update target and set commitment
     if (newState !== behaviorData.state) {
+      // #region agent log
+      if (DEBUG_LOGGING_ENABLED) {
+        debugLog({
+          location: 'Behavior.ts:STATE_CHANGE',
+          message: 'State change detected',
+          data: {
+            oldState: behaviorData.state,
+            newState: newState,
+            isNearFood: isNearFoodStation(transform.position),
+            hunger: pet.hunger
+          },
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          hypothesisId: 'A'
+        })
+      }
+      // #endregion
       behaviorData.state = newState
       behaviorData.lastStateChange = now
       behaviorData.commitmentEndTime = now + BEHAVIOR_COMMITMENT_TIME * 1000
@@ -214,20 +259,57 @@ function determineBehavior(
 ): BehaviorState {
   // ==========================================================================
   // CRITICAL OVERRIDE: Very hungry pet seeks food (unless already at food station)
+  // Behavior varies based on personality energy trait
   // ==========================================================================
   if (pet.hunger > HUNGRY_THRESHOLD) {
-    // If already at food station, stay idle and wait for player to feed
-    if (!isNearFoodStation(currentPos)) {
-      return BehaviorState.SEEKING_FOOD
+    // If already at food station, stay in appropriate waiting behavior
+    if (isNearFoodStation(currentPos)) {
+      // #region agent log
+      if (DEBUG_LOGGING_ENABLED && shouldLog()) {
+        const stateToReturn =
+          personality.energy < ENERGY_LOW_THRESHOLD ? 'SEEKING_FOOD_SITTING' : 'SEEKING_FOOD_WAITING'
+        debugLog({
+          location: 'Behavior.ts:HUNGER_CHECK',
+          message: 'Hungry pet at food station - forcing waiting state',
+          data: { currentState: currentData.state, forcingState: stateToReturn, energy: personality.energy },
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          hypothesisId: 'E'
+        })
+      }
+      // #endregion
+      // Determine waiting behavior based on energy
+      if (personality.energy < ENERGY_LOW_THRESHOLD) {
+        return BehaviorState.WAITING_AT_STATION
+      } else {
+        return BehaviorState.IDLE
+      }
     }
-    // Already at food station - stay idle (will face player when they approach)
+
+    // Not at station yet - move to food bowl
+    return BehaviorState.SEEKING_FOOD
   }
 
   // ==========================================================================
   // COMMITMENT CHECK: If committed to current behavior, don't change
+  // Also protect IDLE states when at a station (to prevent oscillation)
   // ==========================================================================
-  if (now < currentData.commitmentEndTime && currentData.state !== BehaviorState.IDLE) {
-    return currentData.state
+  if (now < currentData.commitmentEndTime) {
+    if (currentData.state !== BehaviorState.IDLE) {
+      return currentData.state
+    }
+    // For IDLE state, still respect commitment if at a station
+    if (isNearStation(currentPos)) {
+      return currentData.state
+    }
+  }
+
+  // ==========================================================================
+  // SECONDARY OVERRIDE: If idle at food station and still hungry, stay there
+  // ==========================================================================
+  if (currentData.state === BehaviorState.IDLE && pet.hunger > HUNGRY_THRESHOLD && isNearFoodStation(currentPos)) {
+    // Stay idle at food station - don't go to bath even if also dirty
+    return BehaviorState.IDLE
   }
 
   // ==========================================================================
@@ -240,7 +322,25 @@ function determineBehavior(
     // Low cleanliness personality = only seeks bath when very dirty (<20)
     if (personality.cleanliness >= 40 || hygiene.cleanliness < 20) {
       // If already at bath station, stay idle and wait for player
-      if (!isNearBathStation(currentPos)) {
+      const nearBath = isNearBathStation(currentPos)
+      // #region agent log
+      if (DEBUG_LOGGING_ENABLED && shouldLog()) {
+        debugLog({
+          location: 'Behavior.ts:BATH_CHECK',
+          message: 'Dirty pet checking bath proximity',
+          data: {
+            isNearBath: nearBath,
+            petPos: { x: currentPos.x.toFixed(2), z: currentPos.z.toFixed(2) },
+            bathPos: { x: BATHTUB_POSITION.x, z: BATHTUB_POSITION.z },
+            currentState: currentData.state
+          },
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          hypothesisId: 'F'
+        })
+      }
+      // #endregion
+      if (!nearBath) {
         return BehaviorState.SEEKING_BATH
       }
     }
@@ -330,7 +430,15 @@ function getTargetPosition(
 ): Vector3 | null {
   switch (state) {
     case BehaviorState.SEEKING_FOOD:
-      // Position pet 1m in front of the food bowl (along the scene's forward direction)
+      // Move to position 1m in front of the food bowl
+      return Vector3.create(FOOD_BOWL_POSITION.x, FOOD_BOWL_POSITION.y, FOOD_BOWL_POSITION.z - 1.0)
+
+    case BehaviorState.SEEKING_FOOD_WAITING:
+      // Stand and wait at food bowl - same position as SEEKING_FOOD
+      return Vector3.create(FOOD_BOWL_POSITION.x, FOOD_BOWL_POSITION.y, FOOD_BOWL_POSITION.z - 1.0)
+
+    case BehaviorState.SEEKING_FOOD_SITTING:
+      // Sit and wait at food bowl - same position as waiting, but pet will sit
       return Vector3.create(FOOD_BOWL_POSITION.x, FOOD_BOWL_POSITION.y, FOOD_BOWL_POSITION.z - 1.0)
 
     case BehaviorState.SEEKING_BATH:
@@ -402,6 +510,10 @@ function executeBehavior(
     state: BehaviorState
     targetPosition: Vector3 | null
     idleTime: number
+    lastStateChange: number
+    commitmentEndTime: number
+    playerIdleTime: number
+    preferredActivity: PreferredActivity | null
     followThinkingStart: number
     followLastUpdate: number
     followLastPlayerPos: Vector3 | null
@@ -413,17 +525,73 @@ function executeBehavior(
   if (!behaviorData.targetPosition) {
     behaviorData.idleTime += dt
 
-    // When idle at a station (food bowl or bath), face the player if they come near
+    // When idle at a station (food bowl or bath), face the player if they come near,
+    // or face the food bowl if waiting for food
     const currentPos = transform.position
+    // #region agent log
+    if (DEBUG_LOGGING_ENABLED && shouldLog()) {
+      debugLog({
+        location: 'Behavior.ts:IDLE_PATH',
+        message: 'In idle code path (targetPos null)',
+        data: {
+          state: behaviorData.state,
+          isNearStation: isNearStation(currentPos),
+          isNearFood: isNearFoodStation(currentPos),
+          petPos: { x: currentPos.x.toFixed(2), z: currentPos.z.toFixed(2) },
+          foodBowlPos: { x: FOOD_BOWL_POSITION.x, z: FOOD_BOWL_POSITION.z }
+        },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        hypothesisId: 'B'
+      })
+    }
+    // #endregion
     if (isNearStation(currentPos)) {
       const playerPos = getPlayerPosition()
       if (playerPos) {
         const toPlayer = Vector3.subtract(playerPos, currentPos)
         const distToPlayer = Vector3.length(toPlayer)
 
-        // If player is close enough, face them (waiting for interaction)
-        if (distToPlayer < PLAYER_PROXIMITY_RADIUS) {
-          faceDirection(transform, toPlayer)
+        // Check if we're specifically at the food bowl (either idle or waiting at station)
+        if (
+          isNearFoodStation(currentPos) &&
+          (behaviorData.state === BehaviorState.IDLE || behaviorData.state === BehaviorState.WAITING_AT_STATION)
+        ) {
+          // #region agent log2
+          if (DEBUG_LOGGING_ENABLED && shouldLog()) {
+            debugLog({
+              location: 'Behavior.ts:FOOD_FACING',
+              message: 'At food bowl - checking facing',
+              data: { distToPlayer: distToPlayer.toFixed(2), threshold: 5, willFacePlayer: distToPlayer < 0.5 },
+              timestamp: Date.now(),
+              sessionId: 'debug-session',
+              hypothesisId: 'C'
+            })
+          }
+          // #endregion
+          // At food bowl: face the bowl by default, face player only when close for interaction
+          if (distToPlayer < 5) {
+            // Close enough for feeding interaction
+            faceDirection(transform, toPlayer)
+          } else {
+            // Face the food bowl directly
+            const toBowl = Vector3.subtract(FOOD_BOWL_POSITION, currentPos)
+            faceDirection(transform, toBowl)
+          }
+        } else {
+          // Normal station behavior - face player if nearby
+          if (distToPlayer < PLAYER_PROXIMITY_RADIUS) {
+            faceDirection(transform, toPlayer)
+          }
+        }
+      } else {
+        // No player position available, face the bowl if at food station
+        if (
+          isNearFoodStation(currentPos) &&
+          (behaviorData.state === BehaviorState.IDLE || behaviorData.state === BehaviorState.WAITING_AT_STATION)
+        ) {
+          const toBowl = Vector3.subtract(FOOD_BOWL_POSITION, currentPos)
+          faceDirection(transform, toBowl)
         }
       }
     }
@@ -432,6 +600,23 @@ function executeBehavior(
 
   const currentPos = transform.position
   let targetPos = behaviorData.targetPosition
+
+  // #region agent log
+  if (DEBUG_LOGGING_ENABLED && isNearFoodStation(currentPos) && shouldLog()) {
+    debugLog({
+      location: 'Behavior.ts:MOVEMENT_PATH',
+      message: 'In movement path with targetPosition (at food)',
+      data: {
+        state: behaviorData.state,
+        hasTarget: !!targetPos,
+        distToTarget: targetPos ? Vector3.distance(currentPos, targetPos).toFixed(2) : 'N/A'
+      },
+      timestamp: Date.now(),
+      sessionId: 'debug-session',
+      hypothesisId: 'A'
+    })
+  }
+  // #endregion
 
   // For APPROACHING_PLAYER, update target thoughtfully (not every frame)
   if (behaviorData.state === BehaviorState.APPROACHING_PLAYER) {
@@ -481,10 +666,41 @@ function executeBehavior(
 
   // Arrived at destination
   if (distance < 0.5) {
-    behaviorData.state = BehaviorState.IDLE
-    behaviorData.targetPosition = null
-    behaviorData.idleTime = 0
-    return
+    // Handle sitting animation for low energy pets at food bowl
+    if (behaviorData.state === BehaviorState.SEEKING_FOOD_SITTING) {
+      behaviorData.state = BehaviorState.WAITING_AT_STATION
+      behaviorData.targetPosition = null
+      behaviorData.idleTime = 0
+
+      // Trigger sitting animation - pet stays sitting while waiting for food
+      // Animation will be handled by the render system based on state
+      // Note: Facing logic now handled by idle behavior code
+    } else if (behaviorData.state === BehaviorState.SEEKING_FOOD_WAITING) {
+      // #region agent log
+      if (DEBUG_LOGGING_ENABLED) {
+        debugLog({
+          location: 'Behavior.ts:ARRIVAL_WAITING',
+          message: 'Pet arrived at food bowl (SEEKING_FOOD_WAITING)',
+          data: { petPos: { x: currentPos.x.toFixed(2), z: currentPos.z.toFixed(2) }, transitioningTo: 'IDLE' },
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          hypothesisId: 'D'
+        })
+      }
+      // #endregion
+      behaviorData.state = BehaviorState.IDLE
+      behaviorData.targetPosition = null
+      behaviorData.idleTime = 0
+
+      // Note: Facing logic now handled by idle behavior code
+    } else {
+      behaviorData.state = BehaviorState.IDLE
+      behaviorData.targetPosition = null
+      behaviorData.idleTime = 0
+      // Set commitment so the IDLE state isn't immediately overridden
+      behaviorData.commitmentEndTime = now + BEHAVIOR_COMMITMENT_TIME * 1000
+      return
+    }
   }
 
   // Move toward target

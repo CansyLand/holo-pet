@@ -1,9 +1,19 @@
-package-lock.json
-*.js
-node_modules
+# Dependencies
+node_modules/
+
+# Build output
 bin/
+
+# IDE & Editor
+.cursor/
+.vscode/
+*.swp
+*.swo
+
+# Debug logs
+debug.log
+*.log
+
+# OS files
 .DS_Store
-**/.DS_Store
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+Thumbs.db
