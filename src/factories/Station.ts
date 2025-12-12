@@ -26,7 +26,8 @@ export const STATION_POSITIONS = {
   WATER_BOWL: Vector3.create(SCENE_CENTER_X + 2, 0.15, SCENE_CENTER_Z + 2),
   TREAT_DISPENSER: Vector3.create(SCENE_CENTER_X - 3, 0.5, SCENE_CENTER_Z + 3),
   BATHTUB: Vector3.create(SCENE_CENTER_X + 4, 0.3, SCENE_CENTER_Z - 3),
-  GROOMING_BRUSH: Vector3.create(SCENE_CENTER_X - 4, 0.4, SCENE_CENTER_Z - 3)
+  GROOMING_BRUSH: Vector3.create(SCENE_CENTER_X - 4, 0.4, SCENE_CENTER_Z - 3),
+  BED: Vector3.create(SCENE_CENTER_X + 4, 0.2, SCENE_CENTER_Z + 3)
 }
 
 /**
@@ -190,6 +191,60 @@ export function createGroomingBrush(): Entity {
 }
 
 /**
+ * Create the bed station
+ * Put pet to sleep for energy recharge
+ */
+export function createBed(): Entity {
+  const entity = engine.addEntity()
+
+  Transform.create(entity, {
+    position: STATION_POSITIONS.BED,
+    scale: Vector3.create(1.2, 0.3, 0.8)
+  })
+
+  // Box shape for bed frame
+  MeshRenderer.setBox(entity)
+  Material.setPbrMaterial(entity, {
+    albedoColor: Color4.create(0.4, 0.3, 0.2, 1), // Wooden brown bed frame
+    roughness: 0.7
+  })
+
+  MeshCollider.setBox(entity, ColliderLayer.CL_POINTER)
+  SceneElement.create(entity, { sceneType: SceneType.PET })
+
+  Interactable.create(entity, {
+    type: InteractionType.SLEEP
+  })
+
+  PointerEvents.create(entity, {
+    pointerEvents: [
+      {
+        eventType: PointerEventType.PET_DOWN,
+        eventInfo: {
+          button: InputAction.IA_POINTER,
+          hoverText: 'Put to Bed'
+        }
+      }
+    ]
+  })
+
+  // Add pillow/mattress on top
+  const mattress = engine.addEntity()
+  Transform.create(mattress, {
+    position: Vector3.create(STATION_POSITIONS.BED.x, STATION_POSITIONS.BED.y + 0.2, STATION_POSITIONS.BED.z),
+    scale: Vector3.create(1.0, 0.1, 0.6)
+  })
+  MeshRenderer.setBox(mattress)
+  Material.setPbrMaterial(mattress, {
+    albedoColor: Color4.create(0.9, 0.9, 1, 1), // White/light blue mattress
+    roughness: 0.9
+  })
+  SceneElement.create(mattress, { sceneType: SceneType.PET })
+
+  return entity
+}
+
+/**
  * Create all care stations for the pet environment
  * Called when transitioning to PET phase
  */
@@ -197,13 +252,12 @@ export function createAllStations(): {
   treatDispenser: Entity
   bathtub: Entity
   groomingBrush: Entity
+  bed: Entity
 } {
   return {
     treatDispenser: createTreatDispenser(),
     bathtub: createBathtub(),
-    groomingBrush: createGroomingBrush()
+    groomingBrush: createGroomingBrush(),
+    bed: createBed()
   }
 }
-
-
-

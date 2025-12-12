@@ -19,6 +19,13 @@ export interface PetDocument {
     lastVisitDate: string // ISO date (YYYY-MM-DD) for streak calculation
     score: number // Pre-calculated composite score for leaderboard
     ownerName: string // Player display name for leaderboard
+    dailyQuests: {
+      feedCompleted: boolean
+      playCompleted: boolean
+      bathCompleted: boolean
+      bedtimeCompleted: boolean
+      lastResetDate: string // ISO date (YYYY-MM-DD)
+    }
   }
 }
 

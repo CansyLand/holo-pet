@@ -22,6 +22,7 @@ import { namingSystem, NamingUI } from './factories/NamingUI'
 import { StatsUI } from './factories/StatsUI'
 import { VisitUI } from './factories/VisitUI'
 import { LeaderboardUI } from './factories/LeaderboardUI'
+import { QuestUI } from './factories/QuestUI'
 // Persistence system
 import { initPersistence, persistenceSystem } from './systems/Persistence'
 // Multiplayer system
@@ -29,6 +30,9 @@ import { initVisitSystem } from './systems/Visit'
 import { createAvatarHider, ensureLocalPlayerVisible } from './factories/AvatarHider'
 // Needs UI system
 import { needsUISystem } from './systems/NeedsUI'
+// Quest system
+import { initQuestSystem, questSystem } from './systems/Quest'
+import { questAnimationSystem } from './systems/QuestAnimation'
 
 // =============================================================================
 // SYSTEMS
@@ -44,7 +48,7 @@ function avatarVisibilitySystem() {
 
 // Combined UI renderer that shows all UI components
 function CombinedUI() {
-  return [NamingUI(), StatsUI(), VisitUI(), LeaderboardUI()]
+  return [NamingUI(), StatsUI(), VisitUI(), LeaderboardUI(), QuestUI()]
 }
 
 export function main() {
@@ -67,26 +71,31 @@ export function main() {
   engine.addSystem(heartParticleSystem) // Heart particles when petting
   engine.addSystem(namingSystem) // Pet naming popup trigger
 
-  // 3. Setup Persistence System
+  // 3. Setup Quest System (Daily Quests)
+  initQuestSystem() // Initialize quest state
+  engine.addSystem(questSystem) // Quest completion tracking
+  engine.addSystem(questAnimationSystem) // Quest UI animations
+
+  // 4. Setup Persistence System
   engine.addSystem(persistenceSystem)
   initPersistence() // Initialize persistence
 
-  // 4. Setup Multiplayer System
+  // 5. Setup Multiplayer System
   initVisitSystem() // Initialize visit coordination
   createAvatarHider() // Create avatar hiding area
   engine.addSystem(avatarVisibilitySystem) // Ensure local player is always visible
 
-  // 5. Setup ReactECS UI (naming popup + debug stats + visit UI + leaderboard)
+  // 6. Setup ReactECS UI (naming popup + debug stats + visit UI + leaderboard + quests)
   ReactEcsRenderer.setUiRenderer(CombinedUI)
 
-  // 6. Initialize cursor state (locked by default)
+  // 7. Initialize cursor state (locked by default)
   PointerLock.create(engine.CameraEntity, { isPointerLocked: true })
 
-  // 7. Setup Scene
+  // 8. Setup Scene
   createGameEntity()
   createHeadlessPlayer() // Initialize the playlist player jukebox
   createTechEnvironment()
   createEgg()
 
-  console.log('Holo Pet initialized with multiplayer visit system')
+  console.log('Holo Pet initialized with multiplayer, quests, and persistence')
 }

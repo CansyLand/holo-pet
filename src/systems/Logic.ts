@@ -15,6 +15,7 @@ import { addBond, recordPlayerVisit } from './Bond'
 import { applyBath, applyBrush } from './Hygiene'
 import { collectPoop } from './Poop'
 import { spawnHearts } from './HeartParticle'
+import { completeBedtimeQuest } from './Quest'
 import {
   MAX_MOOD,
   MAX_HUNGER,
@@ -93,6 +94,10 @@ export function logicSystem(dt: number) {
 
       case InteractionType.DRINK_WATER:
         handleDrinkWater(entity)
+        break
+
+      case InteractionType.SLEEP:
+        handleSleep(entity)
         break
 
       case InteractionType.CLEAN:
@@ -320,6 +325,23 @@ function handleDrinkWater(entity: Entity) {
   recordPlayerVisit(targetPet)
 
   console.log(`Gave water to pet. Mood: ${petData.mood}`)
+}
+
+function handleSleep(entity: Entity) {
+  const targetPet = findActivePet()
+  if (!targetPet) return
+
+  const petData = PetComponent.getMutable(targetPet)
+
+  // Put pet to sleep
+  petData.state = PetState.SLEEPING
+
+  // Complete bedtime quest
+  completeBedtimeQuest()
+
+  recordPlayerVisit(targetPet)
+
+  console.log('🛏️ Pet is now sleeping. Energy will recharge over time.')
 }
 
 // =============================================================================

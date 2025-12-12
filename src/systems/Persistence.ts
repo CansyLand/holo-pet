@@ -5,12 +5,14 @@ import { serializePet, deserializePet } from '../persistence/serialization'
 import { getWalletAddress } from '../utils/wallet'
 import { GameState, GamePhase } from '../components/GameState'
 import { PetComponent, Species, PetState } from '../components/Pet'
+import { DailyQuestComponent } from '../components/Quest'
 import { createPet, updatePetHoverText } from '../factories/Pet'
 import { removeSceneByType, createPetEnvironment } from '../factories/Environment'
 import { SceneType } from '../components/Scene'
 import { getThemeDisplayName, getCurrentTheme } from '../utils/theme'
 import { PersonalityComponent, BondComponent, PetIdentityComponent, TrustLevel } from '../components/Personality'
 import { HygieneComponent } from '../components/Hygiene'
+import { getQuestStateEntity } from './Quest'
 import { AUTO_SAVE_INTERVAL, SAVE_DEBOUNCE_TIME, SAVE_RETRY_DELAY } from '../utils/constants'
 
 let lastSaveTime = 0
@@ -133,6 +135,18 @@ async function restorePetFromData(data: PetDocument) {
         updatePetHoverText(petResult.petEntity, deserialized.identity.name)
 
         console.log(`🐾 Pet "${deserialized.identity.name}" restored with ${deserialized.bond.bond}% bond`)
+      }
+
+      // Restore quest state
+      const questEntity = getQuestStateEntity()
+      if (questEntity && deserialized.dailyQuests) {
+        const questComp = DailyQuestComponent.getMutable(questEntity)
+        questComp.feedCompleted = deserialized.dailyQuests.feedCompleted
+        questComp.playCompleted = deserialized.dailyQuests.playCompleted
+        questComp.bathCompleted = deserialized.dailyQuests.bathCompleted
+        questComp.bedtimeCompleted = deserialized.dailyQuests.bedtimeCompleted
+        questComp.lastResetDate = deserialized.dailyQuests.lastResetDate
+        console.log(`📋 Quest state restored (last reset: ${deserialized.dailyQuests.lastResetDate})`)
       }
 
       // Update game state

@@ -15,7 +15,8 @@ export enum InteractionType {
   GIVE_TREAT = 'give_treat',
   COLLECT_POOP = 'collect_poop',
   NAME_PET = 'name_pet',
-  DRINK_WATER = 'drink_water'
+  DRINK_WATER = 'drink_water',
+  SLEEP = 'sleep' // Put pet to bed
 }
 
 // Tag for entities that can be interacted with

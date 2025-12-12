@@ -162,6 +162,26 @@ export const SAVE_RETRY_DELAY = 10 // seconds to wait before retrying failed sav
 export const PERSISTENCE_VERSION = '1.0.0' // Schema version
 
 // =============================================================================
+// QUEST SYSTEM CONSTANTS
+// =============================================================================
+// Quest Completion Thresholds
+export const QUEST_FEED_THRESHOLD = 5 // hunger < 5% to complete feed quest
+export const QUEST_PLAY_MOOD_THRESHOLD = 95 // mood > 95% for play quest
+export const QUEST_PLAY_ENERGY_THRESHOLD = 5 // energy < 5% for play quest (exhausted)
+export const QUEST_BATH_THRESHOLD = 95 // cleanliness > 95% to complete bath quest
+
+// Quest XP Rewards
+export const QUEST_XP_REWARD = 50 // XP awarded per completed quest
+
+// Sleep/Bedtime Constants
+export const SLEEP_ENERGY_RECHARGE_RATE = 0.35 // Energy points per second while sleeping (~8 hours for full recharge from 0)
+export const SLEEP_FULL_ENERGY_THRESHOLD = 95 // Energy above this = pet wakes up automatically
+
+// Quest Animation
+export const QUEST_ANIMATION_DURATION = 0.4 // seconds for carousel animations
+export const QUEST_COMPLETE_SCALE_PULSE = 1.2 // scale multiplier for completion effect
+
+// =============================================================================
 // MULTIPLAYER CONSTANTS
 // =============================================================================
 export const MAX_VISIBLE_PETS = 3 // Maximum number of pets visible at once (performance)

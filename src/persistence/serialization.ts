@@ -2,7 +2,9 @@ import { Entity } from '@dcl/sdk/ecs'
 import { PetComponent } from '../components/Pet'
 import { PersonalityComponent, BondComponent, PetIdentityComponent } from '../components/Personality'
 import { HygieneComponent } from '../components/Hygiene'
+import { DailyQuestComponent, getTodayUTC } from '../components/Quest'
 import { getActivePoopCount } from '../systems/Poop'
+import { getQuestStateEntity } from '../systems/Quest'
 import { PetDocument } from './api'
 import { getLocalPlayerName } from '../utils/players'
 
@@ -60,9 +62,42 @@ export function serializePet(petEntity: Entity, existingMeta?: PetDocument['meta
       visitStreak: existingMeta?.visitStreak || 0,
       lastVisitDate: existingMeta?.lastVisitDate || '',
       score: existingMeta?.score || 0,
-      ownerName: getLocalPlayerName() // Always update player name on save
+      ownerName: getLocalPlayerName(), // Always update player name on save
+      // Quest state
+      dailyQuests: serializeQuestState(existingMeta?.dailyQuests)
     }
   }
+}
+
+/**
+ * Serialize quest state from component
+ */
+function serializeQuestState(existingQuests?: PetDocument['meta']['dailyQuests']) {
+  const questEntity = getQuestStateEntity()
+
+  if (questEntity) {
+    const questState = DailyQuestComponent.getOrNull(questEntity)
+    if (questState) {
+      return {
+        feedCompleted: questState.feedCompleted,
+        playCompleted: questState.playCompleted,
+        bathCompleted: questState.bathCompleted,
+        bedtimeCompleted: questState.bedtimeCompleted,
+        lastResetDate: questState.lastResetDate
+      }
+    }
+  }
+
+  // Fallback to existing or default
+  return (
+    existingQuests || {
+      feedCompleted: false,
+      playCompleted: false,
+      bathCompleted: false,
+      bedtimeCompleted: false,
+      lastResetDate: getTodayUTC()
+    }
+  )
 }
 
 /**
@@ -98,6 +133,13 @@ export function deserializePet(doc: PetDocument) {
       lastBathTime: doc.hygiene.lastBathTime,
       lastBrushTime: doc.hygiene.lastBrushTime
     },
-    activePoopCount: doc.meta.activePoopCount
+    activePoopCount: doc.meta.activePoopCount,
+    dailyQuests: doc.meta.dailyQuests || {
+      feedCompleted: false,
+      playCompleted: false,
+      bathCompleted: false,
+      bedtimeCompleted: false,
+      lastResetDate: getTodayUTC()
+    }
   }
 }

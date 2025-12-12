@@ -24,6 +24,8 @@ import { resetTimeSystem } from '../systems/Time'
 import { resetBehaviorSystem } from '../systems/Behavior'
 import { resetLogicSystem } from '../systems/Logic'
 import { resetNamingSystem } from './NamingUI'
+import { resetQuestSystem } from '../systems/Quest'
+import { resetQuestAnimationSystem } from '../systems/QuestAnimation'
 import { createTechEnvironment, removeSceneByType } from './Environment'
 import { createEgg } from './Pet'
 import { deactivatePetCamera } from './UI'
@@ -321,6 +323,8 @@ function resetGame() {
   resetBehaviorSystem()
   resetLogicSystem()
   resetNamingSystem()
+  resetQuestSystem()
+  resetQuestAnimationSystem()
 
   // 6. Reset game state to EGG phase
   for (const [gameEntity] of engine.getEntitiesWith(GameState)) {
