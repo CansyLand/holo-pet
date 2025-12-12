@@ -1,6 +1,8 @@
 import { engine, inputSystem, InputAction, PointerEventType, Entity } from '@dcl/sdk/ecs'
 import { Interactable, InteractionEvent, InteractionType } from '../components/Interaction'
 import { canInteractWithStations } from './Visit'
+import { CameraFocusComponent } from '../components/UIState'
+import { deactivatePetCamera } from '../factories/UI'
 
 // Interactions that are blocked when visiting (stations and care actions)
 const STATION_INTERACTIONS = [
@@ -36,6 +38,18 @@ export function inputSystemCallback(dt: number) {
           source: engine.PlayerEntity
         })
         console.log(`Input detected: ${interactable.type} on entity ${entity}`)
+      }
+    }
+  }
+
+  // Check for F key press to unfocus camera when in Focus Mode
+  if (inputSystem.isTriggered(InputAction.IA_SECONDARY, PointerEventType.PET_DOWN)) {
+    // Check if any camera is currently focused
+    for (const [entity, focusComponent] of engine.getEntitiesWith(CameraFocusComponent)) {
+      if (focusComponent.isCameraFocused) {
+        console.log('F key pressed - unfocusing camera')
+        deactivatePetCamera()
+        break
       }
     }
   }

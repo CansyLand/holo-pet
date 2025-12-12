@@ -4,8 +4,6 @@ Open Discord
 
 DCLHUB
 
-F
-
 =======
 
 pet texture hearts, hunger, stink
