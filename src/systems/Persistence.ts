@@ -1,5 +1,6 @@
 import { engine } from '@dcl/sdk/ecs'
-import { onEnterScene, onLeaveScene } from '@dcl/sdk/observables'
+import { onEnterScene, onLeaveScene, onPlayerDisconnectedObservable } from '@dcl/sdk/observables'
+import { getPlayer } from '@dcl/sdk/players'
 import { loadPet, savePet, resetPet, PetDocument } from '../persistence/api'
 import { serializePet, deserializePet } from '../persistence/serialization'
 import { getWalletAddress } from '../utils/wallet'
@@ -13,13 +14,13 @@ import { getThemeDisplayName, getCurrentTheme } from '../utils/theme'
 import { PersonalityComponent, BondComponent, PetIdentityComponent, TrustLevel } from '../components/Personality'
 import { HygieneComponent } from '../components/Hygiene'
 import { getQuestStateEntity } from './Quest'
-import { AUTO_SAVE_INTERVAL, SAVE_DEBOUNCE_TIME, SAVE_RETRY_DELAY } from '../utils/constants'
+import { SAVE_RETRY_DELAY } from '../utils/constants'
 
 let lastSaveTime = 0
-let pendingSave = false
 let isSaving = false
 let persistenceInitialized = false
 let currentPetMeta: PetDocument['meta'] | undefined = undefined
+let lastRetryTime = 0 // Track retry attempts
 
 /**
  * Initialize persistence system - called once in main()
@@ -36,10 +37,22 @@ export function initPersistence() {
     await loadPetData()
   })
 
-  // Save on scene leave
-  onLeaveScene.add(async () => {
-    console.log('👋 Scene left, saving pet...')
-    await triggerSave(true) // immediate = true
+  // Save on scene leave (teleport/walk out)
+  onLeaveScene.add(async ({ userId }: { userId: string }) => {
+    const localPlayer = getPlayer()
+    if (localPlayer && userId === localPlayer.userId) {
+      console.log('👋 Local player left scene boundary, saving pet...')
+      await triggerSave() // immediate save
+    }
+  })
+
+  // Save on player disconnection (browser close/network issues)
+  onPlayerDisconnectedObservable.add(async (playerData) => {
+    const localPlayer = getPlayer()
+    if (localPlayer && playerData.userId === localPlayer.userId) {
+      console.log('🔌 Local player disconnected, emergency save...')
+      await triggerSave() // immediate save
+    }
   })
 }
 
@@ -162,22 +175,19 @@ async function restorePetFromData(data: PetDocument) {
 }
 
 /**
- * Trigger a save (debounced unless immediate)
+ * Trigger a save (immediate only - no debouncing)
  */
-export async function triggerSave(immediate = false) {
-  const now = Date.now() / 1000
-
+export async function triggerSave() {
   // Prevent concurrent saves
-  if (isSaving) return
-
-  if (!immediate && now - lastSaveTime < SAVE_DEBOUNCE_TIME) {
-    pendingSave = true
+  if (isSaving) {
+    console.log('💾 Save already in progress, skipping...')
     return
   }
 
   const wallet = getWalletAddress()
   if (!wallet) return
 
+  const now = Date.now() / 1000
   isSaving = true
 
   // Find active pet
@@ -187,22 +197,14 @@ export async function triggerSave(immediate = false) {
       if (petData) {
         // Update current meta with the new values (server will update them further)
         currentPetMeta = petData.meta
-        try {
-          const success = await savePet(petData)
-          if (success) {
-            lastSaveTime = now
-            pendingSave = false
-            console.log('💾 Pet saved to Firebase successfully')
-          } else {
-            console.error('❌ Failed to save pet to Firebase')
-            // Update lastSaveTime even on failure to prevent immediate retry
-            // Use a shorter retry interval for failed saves
-            lastSaveTime = now - (AUTO_SAVE_INTERVAL - SAVE_RETRY_DELAY)
-          }
-        } catch (error) {
-          console.error('❌ Save error:', error)
-          // Update lastSaveTime even on exception to prevent immediate retry
-          lastSaveTime = now - (AUTO_SAVE_INTERVAL - SAVE_RETRY_DELAY)
+        const success = await savePet(petData)
+        if (success) {
+          lastSaveTime = now
+          console.log('💾 Pet saved to Firebase successfully')
+        } else {
+          console.error('❌ Failed to save pet to Firebase')
+          // Mark for retry
+          lastRetryTime = now
         }
       }
     }
@@ -213,19 +215,16 @@ export async function triggerSave(immediate = false) {
 }
 
 /**
- * Persistence system - auto-saves every 60 seconds + handles scene leave saves
+ * Persistence system - handles failed save retries only (no auto-save)
  */
 export function persistenceSystem(dt: number) {
-  const now = Date.now() / 1000
-
-  // Process pending debounced saves first
-  if (pendingSave && now - lastSaveTime >= SAVE_DEBOUNCE_TIME) {
-    triggerSave()
-    return // Exit early to prevent double-triggering in same frame
-  }
-
-  // Periodic auto-save (only if no pending save is being processed and not currently saving)
-  if (!pendingSave && !isSaving && now - lastSaveTime >= AUTO_SAVE_INTERVAL) {
-    triggerSave()
+  // Retry failed saves after delay
+  if (lastRetryTime > 0 && !isSaving) {
+    const now = Date.now() / 1000
+    if (now - lastRetryTime >= SAVE_RETRY_DELAY) {
+      console.log('🔄 Retrying failed save...')
+      lastRetryTime = 0 // Reset before attempting
+      triggerSave()
+    }
   }
 }
