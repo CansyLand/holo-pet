@@ -16,7 +16,11 @@ import { MoodBarComponent } from '../components/UIState'
 import { MOOD_BAR_MAX_SCALE, MOOD_BAR_MIN_SCALE } from '../utils/constants'
 
 export function renderSystem(dt: number) {
-  // 1. Sync Mood Bar
+  // 1. Handle Entity Visibility
+  // VisibilityComponent controls entity visibility through the game engine
+  // No manual transform manipulation needed - entities are shown/hidden automatically
+
+  // 2. Sync Mood Bar
   // Find the active pet to get mood
   let currentMood = 0
   let petCount = 0
@@ -37,6 +41,6 @@ export function renderSystem(dt: number) {
     transform.scale.x = newScaleX
   }
 
-  // 2. Sync Animations (Future)
+  // 3. Sync Animations (Future)
   // Check Pet State -> Play Animation
 }

@@ -5,7 +5,6 @@ import { PetComponent } from '../components/Pet'
 import { PersonalityComponent, BondComponent, PetIdentityComponent, TrustLevel } from '../components/Personality'
 import { HygieneComponent } from '../components/Hygiene'
 import { GameState, GamePhase } from '../components/GameState'
-import { PoopComponent, PoopPoolManager } from '../components/Poop'
 import { HeartParticleComponent, HeartPoolManager } from '../components/HeartParticle'
 import {
   MenuElementComponent,
@@ -16,7 +15,7 @@ import {
   PetAnimationStateComponent
 } from '../components/UIState'
 import { SceneElement, SceneType } from '../components/Scene'
-import { getActivePoopCount, forcePoop, resetPoopSystem } from '../systems/Poop'
+import { getActivePoopCount, forceSpawnPoop, resetPoopSystem } from '../systems/Poop'
 import { resetHeartSystem } from '../systems/HeartParticle'
 import { resetBondSystem } from '../systems/Bond'
 import { resetHygieneSystem } from '../systems/Hygiene'
@@ -278,15 +277,7 @@ function resetGame() {
   // 2. Collect all entities to remove
   const entitiesToRemove: Entity[] = []
 
-  // Remove poop pool entities
-  for (const [entity] of engine.getEntitiesWith(PoopComponent)) {
-    entitiesToRemove.push(entity)
-  }
-
-  // Remove poop pool manager
-  for (const [entity] of engine.getEntitiesWith(PoopPoolManager)) {
-    entitiesToRemove.push(entity)
-  }
+  // Poop entities are pre-placed in scene and don't need removal
 
   // Remove heart pool entities
   for (const [entity] of engine.getEntitiesWith(HeartParticleComponent)) {
@@ -597,7 +588,7 @@ export function StatsUI() {
           variant="secondary"
           fontSize={11}
           uiTransform={{ width: 65, height: 26 }}
-          onMouseDown={() => forcePoop()}
+          onMouseDown={() => forceSpawnPoop()}
         />
       </UiEntity>
 

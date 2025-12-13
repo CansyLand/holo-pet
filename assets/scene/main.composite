@@ -492,10 +492,10 @@
               },
               {
                 "clip": "Idle",
-                "playing": false,
+                "playing": true,
                 "weight": 1,
                 "speed": 1,
-                "loop": false,
+                "loop": true,
                 "shouldReset": false
               },
               {
@@ -575,91 +575,91 @@
         "520": {
           "json": {
             "src": "assets/scene/Models/tubb/tubb.glb",
-            "visibleMeshesCollisionMask": 0,
+            "visibleMeshesCollisionMask": 3,
             "invisibleMeshesCollisionMask": 3
           }
         },
         "521": {
           "json": {
             "src": "assets/scene/Models/egg/egg.glb",
-            "visibleMeshesCollisionMask": 0,
+            "visibleMeshesCollisionMask": 3,
             "invisibleMeshesCollisionMask": 3
           }
         },
         "522": {
           "json": {
             "src": "assets/scene/Models/bed/bed.glb",
-            "visibleMeshesCollisionMask": 0,
+            "visibleMeshesCollisionMask": 3,
             "invisibleMeshesCollisionMask": 3
           }
         },
         "523": {
           "json": {
             "src": "assets/scene/Models/cristmastree/cristmastree.glb",
-            "visibleMeshesCollisionMask": 0,
+            "visibleMeshesCollisionMask": 2,
             "invisibleMeshesCollisionMask": 3
           }
         },
         "524": {
           "json": {
             "src": "assets/scene/Models/food/food.glb",
-            "visibleMeshesCollisionMask": 0,
+            "visibleMeshesCollisionMask": 3,
             "invisibleMeshesCollisionMask": 3
           }
         },
         "525": {
           "json": {
             "src": "assets/scene/Models/tiger/tiger.glb",
-            "visibleMeshesCollisionMask": 0,
+            "visibleMeshesCollisionMask": 3,
             "invisibleMeshesCollisionMask": 3
           }
         },
         "526": {
           "json": {
             "src": "assets/scene/Models/poop/poop.glb",
-            "visibleMeshesCollisionMask": 0,
+            "visibleMeshesCollisionMask": 3,
             "invisibleMeshesCollisionMask": 3
           }
         },
         "528": {
           "json": {
             "src": "assets/scene/Models/poop/poop.glb",
-            "visibleMeshesCollisionMask": 0,
+            "visibleMeshesCollisionMask": 3,
             "invisibleMeshesCollisionMask": 3
           }
         },
         "529": {
           "json": {
             "src": "assets/scene/Models/poop/poop.glb",
-            "visibleMeshesCollisionMask": 0,
+            "visibleMeshesCollisionMask": 3,
             "invisibleMeshesCollisionMask": 3
           }
         },
         "530": {
           "json": {
             "src": "assets/scene/Models/poop/poop.glb",
-            "visibleMeshesCollisionMask": 0,
+            "visibleMeshesCollisionMask": 3,
             "invisibleMeshesCollisionMask": 3
           }
         },
         "531": {
           "json": {
             "src": "assets/scene/Models/poop/poop.glb",
-            "visibleMeshesCollisionMask": 0,
+            "visibleMeshesCollisionMask": 3,
             "invisibleMeshesCollisionMask": 3
           }
         },
         "532": {
           "json": {
             "src": "assets/scene/Models/poop/poop.glb",
-            "visibleMeshesCollisionMask": 0,
+            "visibleMeshesCollisionMask": 3,
             "invisibleMeshesCollisionMask": 3
           }
         },
         "533": {
           "json": {
             "src": "assets/scene/Models/poop/poop.glb",
-            "visibleMeshesCollisionMask": 0,
+            "visibleMeshesCollisionMask": 3,
             "invisibleMeshesCollisionMask": 3
           }
         }
@@ -812,7 +812,7 @@
         "serializationType": "map"
       },
       "data": {
-        "521": {
+        "525": {
           "json": {
             "gizmo": 1
           }

@@ -101,6 +101,36 @@ src/
 └── index.ts            # ENTRY POINT (Setup only)
 ```
 
+## 🎯 Entity Management Strategy
+
+### Pre-placed Entity Approach
+
+**All entities are positioned in the scene editor** and just need interaction components attached by code:
+
+- **Permanent Environment**: Console + Button_1-3 (always visible from start, no phase changes)
+- **Pre-placed Strategy**: All entities positioned in scene editor, code only attaches interactions
+- **Conditional Entities**: Egg, Food Bowl, Bed, Bath Tub, Decoration (visibility controlled by phase)
+- **Simple Visibility**: Poop_1-7 entities with direct visibility control
+- **No Creation/Destruction**: All entities exist from scene start, only visibility changes
+
+### Entity Categories
+
+| Category        | Entities                                  | Management                    | When Active          |
+| --------------- | ----------------------------------------- | ----------------------------- | -------------------- |
+| **Permanent**   | Console, Button_1-3                       | Always visible                | Environment backdrop |
+| **Conditional** | Egg, Food Bowl, Bed, Bath Tub, Decoration | VisibilityComponent           | Phase-dependent      |
+| **Dynamic**     | Poop_1-7                                  | VisibilityComponent           | Random spawn/collect |
+
+### Visibility System
+
+- **Component**: `VisibilityComponent.visible` (boolean) - built-in DCL SDK7 component
+- **Logic**: `updateEntityVisibilityForPhase()` called during phase transitions
+- **Poop**: `poopSystem()` handles random spawning and visibility toggling
+- **Rendering**: Game engine handles visibility automatically (no manual transform manipulation)
+- **EGG Phase**: Egg visible, PET entities hidden
+- **PET Phase**: Egg removed (during hatch), PET entities visible
+- **Poop**: Simple visibility toggling - visible when spawned, hidden when collected
+
 ---
 
 ## 🧩 1. The Data (Components)

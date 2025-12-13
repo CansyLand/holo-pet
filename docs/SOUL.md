@@ -94,7 +94,7 @@ spawnedAt: number // When this poop appeared
 poolIndex: number // Index in pre-allocated pool (0-9)
 ```
 
-**Entity Pooling:** Pre-create 10 poop entities at scene load. Never create/destroy - only toggle `isActive` and visibility.
+**Entity Pooling:** Pre-create 7 poop entities at scene load. Never create/destroy - visibility managed by `VisibilityComponent` synced with `isActive` state.
 
 ---
 
@@ -126,9 +126,12 @@ Every POOP_INTERVAL seconds:
     Position behind pet
     Play pet sitting animation
 
+Every frame:
+  Sync VisibilityComponent.visible with PoopComponent.isActive
+
 On COLLECT_POOP interaction:
   Set isActive = false
-  Hide entity (move to pooled position)
+  VisibilityComponent handles hiding automatically
   Boost mood
 ```
 
@@ -226,20 +229,28 @@ export enum InteractionType {
 ### A. `PoopPool.ts` - Entity Pooling
 
 ```typescript
-const POOP_POOL_SIZE = 10
-const POOLED_POSITION = Vector3.create(0, -10, 0) // Hidden below ground
+const POOP_POOL_SIZE = 7 // Matches pre-placed entities Poop_1-7
 
-function createPoopPool(): Entity[] {
-  const pool: Entity[] = []
+function createPoopPool(): Entity {
+  // Get pre-placed poop entities from scene editor
+  const poopEntityNames = [
+    EntityNames.Poop_1,
+    EntityNames.Poop_2,
+    EntityNames.Poop_3,
+    EntityNames.Poop_4,
+    EntityNames.Poop_5,
+    EntityNames.Poop_6,
+    EntityNames.Poop_7
+  ]
+
   for (let i = 0; i < POOP_POOL_SIZE; i++) {
-    const entity = engine.addEntity()
-    Transform.create(entity, { position: POOLED_POSITION })
-    GltfContainer.create(entity, { src: 'assets/models/Poop.glb' })
+    const entity = engine.getEntityOrNullByName(poopEntityNames[i])
+    if (!entity) continue
+
     PoopComponent.create(entity, { isActive: false, poolIndex: i })
+    VisibilityComponent.create(entity, { visible: false }) // Start hidden
     Interactable.create(entity, { type: InteractionType.COLLECT_POOP })
-    pool.push(entity)
   }
-  return pool
 }
 ```
 
@@ -294,7 +305,7 @@ export const DIRTY_THRESHOLD = 40 // Show stink effect
 export const FILTHY_THRESHOLD = 20 // Show flies
 
 // Poop System
-export const POOP_POOL_SIZE = 10
+export const POOP_POOL_SIZE = 7 // Matches pre-placed Poop_1-7 entities
 export const POOP_INTERVAL = 120 // Seconds between poop chances
 export const POOP_CHANCE = 0.3 // 30% chance per interval
 export const POOP_MOOD_PENALTY = 5 // Per active poop

@@ -8,13 +8,15 @@ import {
   ColliderLayer,
   PointerEvents,
   PointerEventType,
-  InputAction
+  InputAction,
+  VisibilityComponent
 } from '@dcl/sdk/ecs'
 import { Vector3, Color4 } from '@dcl/sdk/math'
 import { SceneElement, SceneType } from '../components/Scene'
 import { Theme } from '../components/GameState'
 import { Interactable, InteractionType } from '../components/Interaction'
 import { getThemeDisplayName } from '../utils/theme'
+import { EntityNames } from '../../assets/scene/entity-names'
 
 // =============================================================================
 // SCENE CONSTANTS (2x2 parcels = 32m x 32m)
@@ -123,11 +125,13 @@ export function createPetEnvironment(theme: Theme = Theme.DEFAULT) {
   const foodBowl = createFoodBowl(colors.accent1)
   const waterBowl = createWaterBowl(colors.accent2)
   const toyBall = createToyBall(colors.toy)
+  const bed = createBed()
+  const bathTub = createBathTub()
 
   // Theme-specific decorations
   const decorations = createThemeDecorations(theme)
 
-  return { foodBowl, waterBowl, toyBall, ...decorations }
+  return { foodBowl, waterBowl, toyBall, bed, bathTub, ...decorations }
 }
 
 // -----------------------------------------------------------------------------
@@ -135,16 +139,19 @@ export function createPetEnvironment(theme: Theme = Theme.DEFAULT) {
 // -----------------------------------------------------------------------------
 
 function createFoodBowl(color: Color4) {
-  const entity = engine.addEntity()
-  Transform.create(entity, {
-    position: Vector3.create(SCENE_CENTER_X - 2, 0.15, SCENE_CENTER_Z + 2),
-    scale: Vector3.create(0.6, 0.3, 0.6)
-  })
-  GltfContainer.create(entity, {
-    src: 'assets/models/bowl.glb'
-  })
+  // Use pre-placed Food Bowl entity instead of creating new one
+  const entity = engine.getEntityOrNullByName(EntityNames.Food_Bowl)
+  if (!entity) {
+    console.error('Food Bowl entity not found in scene!')
+    return engine.addEntity() // Return dummy entity to prevent crashes
+  }
+
+  // Skip Transform and GLTF creation - Food Bowl is already positioned in scene editor
   MeshCollider.setCylinder(entity, ColliderLayer.CL_POINTER)
   SceneElement.create(entity, { sceneType: SceneType.PET })
+
+  // Add visibility component - visible by default in PET phase
+  VisibilityComponent.create(entity, { visible: true })
 
   // Make it clickable for feeding
   Interactable.create(entity, {
@@ -158,6 +165,76 @@ function createFoodBowl(color: Color4) {
         eventInfo: {
           button: InputAction.IA_POINTER,
           hoverText: 'Feed Pet'
+        }
+      }
+    ]
+  })
+
+  return entity
+}
+
+function createBed() {
+  // Use pre-placed Bed entity instead of creating new one
+  const entity = engine.getEntityOrNullByName(EntityNames.Bed)
+  if (!entity) {
+    console.error('Bed entity not found in scene!')
+    return engine.addEntity() // Return dummy entity to prevent crashes
+  }
+
+  // Skip Transform and GLTF creation - Bed is already positioned in scene editor
+  MeshCollider.setBox(entity, ColliderLayer.CL_POINTER)
+  SceneElement.create(entity, { sceneType: SceneType.PET })
+
+  // Add visibility component - visible by default in PET phase
+  VisibilityComponent.create(entity, { visible: true })
+
+  // Make it clickable for sleeping
+  Interactable.create(entity, {
+    type: InteractionType.SLEEP
+  })
+
+  PointerEvents.create(entity, {
+    pointerEvents: [
+      {
+        eventType: PointerEventType.PET_DOWN,
+        eventInfo: {
+          button: InputAction.IA_POINTER,
+          hoverText: 'Put to Bed'
+        }
+      }
+    ]
+  })
+
+  return entity
+}
+
+function createBathTub() {
+  // Use pre-placed Bath Tub entity instead of creating new one
+  const entity = engine.getEntityOrNullByName(EntityNames.Bath_Tub)
+  if (!entity) {
+    console.error('Bath Tub entity not found in scene!')
+    return engine.addEntity() // Return dummy entity to prevent crashes
+  }
+
+  // Skip Transform and GLTF creation - Bath Tub is already positioned in scene editor
+  MeshCollider.setBox(entity, ColliderLayer.CL_POINTER)
+  SceneElement.create(entity, { sceneType: SceneType.PET })
+
+  // Add visibility component - visible by default in PET phase
+  VisibilityComponent.create(entity, { visible: true })
+
+  // Make it clickable for bathing
+  Interactable.create(entity, {
+    type: InteractionType.BATHE
+  })
+
+  PointerEvents.create(entity, {
+    pointerEvents: [
+      {
+        eventType: PointerEventType.PET_DOWN,
+        eventInfo: {
+          button: InputAction.IA_POINTER,
+          hoverText: 'Bathe Pet'
         }
       }
     ]

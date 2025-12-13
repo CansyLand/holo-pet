@@ -75,7 +75,7 @@ interface PetDocument {
 		version: string // Schema version for migrations (e.g., '1.0.0')
 		createdAt: number // Document creation timestamp
 		updatedAt: number // Last save timestamp
-		activePoopCount: number // Number of active poops (for state restoration)
+		activePoopCount: number // Number of visible poops (for UI display)
 		gamePhase: 'egg' | 'pet' // Current game phase
 		hatchCount: number // Number of times player has hatched pets
 	}
@@ -434,7 +434,7 @@ export interface PetDocument {
   personality: { energy: number; sociability: number; cleanliness: number; appetite: number }
   bond: { bond: number; trustLevel: string; lastVisitTime: number }
   hygiene: { cleanliness: number; lastBathTime: number; lastBrushTime: number }
-  meta: { version: string; createdAt: number; updatedAt: number; activePoopCount: number; gamePhase: 'egg' | 'pet'; hatchCount: number }
+  meta: { version: string; createdAt: number; updatedAt: number; activePoopCount: number; gamePhase: 'egg' | 'pet'; hatchCount: number; lastVisitDate: string }
 }
 
 /**
@@ -555,7 +555,7 @@ import { Entity } from '@dcl/sdk/ecs'
 import { PetComponent } from '../components/Pet'
 import { PersonalityComponent, BondComponent, PetIdentityComponent } from '../components/Personality'
 import { HygieneComponent } from '../components/Hygiene'
-import { getActivePoopCount } from '../systems/Poop'
+import { getActivePoopCount } from '../systems/Poop' // Simplified system using visibility only
 import { PetDocument } from './api'
 
 /**

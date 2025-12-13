@@ -14,6 +14,7 @@ import { getThemeDisplayName, getCurrentTheme } from '../utils/theme'
 import { PersonalityComponent, BondComponent, PetIdentityComponent, TrustLevel } from '../components/Personality'
 import { HygieneComponent } from '../components/Hygiene'
 import { getQuestStateEntity } from './Quest'
+import { checkYesterdayLoginOnLoad } from './Poop'
 import { SAVE_RETRY_DELAY } from '../utils/constants'
 
 let lastSaveTime = 0
@@ -161,6 +162,9 @@ async function restorePetFromData(data: PetDocument) {
         questComp.lastResetDate = deserialized.dailyQuests.lastResetDate
         console.log(`📋 Quest state restored (last reset: ${deserialized.dailyQuests.lastResetDate})`)
       }
+
+      // Check if we need to spawn yesterday's poops
+      checkYesterdayLoginOnLoad(data.meta.lastVisitDate)
 
       // Update game state
       const mutableState = GameState.getMutable(gameEntity)

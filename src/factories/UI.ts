@@ -310,10 +310,10 @@ export function activatePetCamera(cameraEntity: Entity) {
 
     // Position camera 2m in front of pet + height offset
     const cameraPos = Vector3.add(
-      petPos,
+      Vector3.create(petPos.x, petPos.y + 4, petPos.z - 4), // offset camera beacsue of hologram origin
       Vector3.add(
         Vector3.scale(forward, 2), // 2m in front
-        Vector3.create(0, 2.5, 0) // height offset for good viewing angle
+        Vector3.create(0, 4.5, 0) // height offset for good viewing angle
       )
     )
 

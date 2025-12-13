@@ -1,11 +1,10 @@
-import { engine, Transform, Entity } from '@dcl/sdk/ecs'
+import { engine, Transform, Entity, VisibilityComponent } from '@dcl/sdk/ecs'
 import { InteractionEvent, InteractionType } from '../components/Interaction'
 import { PetComponent, PetState, Species } from '../components/Pet'
 import { GameState, GamePhase } from '../components/GameState'
 import { MenuStateComponent, MenuElementComponent, CameraFocusComponent } from '../components/UIState'
 import { BondComponent, PersonalityComponent } from '../components/Personality'
 import { HygieneComponent } from '../components/Hygiene'
-import { PoopComponent } from '../components/Poop'
 import { createPet } from '../factories/Pet'
 import { showMenu, hideMenu, activatePetCamera, deactivatePetCamera } from '../factories/UI'
 import { removeSceneByType, createPetEnvironment } from '../factories/Environment'
@@ -16,6 +15,7 @@ import { applyBath, applyBrush } from './Hygiene'
 import { collectPoop } from './Poop'
 import { spawnHearts } from './HeartParticle'
 import { checkQuestCompletion } from './Quest'
+import { EntityNames } from '../../assets/scene/entity-names'
 import {
   MAX_MOOD,
   MAX_HUNGER,
@@ -296,11 +296,7 @@ function handleBrush(entity: Entity) {
 }
 
 function handleCollectPoop(poopEntity: Entity) {
-  // Check if this is actually a poop entity
-  const poopData = PoopComponent.getOrNull(poopEntity)
-  if (!poopData || !poopData.isActive) return
-
-  // Collect the poop
+  // Collect the poop (the collectPoop function handles visibility checks)
   collectPoop(poopEntity)
 
   // Find the active pet and boost mood
@@ -401,6 +397,43 @@ function handleCloseMenu(buttonEntity: Entity) {
 }
 
 // =============================================================================
+// ENTITY VISIBILITY MANAGEMENT
+// =============================================================================
+
+/**
+ * Update entity visibility based on current game phase
+ * - EGG phase: Show Egg, hide PET entities (Food Bowl, Bed, Bath Tub, Decoration)
+ * - PET phase: Hide Egg (removed during hatch), show PET entities
+ */
+function updateEntityVisibilityForPhase(phase: GamePhase) {
+  // Get PET phase entities
+  const foodBowlEntity = engine.getEntityOrNullByName(EntityNames.Food_Bowl)
+  const bedEntity = engine.getEntityOrNullByName(EntityNames.Bed)
+  const bathTubEntity = engine.getEntityOrNullByName(EntityNames.Bath_Tub)
+  const decorationEntity = engine.getEntityOrNullByName(EntityNames.Decoration)
+
+  const petEntities = [foodBowlEntity, bedEntity, bathTubEntity, decorationEntity].filter((e) => e !== null)
+
+  if (phase === GamePhase.EGG) {
+    // EGG phase: Hide PET entities
+    petEntities.forEach((entity) => {
+      const visibility = VisibilityComponent.getMutableOrNull(entity)
+      if (visibility) {
+        visibility.visible = false
+      }
+    })
+  } else if (phase === GamePhase.PET) {
+    // PET phase: Show PET entities
+    petEntities.forEach((entity) => {
+      const visibility = VisibilityComponent.getMutableOrNull(entity)
+      if (visibility) {
+        visibility.visible = true
+      }
+    })
+  }
+}
+
+// =============================================================================
 // HATCH HANDLER
 // =============================================================================
 
@@ -427,6 +460,9 @@ function handleHatch(eggEntity: any) {
       mutableState.activePetEntity = petResult.petEntity
       mutableState.menuStateEntity = petResult.menuStateEntity
       mutableState.theme = theme
+
+      // Update entity visibility for PET phase
+      updateEntityVisibilityForPhase(GamePhase.PET)
 
       // Set pending naming - UI system will handle showing the popup
       pendingNamingEntity = petResult.petEntity

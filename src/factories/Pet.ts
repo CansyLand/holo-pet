@@ -33,24 +33,19 @@ import { createAllStations } from './Station'
 import { createNeedsUI } from './NeedsUI'
 import { SCENE_CENTER_X, SCENE_CENTER_Z, MAX_CLEANLINESS, MAX_BOND, CURSOR_FOLLOW_MAX_TILT } from '../utils/constants'
 import { getWalletAddress, hashWalletToId } from '../utils/wallet'
+import { EntityNames } from '../../assets/scene/entity-names'
 
 export function createEgg() {
-  const entity = engine.addEntity()
+  // Use pre-placed Egg entity instead of creating new one
+  const entity = engine.getEntityOrNullByName(EntityNames.Egg)
+  if (!entity) {
+    console.error('Egg entity not found in scene!')
+    return engine.addEntity() // Return dummy entity to prevent crashes
+  }
 
-  Transform.create(entity, {
-    position: Vector3.create(SCENE_CENTER_X, 3, SCENE_CENTER_Z),
-    scale: Vector3.create(3.6, 5, 3.6)
-  })
-
-  MeshRenderer.setSphere(entity)
+  // Skip Transform and GLTF creation - Egg is already positioned in scene editor
+  // Remove sphere renderer/material - using GLB model instead
   MeshCollider.setSphere(entity, ColliderLayer.CL_POINTER)
-  Material.setPbrMaterial(entity, {
-    albedoColor: Color4.create(0.5, 0.8, 1, 0.8),
-    metallic: 0.5,
-    roughness: 0.1,
-    emissiveColor: Color4.create(0.2, 0.5, 1, 1),
-    emissiveIntensity: 0.5
-  })
 
   Interactable.create(entity, {
     type: InteractionType.HATCH
@@ -74,38 +69,14 @@ export function createEgg() {
 }
 
 export function createPet(species: Species) {
-  const entity = engine.addEntity()
+  // Use pre-placed Tiger entity instead of creating new one
+  const entity = engine.getEntityOrNullByName(EntityNames.Tiger)
+  if (!entity) {
+    console.error('Tiger entity not found in scene!')
+    return { petEntity: engine.addEntity(), menuStateEntity: engine.addEntity() } // Return dummy entities to prevent crashes
+  }
 
-  Transform.create(entity, {
-    position: Vector3.create(SCENE_CENTER_X, 0.5, SCENE_CENTER_Z),
-    scale: Vector3.create(1.5, 1.5, 1.5)
-  })
-
-  // Load the 3D dog model
-  GltfContainer.create(entity, {
-    src: 'assets/models/BlockDog.glb'
-  })
-
-  // Add Animator component with animation states
-  Animator.create(entity, {
-    states: [
-      {
-        clip: 'Idle',
-        playing: true,
-        loop: true
-      },
-      {
-        clip: 'Sitting',
-        playing: false,
-        loop: false
-      },
-      {
-        clip: 'Standing',
-        playing: false,
-        loop: false
-      }
-    ]
-  })
+  // Skip Transform, GLTF, and Animator creation - Tiger model is already configured in scene editor
 
   // Initialize animation state component
   PetAnimationStateComponent.create(entity, {
@@ -116,8 +87,10 @@ export function createPet(species: Species) {
     transitionStartTime: 0
   })
 
-  // Add collision for interaction
-  MeshCollider.setBox(entity, ColliderLayer.CL_POINTER)
+  // Add collision for interaction (check if it already exists first)
+  if (!MeshCollider.has(entity)) {
+    MeshCollider.setBox(entity, ColliderLayer.CL_POINTER)
+  }
 
   // Core pet component
   PetComponent.create(entity, {

@@ -54,8 +54,8 @@ export function createSnowPool(): Entity {
     MeshRenderer.setPlane(entity)
     Material.setPbrMaterial(entity, {
       albedoColor: snowColor,
-      emissiveColor: Color4.create(0.9, 0.95, 1.0, 0.3), // Slight blue glow
-      emissiveIntensity: 0.1,
+      emissiveColor: Color4.create(0.9, 0.95, 1.0, 10), // Slight blue glow
+      emissiveIntensity: 1,
       roughness: 0.8,
       metallic: 0.0,
       alphaTest: 0.1 // For transparency
@@ -92,5 +92,3 @@ export function createSnowPool(): Entity {
 
   return managerEntity
 }
-
-

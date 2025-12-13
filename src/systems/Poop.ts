@@ -1,205 +1,181 @@
-import { engine, Transform, Entity } from '@dcl/sdk/ecs'
+import { engine, Transform, Entity, VisibilityComponent } from '@dcl/sdk/ecs'
 import { Vector3 } from '@dcl/sdk/math'
 import { PetComponent } from '../components/Pet'
-import { PoopComponent, PoopPoolManager } from '../components/Poop'
-import {
-  POOP_INTERVAL,
-  POOP_CHANCE,
-  POOP_MOOD_PENALTY,
-  POOP_POOL_SIZE,
-  POOLED_POSITION_Y,
-  MIN_MOOD,
-  SCENE_CENTER_X,
-  SCENE_CENTER_Z
-} from '../utils/constants'
+import { EntityNames } from '../../assets/scene/entity-names'
+import { getTodayUTC } from '../components/Quest'
 
 // =============================================================================
-// POOP SYSTEM
-// Manages the poop entity pool and spawning
-// Uses entity pooling pattern - never creates/destroys, only toggles
+// SIMPLIFIED POOP SYSTEM
+// Uses direct visibility control - no complex components or pooling manager
 // =============================================================================
 
-let timeSinceLastPoopCheck = 0
+const POOP_SPAWN_INTERWAL_MIN = 10
+const POOP_SPAWN_INTERWAL_MAX = 60
 
-// Reference to the pool (set by PoopPool factory)
-let poopPool: Entity[] = []
-let poolManagerEntity: Entity | null = null
+// Simple poop entity references (7 pre-placed entities)
+const poopEntities: Entity[] = []
+
+let timeSinceLastSpawn = 0
+let nextSpawnInterval = getRandomSpawnInterval() // 10-60 seconds
 
 /**
- * Initialize the poop system with the pre-created pool
- * Called from PoopPool factory after entities are created
+ * Initialize the poop system with the 7 pre-placed entities
  */
-export function initializePoopSystem(pool: Entity[], managerEntity: Entity) {
-  poopPool = pool
-  poolManagerEntity = managerEntity
-  console.log(`Poop system initialized with ${pool.length} pooled entities`)
+export function initializePoopSystem() {
+  // Get the 7 pre-placed poop entities
+  poopEntities.push(
+    engine.getEntityOrNullByName(EntityNames.Poop_1)!,
+    engine.getEntityOrNullByName(EntityNames.Poop_2)!,
+    engine.getEntityOrNullByName(EntityNames.Poop_3)!,
+    engine.getEntityOrNullByName(EntityNames.Poop_4)!,
+    engine.getEntityOrNullByName(EntityNames.Poop_5)!,
+    engine.getEntityOrNullByName(EntityNames.Poop_6)!,
+    engine.getEntityOrNullByName(EntityNames.Poop_7)!
+  )
+
+  // Check persistence for yesterday's login - spawn all if needed
+  checkYesterdayLogin()
+
+  console.log('Poop system initialized with 7 entities')
+}
+
+/**
+ * Check if last login was yesterday and spawn all poops if so
+ */
+function checkYesterdayLogin() {
+  // This would need to be implemented based on your persistence system
+  // For now, just check if there are any visible poops already
+  const hasVisiblePoops = poopEntities.some((entity) => VisibilityComponent.get(entity).visible)
+
+  // If no poops are visible, assume it's a fresh session
+  // You would replace this with actual persistence check
+  if (!hasVisiblePoops && shouldSpawnYesterdayPoops()) {
+    console.log('Yesterday login detected - spawning all poops')
+    poopEntities.forEach((entity) => makePoopVisible(entity))
+  }
+}
+
+/**
+ * Check if we should spawn yesterday's poops based on last visit date
+ */
+function shouldSpawnYesterdayPoops(): boolean {
+  // This function should be called after persistence data is loaded
+  // For now, we'll implement a simple check - in a real implementation,
+  // this would check the saved lastVisitDate against today's date
+  return false // Placeholder - will be updated when persistence is integrated
+}
+
+/**
+ * Called from persistence system when pet data is restored
+ * Checks if last login was yesterday and spawns all poops if needed
+ */
+export function checkYesterdayLoginOnLoad(lastVisitDate?: string) {
+  if (!lastVisitDate) return
+
+  const today = getTodayUTC()
+  const yesterday = getYesterdayUTC()
+
+  if (lastVisitDate === yesterday) {
+    console.log('Yesterday login detected - spawning all poops')
+    poopEntities.forEach((entity) => makePoopVisible(entity))
+  }
+}
+
+/**
+ * Get yesterday's date in UTC format (YYYY-MM-DD)
+ */
+function getYesterdayUTC(): string {
+  const yesterday = new Date()
+  yesterday.setDate(yesterday.getDate() - 1)
+  return yesterday.toISOString().split('T')[0]
 }
 
 export function poopSystem(dt: number) {
-  if (poopPool.length === 0 || !poolManagerEntity) return
+  timeSinceLastSpawn += dt
 
-  timeSinceLastPoopCheck += dt
-
-  // Only check periodically
-  if (timeSinceLastPoopCheck < POOP_INTERVAL) {
-    // Still apply mood penalty from active poops
-    applyPoopMoodPenalty()
-    return
-  }
-  timeSinceLastPoopCheck = 0
-
-  // Check if pet should poop
-  for (const [petEntity] of engine.getEntitiesWith(PetComponent)) {
-    const pet = PetComponent.get(petEntity)
-
-    // Pet needs to have eaten something to poop (hunger > 30 means they've been eating)
-    if (pet.hunger > 30) {
-      // Random chance to poop
-      if (Math.random() < POOP_CHANCE) {
-        spawnPoop(petEntity)
-      }
-    }
+  if (timeSinceLastSpawn >= nextSpawnInterval) {
+    spawnRandomPoop()
+    timeSinceLastSpawn = 0
+    nextSpawnInterval = getRandomSpawnInterval()
   }
 }
 
-function spawnPoop(petEntity: Entity) {
-  // Find an inactive poop from the pool
-  const inactivePoop = findInactivePoop()
-  if (!inactivePoop) {
-    console.log('Poop pool exhausted - no more inactive poops available')
+function getRandomSpawnInterval(): number {
+  return POOP_SPAWN_INTERWAL_MIN + Math.random() * (POOP_SPAWN_INTERWAL_MAX - POOP_SPAWN_INTERWAL_MIN)
+}
+
+function spawnRandomPoop() {
+  const invisiblePoops = getInvisiblePoops()
+  if (invisiblePoops.length === 0) {
+    console.log('All poops already visible - cannot spawn more')
     return
   }
 
-  // Get pet position
-  const petTransform = Transform.getOrNull(petEntity)
-  if (!petTransform) return
+  const randomPoop = invisiblePoops[Math.floor(Math.random() * invisiblePoops.length)]
 
-  // Position poop behind the pet
-  const poopPosition = Vector3.create(
-    petTransform.position.x - 0.5 + Math.random() * 0.3,
-    0.1, // Slightly above ground
-    petTransform.position.z - 0.5 + Math.random() * 0.3
-  )
+  // Figure out later how to place poop nearby the pet
+  // If at all needed. current distributon looks good.
+  // Find pet position and place poop nearby
+  // const petEntities = engine.getEntitiesWith(PetComponent)
+  // const petEntity = Array.from(petEntities)[0]?.[0]
+  // if (petEntity) {
+  //   const petTransform = Transform.getOrNull(petEntity)
+  //   if (petTransform) {
+  //     const transform = Transform.getMutable(randomPoop)
+  //     transform.position = Vector3.create(
+  //       petTransform.position.x - 0.5 + Math.random() * 0.3,
+  //       0.1, // Slightly above ground
+  //       petTransform.position.z - 0.5 + Math.random() * 0.3
+  //     )
+  //   }
+  // }
 
-  // Activate the poop
-  const poopData = PoopComponent.getMutable(inactivePoop)
-  poopData.isActive = true
-  poopData.spawnedAt = Date.now() / 1000
-
-  // Move to visible position
-  const poopTransform = Transform.getMutable(inactivePoop)
-  poopTransform.position = poopPosition
-
-  // Update pool manager
-  if (poolManagerEntity) {
-    const manager = PoopPoolManager.getMutable(poolManagerEntity)
-    manager.activeCount++
-    manager.lastPoopTime = Date.now() / 1000
-  }
-
-  console.log(`💩 Pet pooped! Active poops: ${getActivePoopCount()}`)
+  makePoopVisible(randomPoop)
+  console.log(`💩 Poop spawned! Active poops: ${getActivePoopCount()}`)
 }
 
-function findInactivePoop(): Entity | null {
-  for (const entity of poopPool) {
-    const poopData = PoopComponent.getOrNull(entity)
-    if (poopData && !poopData.isActive) {
-      return entity
-    }
-  }
-  return null
+// Simple visibility helpers
+function makePoopVisible(entity: Entity) {
+  const visibility = VisibilityComponent.getMutable(entity)
+  visibility.visible = true
 }
 
-/**
- * Collect a poop (hide it and return to pool)
- * Called when player clicks on poop with COLLECT_POOP interaction
- */
+function makePoopInvisible(entity: Entity) {
+  const visibility = VisibilityComponent.getMutable(entity)
+  visibility.visible = false
+}
+
+// Collection function (called when player clicks poop)
 export function collectPoop(poopEntity: Entity) {
-  const poopData = PoopComponent.getMutableOrNull(poopEntity)
-  if (!poopData || !poopData.isActive) return
+  // Only hide if it's currently visible
+  if (!VisibilityComponent.get(poopEntity).visible) return
 
-  // Deactivate the poop
-  poopData.isActive = false
-  poopData.spawnedAt = 0
-
-  // Move to hidden position
-  const poopTransform = Transform.getMutable(poopEntity)
-  poopTransform.position = Vector3.create(SCENE_CENTER_X, POOLED_POSITION_Y, SCENE_CENTER_Z)
-
-  // Update pool manager
-  if (poolManagerEntity) {
-    const manager = PoopPoolManager.getMutable(poolManagerEntity)
-    manager.activeCount = Math.max(0, manager.activeCount - 1)
-  }
-
+  makePoopInvisible(poopEntity)
   console.log(`🧹 Poop collected! Active poops: ${getActivePoopCount()}`)
 }
 
-function applyPoopMoodPenalty() {
-  const activeCount = getActivePoopCount()
-  if (activeCount === 0) return
-
-  // Apply mood penalty to all pets based on active poop count
-  for (const [petEntity] of engine.getEntitiesWith(PetComponent)) {
-    const petData = PetComponent.getMutable(petEntity)
-    const penalty = activeCount * POOP_MOOD_PENALTY * 0.1 // Small ongoing penalty
-    petData.mood = Math.max(MIN_MOOD, petData.mood - penalty)
-  }
+// Utility functions
+function getVisiblePoops(): Entity[] {
+  return poopEntities.filter((entity) => VisibilityComponent.get(entity).visible)
 }
 
-/**
- * Get count of active (visible) poops
- */
+function getInvisiblePoops(): Entity[] {
+  return poopEntities.filter((entity) => !VisibilityComponent.get(entity).visible)
+}
+
 export function getActivePoopCount(): number {
-  let count = 0
-  for (const entity of poopPool) {
-    const poopData = PoopComponent.getOrNull(entity)
-    if (poopData && poopData.isActive) {
-      count++
-    }
-  }
-  return count
+  return getVisiblePoops().length
 }
 
-/**
- * Get all active poop entities (for cleanup or iteration)
- */
-export function getActivePoops(): Entity[] {
-  const active: Entity[] = []
-  for (const entity of poopPool) {
-    const poopData = PoopComponent.getOrNull(entity)
-    if (poopData && poopData.isActive) {
-      active.push(entity)
-    }
-  }
-  return active
+// Debug function (optional)
+export function forceSpawnPoop() {
+  spawnRandomPoop()
 }
 
-/**
- * Force the pet to poop immediately (for debug UI)
- */
-export function forcePoop() {
-  if (poopPool.length === 0) {
-    console.log('Cannot force poop - pool not initialized')
-    return
-  }
-
-  // Find the pet and spawn poop
-  for (const [petEntity] of engine.getEntitiesWith(PetComponent)) {
-    spawnPoop(petEntity)
-    return
-  }
-  console.log('Cannot force poop - no pet found')
-}
-
-/**
- * Reset the poop system - clears pool references
- * Called when resetting the game
- */
+// Reset function (for game reset)
 export function resetPoopSystem() {
-  poopPool = []
-  poolManagerEntity = null
-  timeSinceLastPoopCheck = 0
+  poopEntities.forEach((entity) => makePoopInvisible(entity))
+  timeSinceLastSpawn = 0
+  nextSpawnInterval = getRandomSpawnInterval()
   console.log('Poop system reset')
 }
-

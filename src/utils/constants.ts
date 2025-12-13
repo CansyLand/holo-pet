@@ -55,8 +55,8 @@ export const FILTHY_MOOD_PENALTY = 5 // Mood penalty per update when filthy
 // =============================================================================
 // POOP SYSTEM CONSTANTS
 // =============================================================================
-export const POOP_POOL_SIZE = 10 // Number of pre-allocated poop entities
-export const POOP_INTERVAL = 120 // Seconds between poop chances
+export const POOP_POOL_SIZE = 7 // Number of pre-placed poop entities (Poop_1-7)
+export const POOP_INTERVAL = 3 // Seconds between poop chances
 export const POOP_CHANCE = 0.3 // 30% chance per interval
 export const POOP_MOOD_PENALTY = 5 // Mood penalty per active poop
 export const POOLED_POSITION_Y = -10 // Y position for hidden pooled entities
