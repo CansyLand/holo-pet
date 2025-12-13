@@ -26,7 +26,7 @@ import { resetLogicSystem } from '../systems/Logic'
 import { resetNamingSystem } from './NamingUI'
 import { resetQuestSystem } from '../systems/Quest'
 import { resetQuestAnimationSystem } from '../systems/QuestAnimation'
-import { showEggEnvironment } from './Environment'
+import { switchEnvironment } from './Environment'
 import { createEgg } from './Pet'
 import { deactivatePetCamera } from './UI'
 import { resetPet } from '../persistence/api'
@@ -352,7 +352,7 @@ function resetGame() {
   activePetEntity = null
 
   // 8. Show egg environment (entities are already set up, never remove them)
-  showEggEnvironment()
+  switchEnvironment('egg')
   // Egg entity should always exist since it's never removed, just hidden
 
   console.log('=== GAME RESET COMPLETE ===')

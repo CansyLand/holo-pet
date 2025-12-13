@@ -17,6 +17,39 @@ import { EntityNames } from '../../assets/scene/entity-names'
 import { hideAllPoops } from '../systems/Poop'
 
 // =============================================================================
+// UNIFIED ENTITY GROUPS - SINGLE SOURCE OF TRUTH
+// =============================================================================
+
+export const ENTITY_GROUPS = {
+  // Always visible entities (console, buttons)
+  always: [EntityNames.Console, EntityNames.Button_1, EntityNames.Button_2, EntityNames.Button_3],
+
+  // Egg phase entities
+  egg: [EntityNames.Egg],
+
+  // Pet phase entities (tiger, bed, bath, decoration, food bowl, ball)
+  pet: [
+    EntityNames.Tiger,
+    EntityNames.Bed,
+    EntityNames.Bath_Tub,
+    EntityNames.Decoration,
+    EntityNames.Food_Bowl,
+    EntityNames.Ball
+  ],
+
+  // Dynamic entities (poops managed separately by Poop.ts)
+  poops: [
+    EntityNames.Poop_1,
+    EntityNames.Poop_2,
+    EntityNames.Poop_3,
+    EntityNames.Poop_4,
+    EntityNames.Poop_5,
+    EntityNames.Poop_6,
+    EntityNames.Poop_7
+  ]
+}
+
+// =============================================================================
 // ENVIRONMENT MANAGEMENT - SIMPLIFIED & OPTIMIZED
 // All entities are pre-placed in scene editor and managed via visibility
 // Includes collision optimization: invisible entities disable collision detection
@@ -101,6 +134,19 @@ export function setupEggEntities() {
   // Ensure all poop entities are hidden in egg state (they might be visible by default in scene editor)
   hideAllPoopsByName()
 
+  // Ensure pet-phase entities are hidden in egg state (scene editor may have them visible by default)
+  const petEntitiesToHide = [EntityNames.Decoration, EntityNames.Ball]
+  petEntitiesToHide.forEach((entityName) => {
+    const entity = engine.getEntityOrNullByName(entityName as EntityNames)
+    if (entity) {
+      if (!VisibilityComponent.getOrNull(entity)) {
+        VisibilityComponent.create(entity, { visible: false })
+      } else {
+        VisibilityComponent.getMutable(entity).visible = false
+      }
+    }
+  })
+
   // Note: Interactable and PointerEvents are already set up by createEgg() in Pet.ts
   // No need to add them here to avoid duplicates
 
@@ -121,11 +167,14 @@ export function setupPetEntities() {
   // Bath Tub
   setupPetEntity(EntityNames.Bath_Tub, InteractionType.BATHE, 'Bathe Pet')
 
-  // Decoration - using PET as placeholder since DECORATE doesn't exist
-  setupPetEntity(EntityNames.Decoration, InteractionType.PET, 'Change Decoration')
+  // Decoration - non-interactive tree, just has collision from GLTF model
+  // (removed from setupPetEntity so it's not clickable)
 
   // Food Bowl
   setupPetEntity(EntityNames.Food_Bowl, InteractionType.FEED, 'Feed Pet')
+
+  // Ball - for play interaction
+  setupPetEntity(EntityNames.Ball, InteractionType.PLAY, 'Play with Ball')
 
   console.log('Pet entities setup complete')
 }
@@ -172,155 +221,176 @@ function setupPetEntity(entityName: string, interactionType: InteractionType, ho
 // STATE MANAGEMENT FUNCTIONS
 // =============================================================================
 
-/**
- * Show egg environment - hide pet entities, show egg
- */
-export function showEggEnvironment() {
-  console.log('Switching to Egg Environment')
-
-  // Hide all poops when switching to egg state
-  hideAllPoops()
-  hideAllPoopsByName() // Also hide by name in case poop system isn't initialized
-
-  // Hide pet entities
-  setEntityVisibility(EntityNames.Tiger, false)
-  setEntityVisibility(EntityNames.Bed, false)
-  setEntityVisibility(EntityNames.Bath_Tub, false)
-  setEntityVisibility(EntityNames.Decoration, false)
-  setEntityVisibility(EntityNames.Food_Bowl, false)
-
-  // Show egg
-  setEntityVisibility(EntityNames.Egg, true)
-}
+// Old environment functions removed - replaced by switchEnvironment()
 
 /**
- * Show pet environment - hide egg, show pet entities
+ * UNIFIED FUNCTION: Manages all aspects of entity interactivity atomically
+ * @param entity - The entity to modify
+ * @param visible - Whether entity should be visible
+ * @param interactive - Whether entity should be clickable/interactive (defaults to visible)
  */
-export function showPetEnvironment() {
-  console.log('Switching to Pet Environment')
+export function setEntityInteractive(entity: Entity, visible: boolean, interactive: boolean = visible) {
+  // 1. Set visibility
+  const visibility = VisibilityComponent.getMutableOrNull(entity)
+  if (visibility) {
+    visibility.visible = visible
+  }
 
-  // Hide egg
-  setEntityVisibility(EntityNames.Egg, false)
-
-  // Show pet entities
-  setEntityVisibility(EntityNames.Tiger, true)
-  setEntityVisibility(EntityNames.Bed, true)
-  setEntityVisibility(EntityNames.Bath_Tub, true)
-  setEntityVisibility(EntityNames.Decoration, true)
-  setEntityVisibility(EntityNames.Food_Bowl, true)
-}
-
-/**
- * Reset environment - hide all state-dependent entities
- */
-export function resetEnvironment() {
-  console.log('Resetting Environment')
-
-  // Hide all poops
-  hideAllPoops()
-
-  // Hide all state-dependent entities
-  setEntityVisibility(EntityNames.Egg, false)
-  setEntityVisibility(EntityNames.Tiger, false)
-  setEntityVisibility(EntityNames.Bed, false)
-  setEntityVisibility(EntityNames.Bath_Tub, false)
-  setEntityVisibility(EntityNames.Decoration, false)
-  setEntityVisibility(EntityNames.Food_Bowl, false)
-}
-
-/**
- * Helper function to set entity visibility with collision optimization
- * When invisible: disables collision detection for performance
- * When visible: enables collision detection and resolves player collisions
- */
-function setEntityVisibility(entityName: string, visible: boolean) {
-  const entity = engine.getEntityOrNullByName(entityName as EntityNames)
-  if (!entity) return
-
-  // Set visibility
-  const visibility = VisibilityComponent.getMutable(entity)
-  visibility.visible = visible
-
-  // Optimize collision based on visibility for performance
+  // 2. Configure collision masks for both GLTF and MeshCollider
   const gltfContainer = GltfContainer.getMutableOrNull(entity)
   const meshCollider = MeshCollider.getMutableOrNull(entity)
 
-  if (visible) {
-    // When visible: enable collisions for interaction and physics
-    if (gltfContainer) {
-      // For GLTF entities: set collision mask for visible state
-      gltfContainer.visibleMeshesCollisionMask = ColliderLayer.CL_POINTER | ColliderLayer.CL_PHYSICS
-    }
+  const visibleCollisionMask = interactive ? ColliderLayer.CL_POINTER | ColliderLayer.CL_PHYSICS : ColliderLayer.CL_NONE
+  const invisibleCollisionMask = ColliderLayer.CL_NONE // Always disable collision when invisible
 
-    if (meshCollider) {
-      // For MeshCollider entities: enable collision layer
-      meshCollider.collisionMask = ColliderLayer.CL_POINTER
-    }
-
-    // Check for player collision after making entity visible
-    resolvePlayerCollision(entity)
-  } else {
-    // When invisible: disable collisions completely for performance
-    if (gltfContainer) {
-      // For GLTF entities: disable collision for invisible meshes
-      // This overrides the scene editor's invisibleMeshesCollisionMask setting
-      gltfContainer.visibleMeshesCollisionMask = ColliderLayer.CL_NONE
-      // Also try to set invisibleMeshesCollisionMask if it exists
-      if ('invisibleMeshesCollisionMask' in gltfContainer) {
-        ;(gltfContainer as any).invisibleMeshesCollisionMask = ColliderLayer.CL_NONE
-      }
-    }
-
-    if (meshCollider) {
-      // For MeshCollider entities: disable collision layer
-      meshCollider.collisionMask = ColliderLayer.CL_NONE
+  if (gltfContainer) {
+    gltfContainer.visibleMeshesCollisionMask = visibleCollisionMask
+    // For invisible meshes, ALWAYS disable collision to prevent cursor interaction
+    if ('invisibleMeshesCollisionMask' in gltfContainer) {
+      ;(gltfContainer as any).invisibleMeshesCollisionMask = invisibleCollisionMask
     }
   }
+
+  if (meshCollider) {
+    meshCollider.collisionMask = interactive ? ColliderLayer.CL_POINTER : ColliderLayer.CL_NONE
+  }
+
+  // 3. Manage PointerEvents
+  if (!interactive && PointerEvents.has(entity)) {
+    // Remove PointerEvents if shouldn't be interactive
+    PointerEvents.deleteFrom(entity)
+    console.log(`Removed PointerEvents from entity ${entity}`)
+  } else if (interactive && !PointerEvents.has(entity)) {
+    // Recreate PointerEvents if should be interactive but they're missing
+    // This handles the case where entities were temporarily hidden and lost their PointerEvents
+    const interactable = Interactable.getOrNull(entity)
+    if (interactable) {
+      // Recreate PointerEvents based on interaction type
+      let hoverText = 'Interact'
+      switch (interactable.type) {
+        case InteractionType.HATCH:
+          hoverText = 'Hatch Egg'
+          break
+        case InteractionType.PLAY:
+          hoverText = 'Play with Ball'
+          break
+        case InteractionType.PET:
+          hoverText = 'Pet Tiger'
+          break
+        case InteractionType.FEED:
+          hoverText = 'Feed Pet'
+          break
+        case InteractionType.SLEEP:
+          hoverText = 'Put to Bed'
+          break
+        case InteractionType.BATHE:
+          hoverText = 'Bathe Pet'
+          break
+        case InteractionType.COLLECT_POOP:
+          hoverText = 'Collect'
+          break
+        default:
+          hoverText = 'Interact'
+      }
+
+      PointerEvents.create(entity, {
+        pointerEvents: [
+          {
+            eventType: PointerEventType.PET_DOWN,
+            eventInfo: {
+              button: InputAction.IA_POINTER,
+              hoverText: hoverText
+            }
+          }
+        ]
+      })
+      console.log(`Recreated PointerEvents for entity ${entity} (${interactable.type})`)
+    }
+  }
+
+  // 4. Check for player collision after making entity visible
+  if (visible) {
+    resolvePlayerCollision(entity)
+  }
+
+  console.log(`Entity ${entity}: visible=${visible}, interactive=${interactive}`)
 }
 
 /**
- * Hide all poop entities by name with collision optimization
+ * ENVIRONMENT STATE MANAGER: Switches between egg, pet, and reset states
+ * This replaces all individual setEntityVisibility() calls
+ */
+export function switchEnvironment(state: 'egg' | 'pet' | 'reset') {
+  console.log(`🔄 Switching to environment: ${state}`)
+
+  // Helper function to show an entity group
+  const showEntityGroup = (groupName: keyof typeof ENTITY_GROUPS, interactive: boolean = true) => {
+    ENTITY_GROUPS[groupName].forEach((entityName) => {
+      const entity = engine.getEntityOrNullByName(entityName as EntityNames)
+      if (entity) {
+        setEntityInteractive(entity, true, interactive)
+      }
+    })
+  }
+
+  // Helper function to hide an entity group
+  const hideEntityGroup = (groupName: keyof typeof ENTITY_GROUPS) => {
+    ENTITY_GROUPS[groupName].forEach((entityName) => {
+      const entity = engine.getEntityOrNullByName(entityName as EntityNames)
+      if (entity) {
+        setEntityInteractive(entity, false, false)
+      }
+    })
+  }
+
+  // Hide all entities first, but don't hide entities that will be shown in target state
+  // This prevents temporarily removing PointerEvents from entities we're about to show again
+  switch (state) {
+    case 'egg':
+      // Hide pet entities and poops, but keep egg as-is (it should already be shown)
+      hideEntityGroup('pet')
+      hideAllPoops()
+      // Ensure egg is visible and interactive
+      showEntityGroup('egg', true)
+      break
+
+    case 'pet':
+      // Hide egg entities and poops, but keep pet entities as-is
+      hideEntityGroup('egg')
+      hideAllPoops()
+      // Ensure pet entities are visible and interactive
+      showEntityGroup('pet', true)
+      break
+
+    case 'reset':
+      // Hide all state-dependent entities
+      hideEntityGroup('egg')
+      hideEntityGroup('pet')
+      hideAllPoops()
+      break
+  }
+
+  console.log(`✅ Environment switched to: ${state}`)
+}
+
+// Legacy functions removed - all callers now use switchEnvironment() and setEntityInteractive()
+
+/**
+ * Hide all poop entities by name using unified visibility system
  * (doesn't require poop system initialization)
  */
 function hideAllPoopsByName() {
-  const poopNames = [
-    EntityNames.Poop_1,
-    EntityNames.Poop_2,
-    EntityNames.Poop_3,
-    EntityNames.Poop_4,
-    EntityNames.Poop_5,
-    EntityNames.Poop_6,
-    EntityNames.Poop_7
-  ]
-
-  for (const poopName of poopNames) {
-    const entity = engine.getEntityOrNullByName(poopName)
+  // Use the ENTITY_GROUPS to hide all poops - same logic as hideAllPoops()
+  ENTITY_GROUPS.poops.forEach((poopName) => {
+    const entity = engine.getEntityOrNullByName(poopName as EntityNames)
     if (entity) {
-      // Set visibility with collision optimization
-      const visibility = VisibilityComponent.getMutableOrNull(entity)
-      if (visibility) {
-        visibility.visible = false
-      } else {
-        // Create visibility component if it doesn't exist
+      // Ensure VisibilityComponent exists (poops may not have been initialized yet)
+      if (!VisibilityComponent.getOrNull(entity)) {
         VisibilityComponent.create(entity, { visible: false })
       }
-
-      // Disable collisions for invisible poops
-      const gltfContainer = GltfContainer.getMutableOrNull(entity)
-      if (gltfContainer) {
-        gltfContainer.visibleMeshesCollisionMask = ColliderLayer.CL_NONE
-        // Also try to set invisibleMeshesCollisionMask if it exists
-        if ('invisibleMeshesCollisionMask' in gltfContainer) {
-          ;(gltfContainer as any).invisibleMeshesCollisionMask = ColliderLayer.CL_NONE
-        }
-      }
-
-      const meshCollider = MeshCollider.getMutableOrNull(entity)
-      if (meshCollider) {
-        meshCollider.collisionMask = ColliderLayer.CL_NONE
-      }
+      setEntityInteractive(entity, false, false)
     }
-  }
+  })
 }
 
 // =============================================================================
@@ -330,29 +400,29 @@ function hideAllPoopsByName() {
 
 /**
  * Debug function to show egg environment
- * Call from browser console: showEggEnvironment()
+ * Call from browser console: debugShowEgg()
  */
 export function debugShowEgg() {
   console.log('🐣 Debug: Switching to Egg Environment')
-  showEggEnvironment()
+  switchEnvironment('egg')
 }
 
 /**
  * Debug function to show pet environment
- * Call from browser console: showPetEnvironment()
+ * Call from browser console: debugShowPet()
  */
 export function debugShowPet() {
   console.log('🐱 Debug: Switching to Pet Environment')
-  showPetEnvironment()
+  switchEnvironment('pet')
 }
 
 /**
  * Debug function to reset environment
- * Call from browser console: resetEnvironment()
+ * Call from browser console: debugReset()
  */
 export function debugReset() {
   console.log('🔄 Debug: Resetting Environment')
-  resetEnvironment()
+  switchEnvironment('reset')
 }
 
 // Make debug functions available globally for console access

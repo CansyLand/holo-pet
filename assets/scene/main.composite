@@ -467,6 +467,27 @@
             },
             "parent": 527
           }
+        },
+        "534": {
+          "json": {
+            "position": {
+              "x": 15.75,
+              "y": 7.25,
+              "z": 20.149999618530273
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "scale": {
+              "x": 0.12999999523162842,
+              "y": 0.10000000149011612,
+              "z": 0.12999999523162842
+            },
+            "parent": 0
+          }
         }
       }
     },
@@ -662,6 +683,13 @@
             "visibleMeshesCollisionMask": 3,
             "invisibleMeshesCollisionMask": 3
           }
+        },
+        "534": {
+          "json": {
+            "src": "assets/scene/Models/egg/egg.glb",
+            "visibleMeshesCollisionMask": 3,
+            "invisibleMeshesCollisionMask": 3
+          }
         }
       }
     },
@@ -767,6 +795,11 @@
           "json": {
             "value": "Poop_7"
           }
+        },
+        "534": {
+          "json": {
+            "value": "Ball"
+          }
         }
       }
     },
@@ -812,7 +845,7 @@
         "serializationType": "map"
       },
       "data": {
-        "525": {
+        "534": {
           "json": {
             "gizmo": 1
           }
@@ -1269,6 +1302,7 @@
                   519,
                   520,
                   521,
+                  534,
                   522,
                   523,
                   524,
@@ -1330,7 +1364,6 @@
               },
               {
                 "entity": 527,
-                "open": true,
                 "children": [
                   526,
                   528,
@@ -1363,6 +1396,10 @@
               },
               {
                 "entity": 533,
+                "children": []
+              },
+              {
+                "entity": 534,
                 "children": []
               }
             ]
@@ -1683,6 +1720,9 @@
           "json": {}
         },
         "533": {
+          "json": {}
+        },
+        "534": {
           "json": {}
         }
       }

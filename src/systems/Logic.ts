@@ -15,7 +15,7 @@ import { BondComponent, PersonalityComponent } from '../components/Personality'
 import { HygieneComponent } from '../components/Hygiene'
 import { createPet } from '../factories/Pet'
 import { showMenu, hideMenu, activatePetCamera, deactivatePetCamera } from '../factories/UI'
-import { showPetEnvironment } from '../factories/Environment'
+import { switchEnvironment, setEntityInteractive } from '../factories/Environment'
 import { SceneType } from '../components/Scene'
 import { addBond, recordPlayerVisit } from './Bond'
 import { applyBath, applyBrush } from './Hygiene'
@@ -407,78 +407,23 @@ function handleCloseMenu(buttonEntity: Entity) {
 // ENTITY VISIBILITY MANAGEMENT
 // =============================================================================
 
-/**
- * Update entity visibility based on current game phase
- * - EGG phase: Show Egg, hide PET entities (Food Bowl, Bed, Bath Tub, Decoration)
- * - PET phase: Hide Egg (removed during hatch), show PET entities
- */
-function updateEntityVisibilityForPhase(phase: GamePhase) {
-  // Get PET phase entities
-  const foodBowlEntity = engine.getEntityOrNullByName(EntityNames.Food_Bowl)
-  const bedEntity = engine.getEntityOrNullByName(EntityNames.Bed)
-  const bathTubEntity = engine.getEntityOrNullByName(EntityNames.Bath_Tub)
-  const decorationEntity = engine.getEntityOrNullByName(EntityNames.Decoration)
-
-  const petEntities = [foodBowlEntity, bedEntity, bathTubEntity, decorationEntity].filter((e) => e !== null)
-
-  if (phase === GamePhase.EGG) {
-    // EGG phase: Hide PET entities with collision optimization
-    petEntities.forEach((entity) => setOptimizedVisibility(entity, false))
-  } else if (phase === GamePhase.PET) {
-    // PET phase: Show PET entities with collision optimization
-    petEntities.forEach((entity) => setOptimizedVisibility(entity, true))
-  }
-}
+// Entity visibility is now managed by switchEnvironment() in Environment.ts
 
 // =============================================================================
 // HATCH HANDLER
 // =============================================================================
 
-// Helper function for optimized visibility with collision management
-function setOptimizedVisibility(entity: Entity, visible: boolean) {
-  const visibility = VisibilityComponent.getMutableOrNull(entity)
-  if (visibility) {
-    visibility.visible = visible
-
-    // Optimize collision based on visibility
-    const gltfContainer = GltfContainer.getMutableOrNull(entity)
-    const meshCollider = MeshCollider.getMutableOrNull(entity)
-
-    if (visible) {
-      // Enable collisions
-      if (gltfContainer) {
-        gltfContainer.visibleMeshesCollisionMask = ColliderLayer.CL_POINTER | ColliderLayer.CL_PHYSICS
-      }
-
-      if (meshCollider) {
-        meshCollider.collisionMask = ColliderLayer.CL_POINTER
-      }
-    } else {
-      // Disable collisions
-      if (gltfContainer) {
-        gltfContainer.visibleMeshesCollisionMask = ColliderLayer.CL_NONE
-        // Also try to set invisibleMeshesCollisionMask if it exists
-        if ('invisibleMeshesCollisionMask' in gltfContainer) {
-          ;(gltfContainer as any).invisibleMeshesCollisionMask = ColliderLayer.CL_NONE
-        }
-      }
-
-      if (meshCollider) {
-        meshCollider.collisionMask = ColliderLayer.CL_NONE
-      }
-    }
-  }
-}
+// Visibility management moved to setEntityInteractive() in Environment.ts
 
 function handleHatch(eggEntity: any) {
   // Query the singleton GameState entity
   for (const [gameEntity, gameState] of engine.getEntitiesWith(GameState)) {
     if (gameState.phase === GamePhase.EGG) {
       // Hide Egg (never remove entities - they're non-destructible)
-      setOptimizedVisibility(eggEntity, false)
+      setEntityInteractive(eggEntity, false, false)
 
       // Switch to pet environment (entities are already set up, just show them)
-      showPetEnvironment()
+      switchEnvironment('pet')
 
       // Spawn Pet with personality
       const petResult = createPet(Species.DOG) // Defaulting to DOG for now, could be random
@@ -488,9 +433,6 @@ function handleHatch(eggEntity: any) {
       mutableState.phase = GamePhase.PET
       mutableState.activePetEntity = petResult.petEntity
       mutableState.menuStateEntity = petResult.menuStateEntity
-
-      // Update entity visibility for PET phase
-      updateEntityVisibilityForPhase(GamePhase.PET)
 
       // Set pending naming - UI system will handle showing the popup
       pendingNamingEntity = petResult.petEntity

@@ -2,7 +2,12 @@ import { engine, PointerLock } from '@dcl/sdk/ecs'
 import { ReactEcsRenderer } from '@dcl/sdk/react-ecs'
 import { createGameEntity } from './factories/Game'
 import { createEgg } from './factories/Pet'
-import { setupAlwaysVisibleEntities, setupEggEntities, setupPetEntities } from './factories/Environment'
+import {
+  setupAlwaysVisibleEntities,
+  setupEggEntities,
+  setupPetEntities,
+  switchEnvironment
+} from './factories/Environment'
 import { createHeadlessPlayer } from './playlistPlayer/jukeboxHeadless'
 import { inputSystemCallback } from './systems/Input'
 import { logicSystem } from './systems/Logic'
@@ -109,6 +114,9 @@ export function main() {
   setupPetEntities()
 
   createEgg()
+
+  // Ensure scene starts in egg environment state
+  switchEnvironment('egg')
 
   // 9. Setup Snow System (theme-based activation)
   if (shouldSnowBeActive()) {

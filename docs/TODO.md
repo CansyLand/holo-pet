@@ -1,31 +1,39 @@
 Open Discord
 
-======= ENVIRONMENT SYSTEM - COMPLETED ✅
-COMPLETED: Simplified Environment Factory with Collision Optimization & Player Safety (src/factories/Environment.ts)
+======= ENVIRONMENT SYSTEM - COMPLETED ✅ (UPDATED)
+COMPLETED: Unified Visibility & Collision Management System (src/factories/Environment.ts)
 
-- Removed complex theme system and color management
-- Implemented visibility-based entity management (never create/destroy entities)
-- Environment system ONLY handles visibility - no creation/destruction of entities
-- Added COLLISION OPTIMIZATION: Invisible entities disable collision detection for performance
-- GLTF entities use visibleMeshesCollisionMask, MeshCollider entities use collisionMask
-- Added PLAYER COLLISION PREVENTION: Automatically pushes player 1m away if stuck in spawned entities
-- Uses movePlayerTo() from RestrictedActions for safe player repositioning
-- Added state-based functions: setupAlwaysVisibleEntities(), setupEggEntities(), setupPetEntities()
-- Added state management: showEggEnvironment(), showPetEnvironment(), resetEnvironment()
-- Added safety checks to prevent duplicate component creation
-- Added poop hiding functions to ensure poops are hidden in egg state
-- Added debug console functions: debugShowEgg(), debugShowPet(), debugReset()
-- Updated all visibility systems (Environment, Poop, Logic) for collision optimization
-- FIXED: Reset game no longer removes pet entities - entities are non-destructible and only hidden
-- FIXED: Pet running away now hides pet instead of removing it - maintains non-destructible principle
-- FIXED: Pet creation now uses createOrReplace for all components - handles persistent entities correctly
-- FIXED: Scene editor collision masks now properly overridden - invisible entities have CL_NONE collision
-- FIXED: PointerLock component duplicate creation prevented with existence check
-- All entities are pre-placed in scene editor and managed via VisibilityComponent
+- **MAJOR REFACTOR**: Replaced scattered visibility functions with unified `setEntityInteractive()` system
+- **Atomic Operations**: Visibility, collision, and interaction changes happen together (no forgotten aspects)
+- **Centralized State**: `ENTITY_GROUPS` defines all entity groupings in one place
+- **Environment Manager**: `switchEnvironment('egg'|'pet'|'reset')` replaces individual visibility calls
+- **Collision Safety**: Invisible entities have `CL_NONE` collision masks to prevent phantom interactions
+- **PointerEvents Management**: Automatically removes/creates PointerEvents based on interactive state
+- **Component Safety**: Uses `createOrReplace()` to handle reset scenarios and prevent conflicts
+- **Entity Groups**:
+  - Always Visible: Console, Button_1, Button_2, Button_3
+  - Egg State: Egg
+  - Pet State: Tiger, Bed, Bath_Tub, Decoration, Food_Bowl, Ball
+  - Dynamic: Poops (managed by Poop.ts)
+- **Debug Tools**: Console commands `debugShowEgg()`, `debugShowPet()`, `debugReset()` for testing
+- **Performance**: Proper collision disabling improves rendering performance
+- **Maintainable**: Single source of truth for all visibility logic
 
-Always Visible: Console, Button_1, Button_2, Button_3
-Egg State: Egg
-Pet State: Tiger, Bed, Poop_Collection, Bath_Tub, Decoration, Food_Bowl
+**Key Functions:**
+
+- `setEntityInteractive(entity, visible, interactive)` - Unified visibility/collision/interaction management
+- `switchEnvironment(state)` - Environment state manager
+- `setupAlwaysVisibleEntities()` - Console/buttons setup
+- `setupEggEntities()` - Egg environment + hiding pet entities
+- `setupPetEntities()` - Interactive pet entities setup
+
+**Migration Summary (v1.0 → v2.0):**
+
+- ✅ **Removed**: `setEntityVisibility()`, `setOptimizedVisibility()`, `showEggEnvironment()`, `showPetEnvironment()`, `updateEntityVisibilityForPhase()`
+- ✅ **Added**: `setEntityInteractive()`, `switchEnvironment()`, `ENTITY_GROUPS` constant
+- ✅ **Changed**: Poop entities use `createOrReplace()` for components
+- ✅ **Fixed**: 8+ critical bugs in visibility/collision management
+- ✅ **Performance**: Improved collision optimization for invisible entities
 
 ======= CODE????
 change color -> egg, hologram,

@@ -13,6 +13,7 @@ import { PetComponent } from '../components/Pet'
 import { EntityNames } from '../../assets/scene/entity-names'
 import { getTodayUTC } from '../components/Quest'
 import { GameState, GamePhase } from '../components/GameState'
+import { setEntityInteractive } from '../factories/Environment'
 
 // =============================================================================
 // SIMPLIFIED POOP SYSTEM
@@ -68,7 +69,7 @@ function checkYesterdayLogin() {
   // You would replace this with actual persistence check
   if (!hasVisiblePoops && shouldSpawnYesterdayPoops()) {
     console.log('Yesterday login detected - spawning all poops')
-    poopEntities.forEach((entity) => makePoopVisible(entity))
+    poopEntities.forEach((entity) => setEntityInteractive(entity, true, true))
   }
 }
 
@@ -94,7 +95,7 @@ export function checkYesterdayLoginOnLoad(lastVisitDate?: string) {
 
   if (lastVisitDate === yesterday) {
     console.log('Yesterday login detected - spawning all poops')
-    poopEntities.forEach((entity) => makePoopVisible(entity))
+    poopEntities.forEach((entity) => setEntityInteractive(entity, true, true))
   }
 }
 
@@ -154,7 +155,7 @@ function spawnRandomPoop() {
   //   }
   // }
 
-  makePoopVisible(randomPoop)
+  setEntityInteractive(randomPoop, true, true)
   console.log(`💩 Poop spawned! Active poops: ${getActivePoopCount()}`)
 }
 
@@ -203,52 +204,14 @@ function resolvePlayerCollision(entity: Entity) {
   }
 }
 
-// Simple visibility helpers with collision optimization
-function makePoopVisible(entity: Entity) {
-  const visibility = VisibilityComponent.getMutable(entity)
-  visibility.visible = true
-
-  // Enable collisions for visible poops
-  const gltfContainer = GltfContainer.getMutableOrNull(entity)
-  if (gltfContainer) {
-    gltfContainer.visibleMeshesCollisionMask = ColliderLayer.CL_POINTER | ColliderLayer.CL_PHYSICS
-  }
-
-  const meshCollider = MeshCollider.getMutableOrNull(entity)
-  if (meshCollider) {
-    meshCollider.collisionMask = ColliderLayer.CL_POINTER
-  }
-
-  // Check for player collision after making poop visible
-  resolvePlayerCollision(entity)
-}
-
-function makePoopInvisible(entity: Entity) {
-  const visibility = VisibilityComponent.getMutable(entity)
-  visibility.visible = false
-
-  // Disable collisions for invisible poops
-  const gltfContainer = GltfContainer.getMutableOrNull(entity)
-  if (gltfContainer) {
-    gltfContainer.visibleMeshesCollisionMask = ColliderLayer.CL_NONE
-    // Also try to set invisibleMeshesCollisionMask if it exists
-    if ('invisibleMeshesCollisionMask' in gltfContainer) {
-      ;(gltfContainer as any).invisibleMeshesCollisionMask = ColliderLayer.CL_NONE
-    }
-  }
-
-  const meshCollider = MeshCollider.getMutableOrNull(entity)
-  if (meshCollider) {
-    meshCollider.collisionMask = ColliderLayer.CL_NONE
-  }
-}
+// Poop visibility is now managed by setEntityInteractive() from Environment.ts
 
 // Collection function (called when player clicks poop)
 export function collectPoop(poopEntity: Entity) {
   // Only hide if it's currently visible
   if (!VisibilityComponent.get(poopEntity).visible) return
 
-  makePoopInvisible(poopEntity)
+  setEntityInteractive(poopEntity, false, false)
   console.log(`🧹 Poop collected! Active poops: ${getActivePoopCount()}`)
 }
 
@@ -272,7 +235,7 @@ export function forceSpawnPoop() {
 
 // Reset function (for game reset)
 export function resetPoopSystem() {
-  poopEntities.forEach((entity) => makePoopInvisible(entity))
+  poopEntities.forEach((entity) => setEntityInteractive(entity, false, false))
   timeSinceLastSpawn = 0
   nextSpawnInterval = getRandomSpawnInterval()
   console.log('Poop system reset')
@@ -280,6 +243,6 @@ export function resetPoopSystem() {
 
 // Hide all poops (called when switching to egg state)
 export function hideAllPoops() {
-  poopEntities.forEach((entity) => makePoopInvisible(entity))
+  poopEntities.forEach((entity) => setEntityInteractive(entity, false, false))
   console.log('All poops hidden (switched to egg state)')
 }

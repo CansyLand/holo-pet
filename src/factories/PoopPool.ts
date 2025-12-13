@@ -47,13 +47,13 @@ export function createPoopPool(): void {
     // Visibility component - start hidden (use createOrReplace in case it already exists)
     VisibilityComponent.createOrReplace(entity, { visible: false })
 
-    // Make it interactable (collect poop)
-    Interactable.create(entity, {
+    // Make it interactable (collect poop) - use createOrReplace to handle reset scenarios
+    Interactable.createOrReplace(entity, {
       type: InteractionType.COLLECT_POOP
     })
 
-    // Pointer events for collection
-    PointerEvents.create(entity, {
+    // Pointer events for collection - use createOrReplace to handle reset scenarios
+    PointerEvents.createOrReplace(entity, {
       pointerEvents: [
         {
           eventType: PointerEventType.PET_DOWN,

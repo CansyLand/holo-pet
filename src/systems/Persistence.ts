@@ -8,7 +8,7 @@ import { GameState, GamePhase } from '../components/GameState'
 import { PetComponent, Species, PetState } from '../components/Pet'
 import { DailyQuestComponent } from '../components/Quest'
 import { createPet, updatePetHoverText } from '../factories/Pet'
-import { showPetEnvironment } from '../factories/Environment'
+import { switchEnvironment } from '../factories/Environment'
 import { SceneType } from '../components/Scene'
 import { PersonalityComponent, BondComponent, PetIdentityComponent, TrustLevel } from '../components/Personality'
 import { HygieneComponent } from '../components/Hygiene'
@@ -97,7 +97,7 @@ async function restorePetFromData(data: PetDocument) {
   // Query current game state
   for (const [gameEntity, gameState] of engine.getEntitiesWith(GameState)) {
     // Switch to pet environment (entities are already set up, just show them)
-    showPetEnvironment()
+    switchEnvironment('pet')
 
     // Create pet with loaded data
     const petResult = createPet(data.identity.species as Species)
