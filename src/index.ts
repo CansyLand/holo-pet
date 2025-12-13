@@ -2,7 +2,7 @@ import { engine, PointerLock } from '@dcl/sdk/ecs'
 import { ReactEcsRenderer } from '@dcl/sdk/react-ecs'
 import { createGameEntity } from './factories/Game'
 import { createEgg } from './factories/Pet'
-import { createTechEnvironment } from './factories/Environment'
+import { setupAlwaysVisibleEntities, setupEggEntities, setupPetEntities } from './factories/Environment'
 import { createHeadlessPlayer } from './playlistPlayer/jukeboxHeadless'
 import { inputSystemCallback } from './systems/Input'
 import { logicSystem } from './systems/Logic'
@@ -95,12 +95,19 @@ export function main() {
   ReactEcsRenderer.setUiRenderer(CombinedUI)
 
   // 7. Initialize cursor state (locked by default)
-  PointerLock.create(engine.CameraEntity, { isPointerLocked: true })
+  if (!PointerLock.getOrNull(engine.CameraEntity)) {
+    PointerLock.create(engine.CameraEntity, { isPointerLocked: true })
+  }
 
   // 8. Setup Scene
   createGameEntity()
   createHeadlessPlayer() // Initialize the playlist player jukebox
-  createTechEnvironment()
+
+  // Setup Environment Entities
+  setupAlwaysVisibleEntities()
+  setupEggEntities()
+  setupPetEntities()
+
   createEgg()
 
   // 9. Setup Snow System (theme-based activation)

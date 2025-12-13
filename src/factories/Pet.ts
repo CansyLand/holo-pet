@@ -78,8 +78,8 @@ export function createPet(species: Species) {
 
   // Skip Transform, GLTF, and Animator creation - Tiger model is already configured in scene editor
 
-  // Initialize animation state component
-  PetAnimationStateComponent.create(entity, {
+  // Initialize animation state component (use createOrReplace since entity persists)
+  PetAnimationStateComponent.createOrReplace(entity, {
     currentAnimation: 'Idle',
     lastMenuVisible: false,
     lastWaitingAtStation: false,
@@ -93,7 +93,7 @@ export function createPet(species: Species) {
   }
 
   // Core pet component
-  PetComponent.create(entity, {
+  PetComponent.createOrReplace(entity, {
     species: species,
     mood: 100,
     hunger: 0,
@@ -103,7 +103,7 @@ export function createPet(species: Species) {
 
   // Generate unique personality for this pet
   const personality = generatePersonality()
-  PersonalityComponent.create(entity, {
+  PersonalityComponent.createOrReplace(entity, {
     energy: personality.energy,
     sociability: personality.sociability,
     cleanliness: personality.cleanliness,
@@ -113,14 +113,14 @@ export function createPet(species: Species) {
   console.log(`Pet personality generated:`, personality)
 
   // Initialize bond component - starts as stranger
-  BondComponent.create(entity, {
+  BondComponent.createOrReplace(entity, {
     bond: 50, // Start with some bond so pet doesn't immediately run away
     trustLevel: TrustLevel.ACQUAINTANCE,
     lastVisitTime: Date.now() / 1000
   })
 
   // Initialize hygiene component - starts clean
-  HygieneComponent.create(entity, {
+  HygieneComponent.createOrReplace(entity, {
     cleanliness: MAX_CLEANLINESS,
     lastBathTime: Date.now() / 1000,
     lastBrushTime: Date.now() / 1000
@@ -128,24 +128,24 @@ export function createPet(species: Species) {
 
   // Pet identity - name will be set by naming popup
   const walletAddress = getWalletAddress()
-  PetIdentityComponent.create(entity, {
+  PetIdentityComponent.createOrReplace(entity, {
     name: '', // Will be set after naming popup
     hatchedAt: Date.now(),
     ownerId: walletAddress || '' // Set to current player's wallet address
   })
 
   // Cursor follow - starts disabled, activated when camera focuses
-  CursorFollowComponent.create(entity, {
+  CursorFollowComponent.createOrReplace(entity, {
     isActive: false,
     baseRotation: Quaternion.Identity(), // Will be set when activated
     maxTiltAngle: CURSOR_FOLLOW_MAX_TILT
   })
 
-  Interactable.create(entity, {
+  Interactable.createOrReplace(entity, {
     type: InteractionType.PET
   })
 
-  PointerEvents.create(entity, {
+  PointerEvents.createOrReplace(entity, {
     pointerEvents: [
       {
         eventType: PointerEventType.PET_DOWN,

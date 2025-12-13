@@ -44,8 +44,8 @@ export function createPoopPool(): void {
     // Collision for click detection
     MeshCollider.setSphere(entity, ColliderLayer.CL_POINTER)
 
-    // Visibility component - start hidden
-    VisibilityComponent.create(entity, { visible: false })
+    // Visibility component - start hidden (use createOrReplace in case it already exists)
+    VisibilityComponent.createOrReplace(entity, { visible: false })
 
     // Make it interactable (collect poop)
     Interactable.create(entity, {

@@ -1,4 +1,12 @@
-import { engine, Transform, Entity, VisibilityComponent } from '@dcl/sdk/ecs'
+import {
+  engine,
+  Transform,
+  Entity,
+  VisibilityComponent,
+  GltfContainer,
+  MeshCollider,
+  ColliderLayer
+} from '@dcl/sdk/ecs'
 import { InteractionEvent, InteractionType } from '../components/Interaction'
 import { PetComponent, PetState, Species } from '../components/Pet'
 import { GameState, GamePhase } from '../components/GameState'
@@ -7,9 +15,8 @@ import { BondComponent, PersonalityComponent } from '../components/Personality'
 import { HygieneComponent } from '../components/Hygiene'
 import { createPet } from '../factories/Pet'
 import { showMenu, hideMenu, activatePetCamera, deactivatePetCamera } from '../factories/UI'
-import { removeSceneByType, createPetEnvironment } from '../factories/Environment'
+import { showPetEnvironment } from '../factories/Environment'
 import { SceneType } from '../components/Scene'
-import { getCurrentTheme, getThemeDisplayName } from '../utils/theme'
 import { addBond, recordPlayerVisit } from './Bond'
 import { applyBath, applyBrush } from './Hygiene'
 import { collectPoop } from './Poop'
@@ -415,21 +422,11 @@ function updateEntityVisibilityForPhase(phase: GamePhase) {
   const petEntities = [foodBowlEntity, bedEntity, bathTubEntity, decorationEntity].filter((e) => e !== null)
 
   if (phase === GamePhase.EGG) {
-    // EGG phase: Hide PET entities
-    petEntities.forEach((entity) => {
-      const visibility = VisibilityComponent.getMutableOrNull(entity)
-      if (visibility) {
-        visibility.visible = false
-      }
-    })
+    // EGG phase: Hide PET entities with collision optimization
+    petEntities.forEach((entity) => setOptimizedVisibility(entity, false))
   } else if (phase === GamePhase.PET) {
-    // PET phase: Show PET entities
-    petEntities.forEach((entity) => {
-      const visibility = VisibilityComponent.getMutableOrNull(entity)
-      if (visibility) {
-        visibility.visible = true
-      }
-    })
+    // PET phase: Show PET entities with collision optimization
+    petEntities.forEach((entity) => setOptimizedVisibility(entity, true))
   }
 }
 
@@ -437,19 +434,51 @@ function updateEntityVisibilityForPhase(phase: GamePhase) {
 // HATCH HANDLER
 // =============================================================================
 
+// Helper function for optimized visibility with collision management
+function setOptimizedVisibility(entity: Entity, visible: boolean) {
+  const visibility = VisibilityComponent.getMutableOrNull(entity)
+  if (visibility) {
+    visibility.visible = visible
+
+    // Optimize collision based on visibility
+    const gltfContainer = GltfContainer.getMutableOrNull(entity)
+    const meshCollider = MeshCollider.getMutableOrNull(entity)
+
+    if (visible) {
+      // Enable collisions
+      if (gltfContainer) {
+        gltfContainer.visibleMeshesCollisionMask = ColliderLayer.CL_POINTER | ColliderLayer.CL_PHYSICS
+      }
+
+      if (meshCollider) {
+        meshCollider.collisionMask = ColliderLayer.CL_POINTER
+      }
+    } else {
+      // Disable collisions
+      if (gltfContainer) {
+        gltfContainer.visibleMeshesCollisionMask = ColliderLayer.CL_NONE
+        // Also try to set invisibleMeshesCollisionMask if it exists
+        if ('invisibleMeshesCollisionMask' in gltfContainer) {
+          ;(gltfContainer as any).invisibleMeshesCollisionMask = ColliderLayer.CL_NONE
+        }
+      }
+
+      if (meshCollider) {
+        meshCollider.collisionMask = ColliderLayer.CL_NONE
+      }
+    }
+  }
+}
+
 function handleHatch(eggEntity: any) {
   // Query the singleton GameState entity
   for (const [gameEntity, gameState] of engine.getEntitiesWith(GameState)) {
     if (gameState.phase === GamePhase.EGG) {
-      // Remove Egg
-      engine.removeEntity(eggEntity)
+      // Hide Egg (never remove entities - they're non-destructible)
+      setOptimizedVisibility(eggEntity, false)
 
-      // Get current theme (UTC calendar or manual override)
-      const theme = getCurrentTheme()
-
-      // Switch from tech scene to pet scene with theme
-      removeSceneByType(SceneType.TECH)
-      createPetEnvironment(theme)
+      // Switch to pet environment (entities are already set up, just show them)
+      showPetEnvironment()
 
       // Spawn Pet with personality
       const petResult = createPet(Species.DOG) // Defaulting to DOG for now, could be random
@@ -459,7 +488,6 @@ function handleHatch(eggEntity: any) {
       mutableState.phase = GamePhase.PET
       mutableState.activePetEntity = petResult.petEntity
       mutableState.menuStateEntity = petResult.menuStateEntity
-      mutableState.theme = theme
 
       // Update entity visibility for PET phase
       updateEntityVisibilityForPhase(GamePhase.PET)
@@ -467,7 +495,7 @@ function handleHatch(eggEntity: any) {
       // Set pending naming - UI system will handle showing the popup
       pendingNamingEntity = petResult.petEntity
 
-      console.log(`Egg hatched into a Pet! Theme: ${getThemeDisplayName(theme)}`)
+      console.log('Egg hatched into a Pet!')
     }
   }
 }

@@ -1,4 +1,5 @@
 import { engine, Entity } from '@dcl/sdk/ecs'
+import { EntityNames } from '../../assets/scene/entity-names'
 import { Color4 } from '@dcl/sdk/math'
 import ReactEcs, { UiEntity, Label, Button } from '@dcl/sdk/react-ecs'
 import { PetComponent } from '../components/Pet'
@@ -25,7 +26,7 @@ import { resetLogicSystem } from '../systems/Logic'
 import { resetNamingSystem } from './NamingUI'
 import { resetQuestSystem } from '../systems/Quest'
 import { resetQuestAnimationSystem } from '../systems/QuestAnimation'
-import { createTechEnvironment, removeSceneByType } from './Environment'
+import { showEggEnvironment } from './Environment'
 import { createEgg } from './Pet'
 import { deactivatePetCamera } from './UI'
 import { resetPet } from '../persistence/api'
@@ -311,15 +312,11 @@ function resetGame() {
     }
   }
 
-  // Remove the pet entity
-  if (activePetEntity) {
-    entitiesToRemove.push(activePetEntity)
-  }
+  // Hide the pet entity (don't remove it - entities are non-destructible)
+  // The showEggEnvironment() call above will hide all pet entities including the active pet
+  // activePetEntity will be cleared below
 
-  // 3. Remove all PET scene elements (ground, bowls, stations, decorations)
-  removeSceneByType(SceneType.PET)
-
-  // 4. Actually remove collected entities
+  // 3. Actually remove collected entities (pet entities)
   for (const entity of entitiesToRemove) {
     try {
       engine.removeEntity(entity)
@@ -354,9 +351,9 @@ function resetGame() {
   cachedStats = null
   activePetEntity = null
 
-  // 8. Recreate tech environment and egg
-  createTechEnvironment()
-  createEgg()
+  // 8. Show egg environment (entities are already set up, never remove them)
+  showEggEnvironment()
+  // Egg entity should always exist since it's never removed, just hidden
 
   console.log('=== GAME RESET COMPLETE ===')
 }

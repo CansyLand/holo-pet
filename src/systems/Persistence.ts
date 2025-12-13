@@ -8,9 +8,8 @@ import { GameState, GamePhase } from '../components/GameState'
 import { PetComponent, Species, PetState } from '../components/Pet'
 import { DailyQuestComponent } from '../components/Quest'
 import { createPet, updatePetHoverText } from '../factories/Pet'
-import { removeSceneByType, createPetEnvironment } from '../factories/Environment'
+import { showPetEnvironment } from '../factories/Environment'
 import { SceneType } from '../components/Scene'
-import { getThemeDisplayName, getCurrentTheme } from '../utils/theme'
 import { PersonalityComponent, BondComponent, PetIdentityComponent, TrustLevel } from '../components/Personality'
 import { HygieneComponent } from '../components/Hygiene'
 import { getQuestStateEntity } from './Quest'
@@ -97,84 +96,77 @@ async function restorePetFromData(data: PetDocument) {
 
   // Query current game state
   for (const [gameEntity, gameState] of engine.getEntitiesWith(GameState)) {
-    if (gameState.phase === GamePhase.EGG) {
-      // Remove egg and tech environment
-      removeSceneByType(SceneType.TECH)
+    // Switch to pet environment (entities are already set up, just show them)
+    showPetEnvironment()
 
-      // Switch to pet environment
-      const theme = getCurrentTheme()
-      createPetEnvironment(theme)
+    // Create pet with loaded data
+    const petResult = createPet(data.identity.species as Species)
 
-      // Create pet with loaded data
-      const petResult = createPet(data.identity.species as Species)
+    // Apply loaded data to components
+    const deserialized = deserializePet(data)
 
-      // Apply loaded data to components
-      const deserialized = deserializePet(data)
+    // Update components with loaded values
+    if (petResult.petEntity) {
+      // Set pet stats
+      const petComp = PetComponent.getMutable(petResult.petEntity)
+      petComp.mood = deserialized.pet.mood
+      petComp.hunger = deserialized.pet.hunger
+      petComp.energy = deserialized.pet.energy
+      petComp.state = deserialized.pet.state as PetState
 
-      // Update components with loaded values
-      if (petResult.petEntity) {
-        // Set pet stats
-        const petComp = PetComponent.getMutable(petResult.petEntity)
-        petComp.mood = deserialized.pet.mood
-        petComp.hunger = deserialized.pet.hunger
-        petComp.energy = deserialized.pet.energy
-        petComp.state = deserialized.pet.state as PetState
+      // Set personality (immutable)
+      const personalityComp = PersonalityComponent.getMutable(petResult.petEntity)
+      personalityComp.energy = deserialized.personality.energy
+      personalityComp.sociability = deserialized.personality.sociability
+      personalityComp.cleanliness = deserialized.personality.cleanliness
+      personalityComp.appetite = deserialized.personality.appetite
 
-        // Set personality (immutable)
-        const personalityComp = PersonalityComponent.getMutable(petResult.petEntity)
-        personalityComp.energy = deserialized.personality.energy
-        personalityComp.sociability = deserialized.personality.sociability
-        personalityComp.cleanliness = deserialized.personality.cleanliness
-        personalityComp.appetite = deserialized.personality.appetite
+      // Set bond
+      const bondComp = BondComponent.getMutable(petResult.petEntity)
+      bondComp.bond = deserialized.bond.bond
+      bondComp.trustLevel = deserialized.bond.trustLevel as TrustLevel
+      bondComp.lastVisitTime = deserialized.bond.lastVisitTime
 
-        // Set bond
-        const bondComp = BondComponent.getMutable(petResult.petEntity)
-        bondComp.bond = deserialized.bond.bond
-        bondComp.trustLevel = deserialized.bond.trustLevel as TrustLevel
-        bondComp.lastVisitTime = deserialized.bond.lastVisitTime
+      // Set hygiene
+      const hygieneComp = HygieneComponent.getMutable(petResult.petEntity)
+      hygieneComp.cleanliness = deserialized.hygiene.cleanliness
+      hygieneComp.lastBathTime = deserialized.hygiene.lastBathTime
+      hygieneComp.lastBrushTime = deserialized.hygiene.lastBrushTime
 
-        // Set hygiene
-        const hygieneComp = HygieneComponent.getMutable(petResult.petEntity)
-        hygieneComp.cleanliness = deserialized.hygiene.cleanliness
-        hygieneComp.lastBathTime = deserialized.hygiene.lastBathTime
-        hygieneComp.lastBrushTime = deserialized.hygiene.lastBrushTime
+      // Set identity
+      const identityComp = PetIdentityComponent.getMutable(petResult.petEntity)
+      identityComp.name = deserialized.identity.name
+      identityComp.hatchedAt = deserialized.identity.hatchedAt
+      identityComp.ownerId = getWalletAddress() || ''
 
-        // Set identity
-        const identityComp = PetIdentityComponent.getMutable(petResult.petEntity)
-        identityComp.name = deserialized.identity.name
-        identityComp.hatchedAt = deserialized.identity.hatchedAt
-        identityComp.ownerId = getWalletAddress() || ''
+      // Update hover text to show the pet's name
+      updatePetHoverText(petResult.petEntity, deserialized.identity.name)
 
-        // Update hover text to show the pet's name
-        updatePetHoverText(petResult.petEntity, deserialized.identity.name)
-
-        console.log(`🐾 Pet "${deserialized.identity.name}" restored with ${deserialized.bond.bond}% bond`)
-      }
-
-      // Restore quest state
-      const questEntity = getQuestStateEntity()
-      if (questEntity && deserialized.dailyQuests) {
-        const questComp = DailyQuestComponent.getMutable(questEntity)
-        questComp.feedCompleted = deserialized.dailyQuests.feedCompleted
-        questComp.playCompleted = deserialized.dailyQuests.playCompleted
-        questComp.bathCompleted = deserialized.dailyQuests.bathCompleted
-        questComp.bedtimeCompleted = deserialized.dailyQuests.bedtimeCompleted
-        questComp.lastResetDate = deserialized.dailyQuests.lastResetDate
-        console.log(`📋 Quest state restored (last reset: ${deserialized.dailyQuests.lastResetDate})`)
-      }
-
-      // Check if we need to spawn yesterday's poops
-      checkYesterdayLoginOnLoad(data.meta.lastVisitDate)
-
-      // Update game state
-      const mutableState = GameState.getMutable(gameEntity)
-      mutableState.phase = GamePhase.PET
-      mutableState.activePetEntity = petResult.petEntity
-      mutableState.menuStateEntity = petResult.menuStateEntity
-      mutableState.theme = theme
-
-      console.log(`🌟 Game phase changed to PET with theme: ${getThemeDisplayName(theme)}`)
+      console.log(`🐾 Pet "${deserialized.identity.name}" restored with ${deserialized.bond.bond}% bond`)
     }
+
+    // Restore quest state
+    const questEntity = getQuestStateEntity()
+    if (questEntity && deserialized.dailyQuests) {
+      const questComp = DailyQuestComponent.getMutable(questEntity)
+      questComp.feedCompleted = deserialized.dailyQuests.feedCompleted
+      questComp.playCompleted = deserialized.dailyQuests.playCompleted
+      questComp.bathCompleted = deserialized.dailyQuests.bathCompleted
+      questComp.bedtimeCompleted = deserialized.dailyQuests.bedtimeCompleted
+      questComp.lastResetDate = deserialized.dailyQuests.lastResetDate
+      console.log(`📋 Quest state restored (last reset: ${deserialized.dailyQuests.lastResetDate})`)
+    }
+
+    // Check if we need to spawn yesterday's poops
+    checkYesterdayLoginOnLoad(data.meta.lastVisitDate)
+
+    // Update game state
+    const mutableState = GameState.getMutable(gameEntity)
+    mutableState.phase = GamePhase.PET
+    mutableState.activePetEntity = petResult.petEntity
+    mutableState.menuStateEntity = petResult.menuStateEntity
+
+    console.log('🌟 Game phase changed to PET')
   }
 }
 

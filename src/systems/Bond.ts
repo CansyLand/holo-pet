@@ -1,14 +1,8 @@
-import { engine, Entity } from '@dcl/sdk/ecs'
+import { engine, Entity, VisibilityComponent } from '@dcl/sdk/ecs'
 import { PetComponent } from '../components/Pet'
 import { BondComponent, getTrustLevel, TrustLevel } from '../components/Personality'
 import { GameState, GamePhase } from '../components/GameState'
-import {
-  BOND_DECAY_RATE,
-  ABANDON_THRESHOLD,
-  BOND_CHECK_INTERVAL,
-  MIN_BOND,
-  MAX_BOND
-} from '../utils/constants'
+import { BOND_DECAY_RATE, ABANDON_THRESHOLD, BOND_CHECK_INTERVAL, MIN_BOND, MAX_BOND } from '../utils/constants'
 
 // =============================================================================
 // BOND SYSTEM
@@ -74,13 +68,20 @@ function triggerPetRunaway(petEntity: Entity) {
   console.log('💔 Pet has run away! Bond reached 0.')
 
   // Update game state to indicate game over
-  for (const [gameEntity, gameState] of engine.getEntitiesWith(GameState)) {
+  for (const [gameEntity] of engine.getEntitiesWith(GameState)) {
+    const gameState = GameState.getMutable(gameEntity)
     if (gameState.phase === GamePhase.PET) {
-      // Could add a GAME_OVER phase, for now just log
       console.log('Game Over: Pet ran away due to neglect')
 
-      // Remove the pet entity
-      engine.removeEntity(petEntity)
+      // Hide the pet entity (don't remove it - entities are non-destructible)
+      const visibility = VisibilityComponent.getMutableOrNull(petEntity)
+      if (visibility) {
+        visibility.visible = false
+      }
+
+      // Return to egg state
+      gameState.phase = GamePhase.EGG
+      gameState.activePetEntity = 0 as Entity
 
       // TODO: Show game over UI, offer to restart with new egg
     }
@@ -134,4 +135,3 @@ export function resetBondSystem() {
   timeSinceLastCheck = 0
   console.log('Bond system reset')
 }
-
