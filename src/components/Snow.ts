@@ -38,3 +38,5 @@ export const SnowPoolManager = engine.defineComponent('SnowPoolManager', {
   lastSpawnTime: Schemas.Number, // Cooldown between spawning new flakes
   activeCount: Schemas.Number // Number of currently active snowflakes
 })
+
+

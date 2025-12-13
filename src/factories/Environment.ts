@@ -120,7 +120,6 @@ export function createPetEnvironment(theme: Theme = Theme.DEFAULT) {
   console.log(`Creating pet environment with theme: ${getThemeDisplayName(theme)}`)
 
   // Base elements (always present, colors vary by theme)
-  const ground = createGround(colors.ground)
   const foodBowl = createFoodBowl(colors.accent1)
   const waterBowl = createWaterBowl(colors.accent2)
   const toyBall = createToyBall(colors.toy)
@@ -128,27 +127,12 @@ export function createPetEnvironment(theme: Theme = Theme.DEFAULT) {
   // Theme-specific decorations
   const decorations = createThemeDecorations(theme)
 
-  return { ground, foodBowl, waterBowl, toyBall, ...decorations }
+  return { foodBowl, waterBowl, toyBall, ...decorations }
 }
 
 // -----------------------------------------------------------------------------
 // Base Elements (present in all themes)
 // -----------------------------------------------------------------------------
-
-function createGround(color: Color4) {
-  const entity = engine.addEntity()
-  Transform.create(entity, {
-    position: Vector3.create(SCENE_CENTER_X, 0.01, SCENE_CENTER_Z),
-    scale: Vector3.create(GROUND_SIZE, 0.02, GROUND_SIZE)
-  })
-  MeshRenderer.setBox(entity)
-  Material.setPbrMaterial(entity, {
-    albedoColor: color,
-    roughness: 0.9
-  })
-  SceneElement.create(entity, { sceneType: SceneType.PET })
-  return entity
-}
 
 function createFoodBowl(color: Color4) {
   const entity = engine.addEntity()

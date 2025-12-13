@@ -4,19 +4,25 @@ Open Discord
 
 DCLHUB
 
-=======
+dcl creator hub setup
+
+place elements in scene
+
+======= CODE????
+change color -> egg, hologram,
+
+mini games - pet- brush - feed?
+
+======= BLENDER
 
 pet texture hearts, hunger, stink
+Symbols. hunger, stink
 
-change color -> egg, hologram,
+======== AUDIO
 
 audo effects
 
 Make UI Look good
-
-Symbols. hunger, stink
-
-mini games - pet- brush - feed?
 
 =====
 
@@ -27,10 +33,6 @@ visit a friends pet - merge holopets
 scene Image
 
 ======
-
-dcl creator hub setup
-
-place elements in scene
 
 crypto middleware / security
 
