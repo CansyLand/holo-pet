@@ -35,7 +35,7 @@ export interface Pet {
 }
 
 // Import services and modules here (will be added as we create them)
-// import { VisibilityManager } from './services/Visibility'
+import { visibility } from './services/Visibility'
 // import { InteractionManager } from './services/Interaction'
 // import { FocusService } from './services/Focus'
 // import { StateManager } from './services/State'
@@ -63,6 +63,7 @@ export class Game {
       theme: Theme.DEFAULT
     })
 
+    // Note: Visibility initialization moved to initializeGame() after modules are loaded
     console.log('🎮 Game entity created with initial state')
   }
 
@@ -107,8 +108,15 @@ export class Game {
   }
 
   private notifyStateChange(newState: GameState, oldState: GameState) {
-    // TODO: Notify modules that care about state changes
+    // Notify modules that care about state changes
     console.log(`🔄 Game state changed: ${oldState.phase} → ${newState.phase}`)
+
+    // Update visibility based on new game state
+    visibility.onGameStateChange({
+      phase: newState.phase,
+      pet: newState.pet,
+      theme: newState.theme
+    })
   }
 
   // Module coordination - called every frame

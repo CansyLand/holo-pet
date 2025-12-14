@@ -2,7 +2,7 @@ import { Schemas, engine } from '@dcl/sdk/ecs'
 
 export enum GamePhase {
   EGG = 'egg',
-  HATCHING = 'hatching', // is this needed?
+  HATCHING = 'hatching',
   PET = 'pet'
 }
 

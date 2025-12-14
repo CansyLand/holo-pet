@@ -20,16 +20,17 @@ import { DebugUI } from './ui/DebugUI'
 import { NamingUI } from './ui/Naming'
 import { QuestUI } from './ui/Quest'
 
+// Services
+import { visibility } from './services/Visibility'
+
 // Systems (legacy systems we'll keep for now)
-import { inputSystemCallback } from '../src_OLD/systems/Input'
-import { timeSystem } from '../src_OLD/systems/Time'
-import { renderSystem } from '../src_OLD/systems/Render'
-import { movementSystem } from '../src_OLD/systems/Movement'
 
 // Combined UI renderer
 function CombinedUI() {
   return [DebugUI(), NamingUI(), QuestUI()]
 }
+
+console.log('GAME STARTING')
 
 // Register all modules with the game
 export function initializeGame() {
@@ -49,6 +50,19 @@ export function initializeGame() {
   // Initialize all modules
   game.init()
 
+  // Initialize visibility after modules are loaded (entities should be available now)
+  console.log('🎮 Initializing visibility system after modules loaded')
+  try {
+    visibility.onGameStateChange({
+      phase: game.state.phase,
+      pet: game.state.pet,
+      theme: game.state.theme
+    })
+    console.log('🎮 Visibility system initialized successfully')
+  } catch (error) {
+    console.error('🎮 Error initializing visibility system:', error)
+  }
+
   console.log('✅ All modules registered and initialized')
   console.log(`📦 Total modules: ${game.modules.length}`)
   console.log('🎯 Ready for Phase 2: Module Implementation')
@@ -57,10 +71,10 @@ export function initializeGame() {
 // Main application entry point (called by Decentraland)
 export function main() {
   // 1. Setup Core Systems
-  engine.addSystem(inputSystemCallback)
-  engine.addSystem(timeSystem)
-  engine.addSystem(renderSystem)
-  engine.addSystem(movementSystem)
+  // engine.addSystem(inputSystemCallback)
+  // engine.addSystem(timeSystem)
+  // engine.addSystem(renderSystem)
+  // engine.addSystem(movementSystem)
 
   // 2. Initialize New Modular Game
   initializeGame()

@@ -12,7 +12,7 @@ import {
   PointerEvents,
   ColliderLayer
 } from '@dcl/sdk/ecs'
-import { GamePhase } from '../Game'
+import { GamePhase } from '../components/GameState'
 import { Interactable, InteractionType } from '../components/Interaction'
 import { EntityNames } from '../../assets/scene/entity-names'
 
@@ -75,9 +75,13 @@ export class VisibilityManager {
 
   // Core visibility function - replaces the old setEntityInteractive from Environment.ts
   private setEntityInteractive(entity: Entity, visible: boolean, interactive: boolean = visible) {
-    // 1. Set visibility
-    const visibility = VisibilityComponent.getMutableOrNull(entity)
-    if (visibility) {
+    console.log(`🎭 Visibility: Setting entity ${entity} visible=${visible}, interactive=${interactive}`)
+
+    // 1. Set visibility using VisibilityComponent
+    let visibility = VisibilityComponent.getMutableOrNull(entity)
+    if (!visibility) {
+      VisibilityComponent.create(entity, { visible: visible })
+    } else {
       visibility.visible = visible
     }
 
@@ -163,24 +167,30 @@ export class VisibilityManager {
 
   // Group visibility functions
   showGroup(groupName: string) {
+    console.log(`🎭 Visibility: Showing group ${groupName}`)
     const entities = this.entityGroups[groupName as keyof typeof this.entityGroups]
     if (entities) {
       entities.forEach((entityName) => {
         const entity = engine.getEntityOrNullByName(entityName as EntityNames)
         if (entity) {
           this.showEntity(entity)
+        } else {
+          console.log(`🎭 Visibility: WARNING - Entity ${entityName} not found!`)
         }
       })
     }
   }
 
   hideGroup(groupName: string) {
+    console.log(`🎭 Visibility: Hiding group ${groupName}`)
     const entities = this.entityGroups[groupName as keyof typeof this.entityGroups]
     if (entities) {
       entities.forEach((entityName) => {
         const entity = engine.getEntityOrNullByName(entityName as EntityNames)
         if (entity) {
           this.hideEntity(entity)
+        } else {
+          console.log(`🎭 Visibility: WARNING - Entity ${entityName} not found!`)
         }
       })
     }
@@ -192,6 +202,7 @@ export class VisibilityManager {
     this.showGroup('egg')
     this.showGroup('always')
     this.hideGroup('pet')
+    this.hideGroup('poops') // Also hide poops in egg phase
   }
 
   hideEggDecorations() {

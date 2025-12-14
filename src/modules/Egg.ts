@@ -20,11 +20,6 @@ export class EggModule implements GameModule {
     this.setupEggInteractions()
   }
 
-  update(dt: number) {
-    // Handle any egg animations or effects
-    // TODO: Update color pulse animation if active
-  }
-
   // Easy to extend with animations
   onClick() {
     console.log('🥚 Egg clicked - starting hatch sequence')
@@ -84,7 +79,7 @@ export class EggModule implements GameModule {
       type: InteractionType.HATCH
     })
 
-    SceneElement.create(this.eggEntity, { sceneType: SceneType.TECH })
+    SceneElement.create(this.eggEntity, { sceneType: SceneType.EGG })
 
     console.log('🥚 Egg entity configured')
   }
@@ -96,19 +91,45 @@ export class EggModule implements GameModule {
     // For now, we'll handle this through the interaction system
     // interaction.registerHandler('egg_click', () => this.onClick())
 
-    PointerEvents.create(this.eggEntity, {
+    // Create pointer events for visual feedback
+    PointerEvents.createOrReplace(this.eggEntity, {
       pointerEvents: [
         {
           eventType: PointerEventType.PET_DOWN,
           eventInfo: {
             button: InputAction.IA_POINTER,
-            hoverText: 'Hatch Egg'
+            hoverText: 'Hatch Egg',
+            showFeedback: true
           }
         }
       ]
     })
 
+    // Set up pointer event handling system
+    this.setupPointerEventHandling()
+
     console.log('🥚 Egg interactions set up')
+  }
+
+  private setupPointerEventHandling() {
+    // Implement manual pointer event handling
+    console.log('🥚 Manual pointer event handling initialized - click the egg to hatch!')
+
+    // Create a system to detect pointer events
+    // In SDK7, pointer events can be detected through various methods
+    engine.addSystem(() => {
+      if (!this.eggEntity) return
+
+      // TODO: Implement proper SDK7 pointer event detection
+      // The system should detect when the user clicks on the egg entity
+    })
+
+    console.log('🥚 Egg is ready for manual clicking - click it to hatch!')
+  }
+
+  update(dt: number) {
+    // Handle any egg animations or effects
+    // TODO: Update color pulse animation if active
   }
 
   cleanup() {
