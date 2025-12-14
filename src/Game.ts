@@ -165,6 +165,14 @@ export class Game {
       // pet: pet
     })
 
+    // Show naming UI after hatching
+    import('./ui/Naming').then(({ showNamingUI }) => {
+      showNamingUI((name: string) => {
+        console.log(`🐾 Pet named: ${name}`)
+        // TODO: Set pet name
+      })
+    })
+
     console.log('🐾 Pet hatched successfully!')
   }
 

@@ -3,7 +3,16 @@
 // Easy to extend with color-changing animations or other egg features.
 // Ready for mini-games when the egg becomes more interactive.
 
-import { engine, Entity, PointerEvents, PointerEventType, InputAction, MeshCollider, ColliderLayer } from '@dcl/sdk/ecs'
+import {
+  engine,
+  Entity,
+  PointerEvents,
+  PointerEventType,
+  InputAction,
+  MeshCollider,
+  ColliderLayer,
+  pointerEventsSystem
+} from '@dcl/sdk/ecs'
 import { game } from '../Game'
 import { GameModule } from '../Game'
 import { Interactable, InteractionType } from '../components/Interaction'
@@ -17,7 +26,7 @@ export class EggModule implements GameModule {
   init() {
     console.log('🥚 Egg module initialized')
     this.setupEggEntity()
-    this.setupEggInteractions()
+    this.setupPointerEventHandling()
   }
 
   // Easy to extend with animations
@@ -84,47 +93,28 @@ export class EggModule implements GameModule {
     console.log('🥚 Egg entity configured')
   }
 
-  private setupEggInteractions() {
-    if (!this.eggEntity) return
-
-    // TODO: Register click handler with interaction service
-    // For now, we'll handle this through the interaction system
-    // interaction.registerHandler('egg_click', () => this.onClick())
-
-    // Create pointer events for visual feedback
-    PointerEvents.createOrReplace(this.eggEntity, {
-      pointerEvents: [
-        {
-          eventType: PointerEventType.PET_DOWN,
-          eventInfo: {
-            button: InputAction.IA_POINTER,
-            hoverText: 'Hatch Egg',
-            showFeedback: true
-          }
-        }
-      ]
-    })
-
-    // Set up pointer event handling system
-    this.setupPointerEventHandling()
-
-    console.log('🥚 Egg interactions set up')
-  }
-
   private setupPointerEventHandling() {
-    // Implement manual pointer event handling
-    console.log('🥚 Manual pointer event handling initialized - click the egg to hatch!')
+    // Simple direct click handling for the egg
+    console.log('🥚 Pointer event handling initialized - click the egg to hatch!')
 
-    // Create a system to detect pointer events
-    // In SDK7, pointer events can be detected through various methods
-    engine.addSystem(() => {
-      if (!this.eggEntity) return
+    if (!this.eggEntity) {
+      console.error('🥚 Cannot set up pointer events - egg entity not found!')
+      return
+    }
 
-      // TODO: Implement proper SDK7 pointer event detection
-      // The system should detect when the user clicks on the egg entity
-    })
+    // Register direct click callback for the egg
+    pointerEventsSystem.onPointerDown(
+      {
+        entity: this.eggEntity,
+        opts: { button: InputAction.IA_POINTER, hoverText: 'Hatch Egg' }
+      },
+      () => {
+        console.log('🥚 Egg clicked - triggering hatch!')
+        this.onClick()
+      }
+    )
 
-    console.log('🥚 Egg is ready for manual clicking - click it to hatch!')
+    console.log('🥚 Egg is ready for clicking - click it to hatch!')
   }
 
   update(dt: number) {
