@@ -42,6 +42,19 @@ export class Pet {
   // Reference to the ECS entity (set by PetModule)
   entity: Entity | null = null
 
+  // Static method to find and assign pet entity
+  static assignEntityToPet(pet: Pet): boolean {
+    const tigerEntity = engine.getEntityOrNullByName(EntityNames.Tiger)
+    if (tigerEntity) {
+      pet.entity = tigerEntity
+      console.log('🐾 Pet entity reference set')
+      return true
+    } else {
+      console.error('🐾 Tiger entity not found!')
+      return false
+    }
+  }
+
   // All pet data in one place (no scattered ECS components)
   data = {
     // Identity

@@ -141,6 +141,9 @@ export class Game {
     const petData = new Pet(Species.TIGER)
     this.state.pet = petData
 
+    // ASSIGN PET ENTITY (clean call to Pet class)
+    Pet.assignEntityToPet(this.state.pet)
+
     // Switch directly to PET (Visibility will hide egg/show pet scene)
     this.setState({ phase: GamePhase.PET })
     console.log('🐾 Pet DATA + phase=PET (scene switch triggered)')
