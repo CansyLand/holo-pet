@@ -360,3 +360,4 @@ debugReset() // Hide all entities
 2. Check if PointerEvents are actually removed from pet entities
 3. Check the collision mask values at runtime
 4. Verify that `setEntityInteractive` is being called with correct parameters
+

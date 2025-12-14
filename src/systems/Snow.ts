@@ -179,5 +179,3 @@ export function resetSnowSystem() {
   managerEntity = null
   console.log('Snow system reset')
 }
-
-
