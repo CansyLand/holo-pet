@@ -3,6 +3,11 @@
 // No more scattered ECS components - everything pet-related lives here.
 // This replaces PetComponent, PersonalityComponent, BondComponent, HygieneComponent, etc.
 
+import { Entity, engine, MeshCollider, ColliderLayer, pointerEventsSystem, InputAction } from '@dcl/sdk/ecs'
+import { game, GameModule } from './Game'
+import { EntityNames } from '../assets/scene/entity-names'
+import { menuUI } from './ui/MenuUI'
+
 export enum Species {
   // DOG = 'dog',
   // CAT = 'cat',
@@ -389,7 +394,7 @@ export class Pet {
   }
 
   // Record player interaction
-  recordInteraction() {
+  private recordInteraction() {
     this.data.lastVisit = Date.now()
   }
 
@@ -412,5 +417,38 @@ export class Pet {
       ...this.data,
       trustLevel: this.getTrustLevel()
     }
+  }
+}
+
+export class PetModule implements GameModule {
+  name = 'Pet'
+  petEntity: Entity | null = null
+
+  init() {
+    console.log('🐾 PetModule init')
+    this.setupPetEntity()
+  }
+
+  private setupPetEntity() {
+    this.petEntity = engine.getEntityOrNullByName(EntityNames.Tiger)
+    if (!this.petEntity) {
+      console.error('🐾 Tiger not found')
+      return
+    }
+
+    // if (!MeshCollider.has(this.petEntity)) {
+    //   MeshCollider.setSphere(this.petEntity, ColliderLayer.CL_POINTER)
+    // }
+
+    pointerEventsSystem.onPointerDown({ entity: this.petEntity, opts: { hoverText: 'Pet companion 🐾' } }, () => {
+      console.log('🐾 Tiger clicked!')
+      menuUI.show(this.petEntity!)
+    })
+
+    console.log('🐾 Tiger clickable!')
+  }
+
+  update(dt: number) {
+    game.state.pet?.update(dt)
   }
 }

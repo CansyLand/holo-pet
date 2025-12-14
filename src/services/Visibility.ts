@@ -10,8 +10,11 @@ import {
   GltfContainer,
   MeshCollider,
   PointerEvents,
-  ColliderLayer
+  ColliderLayer,
+  Transform
 } from '@dcl/sdk/ecs'
+import { Vector3 } from '@dcl/sdk/math'
+import { movePlayerTo } from '~system/RestrictedActions'
 import { GamePhase } from '../components/GameState'
 import { Interactable, InteractionType } from '../components/Interaction'
 import { EntityNames } from '../../assets/scene/entity-names'
@@ -47,6 +50,10 @@ export class VisibilityManager {
     ]
   }
 
+  // Collision prevention constants
+  private readonly SAFE_SPAWN_DISTANCE = 2.0
+  private readonly PUSH_DISTANCE = 1.0
+
   constructor() {
     console.log('VisibilityManager initialized')
   }
@@ -71,6 +78,43 @@ export class VisibilityManager {
 
   hideEntity(entity: Entity) {
     this.setEntityInteractive(entity, false, false)
+  }
+
+  // =============================================================================
+  // COLLISION PREVENTION HELPERS
+  // =============================================================================
+
+  private getPlayerPosition(): Vector3 | null {
+    try {
+      const playerTransform = Transform.get(engine.PlayerEntity)
+      return playerTransform.position
+    } catch {
+      return null
+    }
+  }
+
+  private resolvePlayerCollision(entity: Entity) {
+    const playerPos = this.getPlayerPosition()
+    const entityTransform = Transform.getOrNull(entity)
+
+    if (!playerPos || !entityTransform) return
+
+    const distance = Vector3.distance(playerPos, entityTransform.position)
+    if (distance < this.SAFE_SPAWN_DISTANCE) {
+      // Calculate push direction (away from entity)
+      const pushDirection = Vector3.normalize(Vector3.subtract(playerPos, entityTransform.position))
+
+      // Move player away from the entity
+      const newPosition = Vector3.add(playerPos, Vector3.scale(pushDirection, this.PUSH_DISTANCE))
+
+      // Apply to player using movePlayerTo
+      movePlayerTo({
+        newRelativePosition: newPosition,
+        cameraTarget: entityTransform.position // Keep camera looking at the entity
+      })
+
+      console.log('🚨 Player collision resolved - pushed away from entity')
+    }
   }
 
   // Core visibility function - replaces the old setEntityInteractive from Environment.ts
@@ -117,6 +161,11 @@ export class VisibilityManager {
       if (interactable) {
         this.recreatePointerEvents(entity, interactable)
       }
+    }
+
+    // Check for player collision after making entity visible
+    if (visible) {
+      this.resolvePlayerCollision(entity)
     }
 
     console.log(`Entity ${entity}: visible=${visible}, interactive=${interactive}`)

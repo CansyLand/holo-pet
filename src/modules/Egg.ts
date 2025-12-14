@@ -58,13 +58,13 @@ export class EggModule implements GameModule {
   private completeHatching() {
     console.log('🥚 Egg hatched! Creating pet...')
 
-    // Hide egg
+    // Hide egg manually (PET phase will reinforce via Visibility)
     if (this.eggEntity) {
-      // TODO: Use visibility service to hide egg
-      // visibility.hideEntity(this.eggEntity)
+      import('../services/Visibility').then(({ visibility }) => {
+        visibility.hideEntity(this.eggEntity!)
+      })
     }
 
-    // Tell game to hatch (will create pet and change phase)
     game.hatchEgg()
   }
 
@@ -82,12 +82,6 @@ export class EggModule implements GameModule {
     if (!this.eggEntity) {
       console.error('🥚 Egg entity not found in scene!')
       return
-    }
-
-    // Skip Transform and GLTF creation - Egg is already positioned in scene editor
-    // Add collision for interaction (check if it already exists first)
-    if (!MeshCollider.has(this.eggEntity)) {
-      MeshCollider.setSphere(this.eggEntity, ColliderLayer.CL_POINTER)
     }
 
     Interactable.create(this.eggEntity, {

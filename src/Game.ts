@@ -3,6 +3,7 @@
 // and coordinates all the pluggable modules. Modules read game.state to know what to do.
 
 import { engine, Entity } from '@dcl/sdk/ecs'
+import { Pet, Species } from './Pet'
 import { GameStateComponent, GamePhase, Theme } from './components/GameState'
 
 export { GamePhase, Theme }
@@ -22,17 +23,7 @@ export interface GameModule {
 }
 
 // Forward declaration for Pet (will be defined in Pet.ts)
-export interface Pet {
-  data: any // Will be properly typed when Pet.ts is complete
-  update(dt: number): void
-  feed(): void
-  pet(): void
-  play(): void
-  bath(): void
-  sleep(): void
-  wakeUp(): void
-  recordInteraction(): void
-}
+// Pet class imported from ./Pet.ts - no forward declaration needed
 
 // Import services and modules here (will be added as we create them)
 import { visibility } from './services/Visibility'
@@ -122,11 +113,7 @@ export class Game {
 
   // Module coordination - called every frame
   update(dt: number) {
-    // Update pet if we have one
-    if (this.state.pet) {
-      // this.state.pet.update(dt) // Will be implemented in Pet.ts
-    }
-
+    // Modules handle pet.update(dt)
     // Update all registered modules
     for (const module of this.modules) {
       if (module.update) {
@@ -148,36 +135,26 @@ export class Game {
   hatchEgg() {
     if (this.state.phase !== GamePhase.EGG) return
 
-    console.log('🥚 Egg hatching! Creating pet...')
+    console.log('🥚 Egg hatching → directly to PET phase')
 
-    // Set hatching phase briefly for animations
-    this.setState({ phase: GamePhase.HATCHING })
+    // Create Pet DATA immediately
+    const petData = new Pet(Species.TIGER)
+    this.state.pet = petData
 
-    // TODO: Play hatching animations using tweens
-    // The egg module should handle this
+    // Switch directly to PET (Visibility will hide egg/show pet scene)
+    this.setState({ phase: GamePhase.PET })
+    console.log('🐾 Pet DATA + phase=PET (scene switch triggered)')
 
-    // For now, immediately switch to pet phase (animations can be added later)
-    // TODO: Create pet using pet factory
-    // const pet = createPet(Species.TIGER)
-    // this.state.pet = pet
-
-    this.setState({
-      phase: GamePhase.PET
-      // pet: pet
-    })
-
-    // Show naming UI after hatching
+    // Show naming UI
     import('./ui/Naming').then(({ showNamingUI }) => {
       showNamingUI((name: string) => {
         console.log(`🐾 Pet named: ${name}`)
-        // TODO: Set pet name
-
-        // Restore pointer to previous state after naming is complete
+        game.state.pet?.setName(name)
         pointer.restorePointerState()
       })
     })
 
-    console.log('🐾 Pet hatched successfully!')
+    console.log('🐾 Direct to PET + naming complete!')
   }
 
   // Handle pet care interactions

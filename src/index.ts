@@ -14,6 +14,7 @@ import { BallModule } from './modules/Ball'
 import { DecorationModule } from './modules/Decoration'
 import { PoopModule } from './modules/Poop'
 import { HeartParticleModule } from './modules/HeartParticle'
+import { PetModule } from './Pet'
 
 // UI Components (will be implemented)
 import { DebugUI } from './ui/DebugUI'
@@ -46,6 +47,7 @@ export function initializeGame() {
   game.registerModule(new DecorationModule())
   game.registerModule(new PoopModule())
   game.registerModule(new HeartParticleModule())
+  game.registerModule(new PetModule())
 
   // Initialize all modules
   game.init()
