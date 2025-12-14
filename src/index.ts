@@ -18,7 +18,7 @@ import { HeartParticleModule } from './modules/HeartParticle'
 // UI Components (will be implemented)
 import { DebugUI } from './ui/DebugUI'
 import { NamingUI } from './ui/Naming'
-import { questUI } from './ui/Quest'
+import { QuestUI } from './ui/Quest'
 
 // Systems (legacy systems we'll keep for now)
 import { inputSystemCallback } from '../src_OLD/systems/Input'
@@ -28,7 +28,7 @@ import { movementSystem } from '../src_OLD/systems/Movement'
 
 // Combined UI renderer
 function CombinedUI() {
-  return [DebugUI(), NamingUI({ isVisible: false, onNameSubmit: () => {} }), questUI]
+  return [DebugUI(), NamingUI(), QuestUI()]
 }
 
 // Register all modules with the game

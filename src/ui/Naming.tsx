@@ -2,171 +2,175 @@
 // Naming UI dialog that appears after egg hatching.
 // Allows players to enter a custom name for their pet.
 
-import React, { useState } from 'react'
+import ReactEcs, { UiEntity, Label, Button, Input } from '@dcl/sdk/react-ecs'
+import { Color4 } from '@dcl/sdk/math'
 import { game } from '../Game'
 
-interface NamingUIProps {
-  isVisible: boolean
-  onNameSubmit: (name: string) => void
+// State (module-level, not React hooks)
+let isVisible = false
+let currentName = ''
+let onNameSubmitCallback: ((name: string) => void) | null = null
+
+// Colors for UI
+const HEADER_COLOR = Color4.White()
+const SECONDARY_COLOR = Color4.create(0.7, 0.7, 0.7, 1)
+const BUTTON_COLOR = Color4.create(0.2, 0.6, 1, 1)
+const INPUT_BG_COLOR = Color4.create(0.25, 0.25, 0.3, 1)
+const OVERLAY_COLOR = Color4.create(0, 0, 0, 0.7)
+const PANEL_BG_COLOR = Color4.create(0.15, 0.15, 0.2, 0.95)
+
+export function showNamingUI(onNameSubmit: (name: string) => void) {
+  isVisible = true
+  currentName = ''
+  onNameSubmitCallback = onNameSubmit
 }
 
-export function NamingUI({ isVisible, onNameSubmit }: NamingUIProps) {
-  const [petName, setPetName] = useState('')
+export function hideNamingUI() {
+  isVisible = false
+  currentName = ''
+  onNameSubmitCallback = null
+}
 
+function handleNameSubmit() {
+  if (currentName.trim() && onNameSubmitCallback) {
+    onNameSubmitCallback(currentName.trim())
+    hideNamingUI()
+  }
+}
+
+function handleRandomName() {
+  const randomNames = [
+    'Fluffy',
+    'Tiger',
+    'Spark',
+    'Luna',
+    'Max',
+    'Bella',
+    'Charlie',
+    'Daisy',
+    'Oliver',
+    'Lucy',
+    'Buddy',
+    'Molly',
+    'Jack',
+    'Sophie',
+    'Rocky',
+    'Lily'
+  ]
+  currentName = randomNames[Math.floor(Math.random() * randomNames.length)]
+}
+
+function updateName(value: string) {
+  currentName = value
+}
+
+export function NamingUI() {
   if (!isVisible) return null
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (petName.trim()) {
-      onNameSubmit(petName.trim())
-      setPetName('')
-    }
-  }
-
-  const handleRandomName = () => {
-    const randomNames = [
-      'Fluffy',
-      'Tiger',
-      'Spark',
-      'Luna',
-      'Max',
-      'Bella',
-      'Charlie',
-      'Daisy',
-      'Oliver',
-      'Lucy',
-      'Buddy',
-      'Molly',
-      'Jack',
-      'Sophie',
-      'Rocky',
-      'Lily'
-    ]
-    const randomName = randomNames[Math.floor(Math.random() * randomNames.length)]
-    setPetName(randomName)
-  }
-
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        padding: '30px',
-        borderRadius: '15px',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
-        textAlign: 'center',
-        maxWidth: '400px',
-        width: '90%'
+    <UiEntity
+      uiTransform={{
+        width: '100%',
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+        positionType: 'absolute'
       }}
     >
-      <h2 style={{ color: '#333', marginBottom: '20px' }}>🐾 Name Your Pet!</h2>
+      {/* Dark overlay */}
+      <UiEntity
+        uiTransform={{
+          width: '100%',
+          height: '100%',
+          positionType: 'absolute'
+        }}
+        uiBackground={{ color: OVERLAY_COLOR }}
+      />
 
-      <p style={{ color: '#666', marginBottom: '25px' }}>
-        Your egg has hatched! What would you like to name your new companion?
-      </p>
+      {/* Popup container */}
+      <UiEntity
+        uiTransform={{
+          width: 400,
+          height: 280,
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'space-around',
+          padding: 20
+        }}
+        uiBackground={{ color: PANEL_BG_COLOR }}
+      >
+        {/* Title */}
+        <Label value="🐾 Name Your Pet!" fontSize={28} color={HEADER_COLOR} uiTransform={{ height: 40 }} />
 
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          value={petName}
-          onChange={(e) => setPetName(e.target.value)}
-          placeholder="Enter pet name..."
-          maxLength={20}
-          style={{
-            width: '100%',
-            padding: '12px',
-            fontSize: '16px',
-            border: '2px solid #ddd',
-            borderRadius: '8px',
-            marginBottom: '15px',
-            textAlign: 'center'
-          }}
-          autoFocus
+        {/* Subtitle */}
+        <Label
+          value="Your egg has hatched! What would you like to name your new companion?"
+          fontSize={16}
+          color={SECONDARY_COLOR}
+          uiTransform={{ height: 40, width: 350 }}
         />
 
-        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-          <button
-            type="button"
-            onClick={handleRandomName}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#4CAF50',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            🎲 Random Name
-          </button>
+        {/* Text input */}
+        <Input
+          placeholder="Enter pet name..."
+          placeholderColor={Color4.create(0.5, 0.5, 0.5, 1)}
+          color={Color4.Black()}
+          fontSize={20}
+          onChange={(value) => updateName(value)}
+          uiTransform={{
+            width: 300,
+            height: 45
+          }}
+          uiBackground={{
+            color: INPUT_BG_COLOR
+          }}
+        />
 
-          <button
-            type="submit"
-            disabled={!petName.trim()}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: petName.trim() ? '#2196F3' : '#ccc',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: petName.trim() ? 'pointer' : 'not-allowed',
-              fontSize: '14px'
+        {/* Buttons row */}
+        <UiEntity
+          uiTransform={{
+            width: '100%',
+            height: 50,
+            flexDirection: 'row',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
+        >
+          <Button
+            value="🎲 Random Name"
+            variant="secondary"
+            fontSize={14}
+            uiTransform={{
+              width: 120,
+              height: 40,
+              margin: { right: 10 }
             }}
-          >
-            ✅ Name Pet
-          </button>
-        </div>
-      </form>
+            onMouseDown={() => handleRandomName()}
+          />
+          <Button
+            value="✅ Name Pet"
+            variant="primary"
+            fontSize={14}
+            disabled={!currentName.trim()}
+            uiTransform={{
+              width: 120,
+              height: 40
+            }}
+            onMouseDown={() => handleNameSubmit()}
+          />
+        </UiEntity>
 
-      <div style={{ marginTop: '20px', fontSize: '12px', color: '#888' }}>
-        This name will be permanent and shown to other players!
-      </div>
-    </div>
+        {/* Hint */}
+        <Label
+          value="This name will be permanent and shown to other players!"
+          fontSize={12}
+          color={Color4.create(0.5, 0.5, 0.5, 1)}
+          uiTransform={{ height: 20 }}
+        />
+      </UiEntity>
+    </UiEntity>
   )
 }
 
-// Manager class for the naming UI
-export class NamingUIManager {
-  private isVisible = false
-  private onNameSubmitCallback?: (name: string) => void
-
-  constructor() {
-    console.log('🏷️ Naming UI manager initialized')
-  }
-
-  show(onNameSubmit: (name: string) => void) {
-    this.isVisible = true
-    this.onNameSubmitCallback = onNameSubmit
-    this.render()
-    console.log('🏷️ Naming UI shown')
-  }
-
-  hide() {
-    this.isVisible = false
-    this.onNameSubmitCallback = undefined
-    this.render()
-    console.log('🏷️ Naming UI hidden')
-  }
-
-  private handleNameSubmit(name: string) {
-    if (this.onNameSubmitCallback) {
-      this.onNameSubmitCallback(name)
-    }
-    this.hide()
-  }
-
-  private render() {
-    // TODO: Render using ReactEcsRenderer.setUiRenderer
-    // The actual rendering will be handled by the main UI renderer
-  }
-
-  isCurrentlyVisible(): boolean {
-    return this.isVisible
-  }
-}
-
-export const namingUI = new NamingUIManager()
+// Functions are already exported above
+// export { showNamingUI, hideNamingUI }
