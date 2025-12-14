@@ -619,6 +619,12 @@ interface GameState {
 
 ---
 
+## Implementation Guide
+
+**📋 See STORIES.md** for detailed user stories, behavior specifications, and technical requirements.
+
+---
+
 ## Conclusion
 
 This architecture gives you the **best of both worlds**:
