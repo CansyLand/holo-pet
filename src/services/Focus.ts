@@ -2,11 +2,12 @@
 // Centralized focus mechanics - camera movement, pointer locking/unlocking for any interactive entity.
 // Pointer/camera management service that any module can use.
 
-import { engine, Transform, VirtualCamera, MainCamera, PointerLock } from '@dcl/sdk/ecs'
+import { engine, VirtualCamera, MainCamera, PointerLock, Transform } from '@dcl/sdk/ecs'
 import { Vector3, Quaternion } from '@dcl/sdk/math'
 import { pointer } from './Pointer'
 import { startFocusMonitoring, stopFocusMonitoring } from './FocusMonitor'
 import { CameraFocusComponent, CursorFollowComponent } from '../components/CameraFocus'
+import { game } from '../Game'
 
 export interface FocusOptions {
   distance?: number
@@ -193,16 +194,10 @@ export class FocusService {
   private enableCursorFollow(entity: any) {
     // Create cursor follow component if it doesn't exist
     if (!CursorFollowComponent.has(entity)) {
-      const entityTransform = Transform.get(entity)
       CursorFollowComponent.create(entity, {
         isActive: true,
-        baseRotation: {
-          x: entityTransform.rotation.x,
-          y: entityTransform.rotation.y,
-          z: entityTransform.rotation.z,
-          w: entityTransform.rotation.w
-        },
-        maxTiltAngle: 45 // Max 45 degrees tilt
+        baseRotation: { x: 0, y: 0, z: 0, w: 1 }, // Will be set by pet
+        maxTiltAngle: 15 // Default, pet can override
       })
     } else {
       // Update existing component
@@ -210,25 +205,26 @@ export class FocusService {
       cursorFollow.isActive = true
     }
 
-    console.log('👁️ Cursor follow enabled for entity')
+    // If this is the pet entity, call pet's enable method
+    if (game.state.pet && game.state.pet.entity === entity) {
+      game.state.pet.enableCursorFollow()
+    }
   }
 
   // Disable cursor follow for entity
   private disableCursorFollow(entity: any) {
-    const cursorFollow = CursorFollowComponent.getMutableOrNull(entity)
-    if (cursorFollow && cursorFollow.isActive) {
-      // Reset rotation to base rotation
-      const entityTransform = Transform.getMutable(entity)
-      entityTransform.rotation = {
-        x: cursorFollow.baseRotation.x,
-        y: cursorFollow.baseRotation.y,
-        z: cursorFollow.baseRotation.z,
-        w: cursorFollow.baseRotation.w
-      }
-
-      cursorFollow.isActive = false
-      console.log('👁️ Cursor follow disabled - rotation reset')
+    // If this is the pet entity, call pet's disable method
+    if (game.state.pet && game.state.pet.entity === entity) {
+      game.state.pet.disableCursorFollow()
     }
+
+    // Update component state
+    const cursorFollow = CursorFollowComponent.getMutableOrNull(entity)
+    if (cursorFollow) {
+      cursorFollow.isActive = false
+    }
+
+    console.log('👁️ Cursor follow disabled')
   }
 
   // Notify listeners of focus changes

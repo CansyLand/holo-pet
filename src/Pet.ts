@@ -8,6 +8,8 @@ import { game, GameModule } from './Game'
 import { EntityNames } from '../assets/scene/entity-names'
 import { focus } from './services/Focus'
 import { CursorFollowComponent } from './components/CameraFocus'
+import { PrimaryPointerInfo, UiCanvasInformation, Transform } from '@dcl/sdk/ecs'
+import { Vector3, Quaternion } from '@dcl/sdk/math'
 
 export enum Species {
   // DOG = 'dog',
@@ -37,6 +39,9 @@ export enum TrustLevel {
 }
 
 export class Pet {
+  // Reference to the ECS entity (set by PetModule)
+  entity: Entity | null = null
+
   // All pet data in one place (no scattered ECS components)
   data = {
     // Identity
@@ -77,6 +82,13 @@ export class Pet {
       play: false,
       bath: false,
       bedtime: false
+    },
+
+    // Cursor follow config (for focus mode)
+    cursorFollow: {
+      isActive: false,
+      baseRotation: { x: 0, y: 0, z: 0, w: 1 },
+      maxTiltAngle: 15 // degrees
     }
   }
 
@@ -118,6 +130,7 @@ export class Pet {
     this.decayStats(dt)
     this.updateBehavior(dt)
     this.checkStateTransitions()
+    this.updateCursorFollow(dt)
   }
 
   // Stats decay over time (modified by personality)
@@ -255,6 +268,68 @@ export class Pet {
       this.changeState(PetState.SLEEPING, 20000) // Sleep for 20 seconds when exhausted
       console.log('Pet is very tired and fell asleep')
     }
+  }
+
+  // Cursor follow functionality (for focus mode)
+  enableCursorFollow() {
+    if (this.data.cursorFollow.isActive || !this.entity) return
+
+    // Capture current rotation as base
+    const currentTransform = Transform.get(this.entity)
+    this.data.cursorFollow.baseRotation = {
+      x: currentTransform.rotation.x,
+      y: currentTransform.rotation.y,
+      z: currentTransform.rotation.z,
+      w: currentTransform.rotation.w
+    }
+    this.data.cursorFollow.isActive = true
+    console.log('👁️ Cursor follow enabled for pet')
+  }
+
+  disableCursorFollow() {
+    if (!this.data.cursorFollow.isActive || !this.entity) return
+
+    // Reset rotation to base rotation
+    const petTransform = Transform.getMutable(this.entity)
+    petTransform.rotation = {
+      x: this.data.cursorFollow.baseRotation.x,
+      y: this.data.cursorFollow.baseRotation.y,
+      z: this.data.cursorFollow.baseRotation.z,
+      w: this.data.cursorFollow.baseRotation.w
+    }
+
+    this.data.cursorFollow.isActive = false
+    console.log('👁️ Cursor follow disabled for pet - rotation reset')
+  }
+
+  updateCursorFollow(dt: number) {
+    if (!this.data.cursorFollow.isActive || !this.entity) return
+
+    // Get cursor position as percentage of canvas
+    const pointerInfo = PrimaryPointerInfo.get(engine.RootEntity)
+    if (!pointerInfo?.screenCoordinates) return
+
+    const cursorPos = pointerInfo.screenCoordinates
+    const canvas = UiCanvasInformation.get(engine.RootEntity)
+    if (!canvas) return
+
+    const percentX = (cursorPos.x / canvas.width) * 100
+    const percentY = (cursorPos.y / canvas.height) * 100
+
+    // Normalize cursor to -1 to 1 range (center = 0)
+    const normalizedX = (percentX / 100 - 0.5) * 2 // -1 (left) to 1 (right)
+    const normalizedY = (percentY / 100 - 0.5) * 2 // -1 (top) to 1 (bottom)
+
+    // Get pet transform
+    const petTransform = Transform.getMutable(this.entity)
+
+    // Calculate target rotations based on cursor position (in degrees)
+    const targetRotY = -normalizedX * this.data.cursorFollow.maxTiltAngle
+    const targetRotX = -normalizedY * (this.data.cursorFollow.maxTiltAngle * 0.5) // Less vertical tilt
+
+    // Create target rotation by modifying the base rotation
+    const tiltRotation = Quaternion.fromEulerDegrees(targetRotX, targetRotY, 0)
+    petTransform.rotation = Quaternion.multiply(this.data.cursorFollow.baseRotation, tiltRotation)
   }
 
   // Pet care actions (called by game interactions)
@@ -437,16 +512,14 @@ export class PetModule implements GameModule {
       return
     }
 
+    // Set entity reference on the pet object
+    if (game.state.pet) {
+      game.state.pet.entity = this.petEntity
+    }
+
     // if (!MeshCollider.has(this.petEntity)) {
     //   MeshCollider.setSphere(this.petEntity, ColliderLayer.CL_POINTER)
     // }
-
-    // Add cursor follow component for focus mode
-    CursorFollowComponent.create(this.petEntity, {
-      isActive: false, // Will be activated when focused
-      baseRotation: { x: 0, y: 0, z: 0, w: 1 }, // Will be set when activated
-      maxTiltAngle: 45
-    })
 
     this.setupPointerEvents()
 
