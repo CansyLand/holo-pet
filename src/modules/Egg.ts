@@ -18,6 +18,7 @@ import { GameModule } from '../Game'
 import { Interactable, InteractionType } from '../components/Interaction'
 import { SceneElement, SceneType } from '../components/Scene'
 import { EntityNames } from '../../assets/scene/entity-names'
+import { pointer } from '../services/Pointer'
 
 export class EggModule implements GameModule {
   name = 'Egg'
@@ -32,6 +33,11 @@ export class EggModule implements GameModule {
   // Easy to extend with animations
   onClick() {
     console.log('🥚 Egg clicked - starting hatch sequence')
+
+    // Unlock pointer for UI interaction before showing naming modal
+    pointer.rememberPointerState() // Remember current state to restore later
+    pointer.unlockPointer() // Unlock so user can interact with naming UI
+
     this.startHatchingAnimation()
   }
 

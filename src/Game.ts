@@ -36,6 +36,7 @@ export interface Pet {
 
 // Import services and modules here (will be added as we create them)
 import { visibility } from './services/Visibility'
+import { pointer } from './services/Pointer'
 // import { InteractionManager } from './services/Interaction'
 // import { FocusService } from './services/Focus'
 // import { StateManager } from './services/State'
@@ -170,6 +171,9 @@ export class Game {
       showNamingUI((name: string) => {
         console.log(`🐾 Pet named: ${name}`)
         // TODO: Set pet name
+
+        // Restore pointer to previous state after naming is complete
+        pointer.restorePointerState()
       })
     })
 

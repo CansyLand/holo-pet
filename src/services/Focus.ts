@@ -1,6 +1,8 @@
 // EPIC: Pet Care Interactions - Petting Interaction Story (Camera Focus)
-// Centralized focus mechanics - camera movement, cursor locking/unlocking for any interactive entity.
-// Cursor/camera management service that any module can use.
+// Centralized focus mechanics - camera movement, pointer locking/unlocking for any interactive entity.
+// Pointer/camera management service that any module can use.
+
+import { pointer } from './Pointer'
 
 export interface FocusOptions {
   distance?: number
@@ -27,8 +29,8 @@ export class FocusService {
     // Set focus state
     this.currentFocus = entity
 
-    // Lock cursor (detach from player movement)
-    this.lockCursor()
+    // Lock pointer (detach from player movement)
+    this.lockPointer()
 
     // Move camera to focus position
     this.moveCameraToEntity(entity, options)
@@ -43,8 +45,8 @@ export class FocusService {
 
     console.log('🎥 Unfocusing current entity')
 
-    // Unlock cursor
-    this.unlockCursor()
+    // Unlock pointer
+    this.unlockPointer()
 
     // Restore camera to previous state
     this.restoreCamera()
@@ -70,18 +72,14 @@ export class FocusService {
     return this.currentFocus
   }
 
-  // Lock cursor (detach from player movement)
-  private lockCursor() {
-    // TODO: Use Decentraland PointerLock
-    // PointerLock.create(engine.CameraEntity, { isPointerLocked: true })
-    console.log('🔒 Cursor locked')
+  // Lock pointer (detach from player movement)
+  private lockPointer() {
+    pointer.lockPointer()
   }
 
-  // Unlock cursor (reattach to player movement)
-  private unlockCursor() {
-    // TODO: Use Decentraland PointerLock
-    // PointerLock.deleteFrom(engine.CameraEntity)
-    console.log('🔓 Cursor unlocked')
+  // Unlock pointer (reattach to player movement)
+  private unlockPointer() {
+    pointer.unlockPointer()
   }
 
   // Move camera to focus on entity
