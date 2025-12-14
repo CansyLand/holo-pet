@@ -2,7 +2,11 @@
 // Centralized focus mechanics - camera movement, pointer locking/unlocking for any interactive entity.
 // Pointer/camera management service that any module can use.
 
+import { engine, Transform, VirtualCamera, MainCamera, PointerLock } from '@dcl/sdk/ecs'
+import { Vector3, Quaternion } from '@dcl/sdk/math'
 import { pointer } from './Pointer'
+import { startFocusMonitoring, stopFocusMonitoring } from './FocusMonitor'
+import { CameraFocusComponent, CursorFollowComponent } from '../components/CameraFocus'
 
 export interface FocusOptions {
   distance?: number
@@ -13,7 +17,7 @@ export interface FocusOptions {
 
 export class FocusService {
   currentFocus: any = null // Currently focused entity
-  previousCameraState: any = null // To restore camera when unfocusing
+  virtualCameraEntity: any = null // Virtual camera entity for focus mode
 
   constructor() {
     console.log('🎥 Focus service initialized')
@@ -23,17 +27,29 @@ export class FocusService {
   focusOn(entity: any, options: FocusOptions = {}) {
     console.log(`🎥 Focusing on entity: ${entity}`)
 
-    // Store current camera state for restoration
-    // this.previousCameraState = getCurrentCameraState()
-
     // Set focus state
     this.currentFocus = entity
 
-    // Lock pointer (detach from player movement)
-    this.lockPointer()
+    // Create virtual camera for this focus session
+    this.virtualCameraEntity = this.createVirtualCamera(entity)
 
-    // Move camera to focus position
-    this.moveCameraToEntity(entity, options)
+    // Store original cursor state before unlocking
+    const originalCursorLocked = PointerLock.get(engine.CameraEntity).isPointerLocked
+
+    // Activate the virtual camera
+    this.activateVirtualCamera(this.virtualCameraEntity)
+
+    // Create camera focus component for monitoring system
+    CameraFocusComponent.createOrReplace(this.virtualCameraEntity, {
+      isCameraFocused: true,
+      originalCursorLocked: originalCursorLocked
+    })
+
+    // Enable cursor follow for the pet
+    this.enableCursorFollow(entity)
+
+    // Start monitoring for focus-breaking inputs
+    startFocusMonitoring()
 
     // Notify modules of focus change
     this.onFocusChanged(true, entity)
@@ -45,11 +61,35 @@ export class FocusService {
 
     console.log('🎥 Unfocusing current entity')
 
-    // Unlock pointer
-    this.unlockPointer()
+    // Stop monitoring for focus-breaking inputs
+    stopFocusMonitoring()
 
-    // Restore camera to previous state
-    this.restoreCamera()
+    // Find the currently active camera and restore cursor state (like old deactivatePetCamera)
+    if (this.virtualCameraEntity) {
+      const focusComponent = CameraFocusComponent.getMutable(this.virtualCameraEntity)
+      if (focusComponent.isCameraFocused) {
+        // Restore original cursor state
+        if (focusComponent.originalCursorLocked !== undefined) {
+          PointerLock.getMutable(engine.CameraEntity).isPointerLocked = focusComponent.originalCursorLocked
+          console.log(`🎥 Cursor restored to ${focusComponent.originalCursorLocked ? 'locked' : 'unlocked'}`)
+        }
+
+        // Mark camera as not focused
+        focusComponent.isCameraFocused = false
+      }
+    }
+
+    // Disable cursor follow
+    this.disableCursorFollow(this.currentFocus)
+
+    // Deactivate virtual camera
+    this.deactivateVirtualCamera()
+
+    // Clean up virtual camera entity
+    if (this.virtualCameraEntity) {
+      engine.removeEntity(this.virtualCameraEntity)
+      this.virtualCameraEntity = null
+    }
 
     // Clear focus state
     const previousFocus = this.currentFocus
@@ -82,23 +122,113 @@ export class FocusService {
     pointer.unlockPointer()
   }
 
-  // Move camera to focus on entity
-  private moveCameraToEntity(entity: any, options: FocusOptions) {
-    const distance = options.distance || 3
-    const height = options.height || 2
-    const smooth = options.smooth !== false
-    const duration = options.duration || 1000
+  // Create virtual camera for focusing on entity
+  private createVirtualCamera(entity: any): any {
+    const cameraEntity = engine.addEntity()
 
-    // TODO: Calculate camera position relative to entity
-    // TODO: Smooth camera movement using tweens
+    // Position camera to look at the entity from a good angle
+    const entityPos = Transform.get(entity).position
+    const cameraPos = Vector3.add(entityPos, Vector3.create(0, 2, 3)) // Behind and above the entity
 
-    console.log(`📷 Moving camera to entity (distance: ${distance}, height: ${height})`)
+    Transform.create(cameraEntity, {
+      position: cameraPos
+    })
+
+    VirtualCamera.create(cameraEntity, {
+      lookAtEntity: entity, // Make camera look at the entity
+      defaultTransition: { transitionMode: VirtualCamera.Transition.Time(1) } // Smooth transition
+    })
+
+    return cameraEntity
   }
 
-  // Restore camera to previous state
-  private restoreCamera() {
-    // TODO: Restore camera position and settings
-    console.log('📷 Camera restored')
+  // Activate virtual camera
+  private activateVirtualCamera(cameraEntity: any) {
+    // Update camera position dynamically based on entity's facing direction
+    this.updateCameraPosition(cameraEntity, this.currentFocus)
+
+    // Activate virtual camera
+    MainCamera.createOrReplace(engine.CameraEntity, {
+      virtualCameraEntity: cameraEntity
+    })
+
+    // Unlock cursor when focused
+    PointerLock.getMutable(engine.CameraEntity).isPointerLocked = false
+
+    console.log(`📷 Virtual camera activated - cursor unlocked`)
+  }
+
+  // Deactivate virtual camera
+  private deactivateVirtualCamera() {
+    const mainCamera = MainCamera.getMutableOrNull(engine.CameraEntity)
+    if (mainCamera) {
+      mainCamera.virtualCameraEntity = undefined
+    }
+    console.log('📷 Virtual camera deactivated')
+  }
+
+  // Update camera position based on entity's facing direction
+  private updateCameraPosition(cameraEntity: any, entity: any) {
+    const entityTransform = Transform.get(entity)
+    const entityPos = entityTransform.position
+    const entityRotation = entityTransform.rotation
+
+    // Calculate forward direction from entity's rotation
+    const forward = Vector3.rotate(Vector3.Forward(), entityRotation)
+
+    // Position camera 2m in front of entity + height offset
+    const cameraPos = Vector3.add(
+      Vector3.create(entityPos.x, entityPos.y + 4, entityPos.z - 4), // base offset
+      Vector3.add(
+        Vector3.scale(forward, 2), // 2m in front
+        Vector3.create(0, 4.5, 0) // height offset for good viewing angle
+      )
+    )
+
+    // Update camera transform
+    Transform.getMutable(cameraEntity).position = cameraPos
+  }
+
+  // Enable cursor follow for entity
+  private enableCursorFollow(entity: any) {
+    // Create cursor follow component if it doesn't exist
+    if (!CursorFollowComponent.has(entity)) {
+      const entityTransform = Transform.get(entity)
+      CursorFollowComponent.create(entity, {
+        isActive: true,
+        baseRotation: {
+          x: entityTransform.rotation.x,
+          y: entityTransform.rotation.y,
+          z: entityTransform.rotation.z,
+          w: entityTransform.rotation.w
+        },
+        maxTiltAngle: 45 // Max 45 degrees tilt
+      })
+    } else {
+      // Update existing component
+      const cursorFollow = CursorFollowComponent.getMutable(entity)
+      cursorFollow.isActive = true
+    }
+
+    console.log('👁️ Cursor follow enabled for entity')
+  }
+
+  // Disable cursor follow for entity
+  private disableCursorFollow(entity: any) {
+    const cursorFollow = CursorFollowComponent.getMutableOrNull(entity)
+    if (cursorFollow && cursorFollow.isActive) {
+      // Reset rotation to base rotation
+      const entityTransform = Transform.getMutable(entity)
+      entityTransform.rotation = {
+        x: cursorFollow.baseRotation.x,
+        y: cursorFollow.baseRotation.y,
+        z: cursorFollow.baseRotation.z,
+        w: cursorFollow.baseRotation.w
+      }
+
+      cursorFollow.isActive = false
+      console.log('👁️ Cursor follow disabled - rotation reset')
+    }
   }
 
   // Notify listeners of focus changes

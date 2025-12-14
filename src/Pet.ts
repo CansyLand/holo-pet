@@ -6,7 +6,8 @@
 import { Entity, engine, MeshCollider, ColliderLayer, pointerEventsSystem, InputAction } from '@dcl/sdk/ecs'
 import { game, GameModule } from './Game'
 import { EntityNames } from '../assets/scene/entity-names'
-import { menuUI } from './ui/MenuUI'
+import { focus } from './services/Focus'
+import { CursorFollowComponent } from './components/CameraFocus'
 
 export enum Species {
   // DOG = 'dog',
@@ -394,7 +395,7 @@ export class Pet {
   }
 
   // Record player interaction
-  private recordInteraction() {
+  recordInteraction() {
     this.data.lastVisit = Date.now()
   }
 
@@ -440,12 +441,30 @@ export class PetModule implements GameModule {
     //   MeshCollider.setSphere(this.petEntity, ColliderLayer.CL_POINTER)
     // }
 
-    pointerEventsSystem.onPointerDown({ entity: this.petEntity, opts: { hoverText: 'Pet companion 🐾' } }, () => {
-      console.log('🐾 Tiger clicked!')
-      menuUI.show(this.petEntity!)
+    // Add cursor follow component for focus mode
+    CursorFollowComponent.create(this.petEntity, {
+      isActive: false, // Will be activated when focused
+      baseRotation: { x: 0, y: 0, z: 0, w: 1 }, // Will be set when activated
+      maxTiltAngle: 45
     })
 
-    console.log('🐾 Tiger clickable!')
+    this.setupPointerEvents()
+
+    console.log('🐾 Tiger set up!')
+  }
+
+  setupPointerEvents() {
+    if (!this.petEntity) {
+      console.error('🐾 Cannot set up pointer events - pet entity not found!')
+      return
+    }
+
+    pointerEventsSystem.onPointerDown({ entity: this.petEntity, opts: { hoverText: 'Pet companion 🐾' } }, () => {
+      console.log('🐾 Tiger clicked!')
+      focus.focusOn(this.petEntity!)
+    })
+
+    console.log('🐾 Pet pointer events set up')
   }
 
   update(dt: number) {

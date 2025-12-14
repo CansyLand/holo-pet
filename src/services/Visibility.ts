@@ -150,17 +150,18 @@ export class VisibilityManager {
       meshCollider.collisionMask = interactive ? ColliderLayer.CL_POINTER : ColliderLayer.CL_NONE
     }
 
-    // 3. Manage PointerEvents
-    if (!interactive && PointerEvents.has(entity)) {
-      // Remove PointerEvents if shouldn't be interactive
-      PointerEvents.deleteFrom(entity)
-      console.log(`Removed PointerEvents from entity ${entity}`)
-    } else if (interactive && !PointerEvents.has(entity)) {
-      // Recreate PointerEvents if should be interactive but they're missing
-      const interactable = Interactable.getOrNull(entity)
-      if (interactable) {
-        this.recreatePointerEvents(entity, interactable)
-      }
+    // 3. Manage PointerEvents - DON'T REMOVE THEM!
+    // Pointer events are set up once by modules and should persist.
+    // Collision masks control interactivity, not presence of events.
+    // if (!interactive && PointerEvents.has(entity)) {
+    //   PointerEvents.deleteFrom(entity)
+    //   console.log(`Removed PointerEvents from entity ${entity}`)
+    // }
+
+    // Recreate PointerEvents if should be interactive but they're missing
+    const interactable = Interactable.getOrNull(entity)
+    if (interactable) {
+      this.recreatePointerEvents(entity, interactable)
     }
 
     // Check for player collision after making entity visible

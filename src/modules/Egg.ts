@@ -15,7 +15,6 @@ import {
 } from '@dcl/sdk/ecs'
 import { game } from '../Game'
 import { GameModule } from '../Game'
-import { Interactable, InteractionType } from '../components/Interaction'
 import { SceneElement, SceneType } from '../components/Scene'
 import { EntityNames } from '../../assets/scene/entity-names'
 import { pointer } from '../services/Pointer'
@@ -27,7 +26,7 @@ export class EggModule implements GameModule {
   init() {
     console.log('🥚 Egg module initialized')
     this.setupEggEntity()
-    this.setupPointerEventHandling()
+    this.setupPointerEvents()
   }
 
   // Easy to extend with animations
@@ -84,25 +83,17 @@ export class EggModule implements GameModule {
       return
     }
 
-    Interactable.create(this.eggEntity, {
-      type: InteractionType.HATCH
-    })
-
     SceneElement.create(this.eggEntity, { sceneType: SceneType.EGG })
 
     console.log('🥚 Egg entity configured')
   }
 
-  private setupPointerEventHandling() {
-    // Simple direct click handling for the egg
-    console.log('🥚 Pointer event handling initialized - click the egg to hatch!')
-
+  setupPointerEvents() {
     if (!this.eggEntity) {
       console.error('🥚 Cannot set up pointer events - egg entity not found!')
       return
     }
 
-    // Register direct click callback for the egg
     pointerEventsSystem.onPointerDown(
       {
         entity: this.eggEntity,
@@ -114,7 +105,7 @@ export class EggModule implements GameModule {
       }
     )
 
-    console.log('🥚 Egg is ready for clicking - click it to hatch!')
+    console.log('🥚 Egg pointer events set up')
   }
 
   update(dt: number) {

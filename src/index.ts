@@ -23,6 +23,7 @@ import { QuestUI } from './ui/Quest'
 
 // Services
 import { visibility } from './services/Visibility'
+import { cursorFollowSystem } from './systems/CursorFollowSystem'
 
 // Systems (legacy systems we'll keep for now)
 
@@ -80,6 +81,9 @@ export function main() {
 
   // 2. Initialize New Modular Game
   initializeGame()
+
+  // 2.5. Add cursor follow system
+  engine.addSystem(cursorFollowSystem)
 
   // 3. Setup ReactECS UI
   ReactEcsRenderer.setUiRenderer(CombinedUI)
