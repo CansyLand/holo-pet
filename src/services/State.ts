@@ -148,4 +148,3 @@ export let stateManager: StateManager
 export function initializeStateManager(initialState: GameState) {
   stateManager = new StateManager(initialState)
 }
-

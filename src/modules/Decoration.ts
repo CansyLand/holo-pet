@@ -77,4 +77,3 @@ export class DecorationModule implements GameModule {
     console.log('🎄 Decoration module cleanup')
   }
 }
-

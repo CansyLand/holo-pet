@@ -2,6 +2,7 @@
 // Basic feeding mechanics - hunger modification and visual feedback.
 // Ready for expansion: multiple food types, feeding animations, pet preference system.
 
+import { engine } from '@dcl/sdk/ecs'
 import { game } from '../Game'
 import { GameModule } from '../Game'
 
@@ -11,8 +12,7 @@ export class FoodBowlModule implements GameModule {
 
   init() {
     console.log('🍽️ Food bowl module initialized')
-    // TODO: Find food bowl entity by name
-    // this.bowlEntity = engine.getEntityOrNullByName('Food_Bowl')
+    this.bowlEntity = engine.getEntityOrNullByName('Food_Bowl')
     this.setupInteractions()
   }
 
@@ -73,4 +73,3 @@ export class FoodBowlModule implements GameModule {
     console.log('🍽️ Food bowl module cleanup')
   }
 }
-

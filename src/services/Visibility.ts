@@ -3,25 +3,48 @@
 // No more scattered visibility logic - all state-based visibility rules live here.
 // Modules can call visibility.showPetDecorations() without knowing implementation details.
 
+import {
+  engine,
+  Entity,
+  VisibilityComponent,
+  GltfContainer,
+  MeshCollider,
+  PointerEvents,
+  ColliderLayer
+} from '@dcl/sdk/ecs'
 import { GamePhase } from '../Game'
-
-// Forward declarations for Decentraland types (will be imported when needed)
-// type Entity = any
+import { Interactable, InteractionType } from '../components/Interaction'
+import { EntityNames } from '../../assets/scene/entity-names'
 
 export class VisibilityManager {
   // Entity groups - single source of truth for what entities belong together
   private entityGroups = {
     // Always visible entities
-    always: ['Console', 'Button_1', 'Button_2', 'Button_3'],
+    always: [EntityNames.Console, EntityNames.Button_1, EntityNames.Button_2, EntityNames.Button_3],
 
     // Egg phase entities
-    egg: ['Egg'],
+    egg: [EntityNames.Egg],
 
     // Pet phase entities
-    pet: ['Tiger', 'Bed', 'Bath_Tub', 'Decoration', 'Food_Bowl', 'Ball'],
+    pet: [
+      EntityNames.Tiger,
+      EntityNames.Bed,
+      EntityNames.Bath_Tub,
+      EntityNames.Decoration,
+      EntityNames.Food_Bowl,
+      EntityNames.Ball
+    ],
 
     // Dynamic entities (poops managed by Poop module)
-    poops: ['Poop_1', 'Poop_2', 'Poop_3', 'Poop_4', 'Poop_5', 'Poop_6', 'Poop_7']
+    poops: [
+      EntityNames.Poop_1,
+      EntityNames.Poop_2,
+      EntityNames.Poop_3,
+      EntityNames.Poop_4,
+      EntityNames.Poop_5,
+      EntityNames.Poop_6,
+      EntityNames.Poop_7
+    ]
   }
 
   constructor() {
@@ -42,22 +65,100 @@ export class VisibilityManager {
   }
 
   // Utility functions modules can use
-  showEntity(entity: any) {
-    // TODO: Use Decentraland VisibilityComponent
-    // const visibility = VisibilityComponent.getMutableOrNull(entity)
-    // if (visibility) {
-    //   visibility.visible = true
-    // }
-    console.log(`👁️ Showing entity: ${entity}`)
+  showEntity(entity: Entity) {
+    this.setEntityInteractive(entity, true, true)
   }
 
-  hideEntity(entity: any) {
-    // TODO: Use Decentraland VisibilityComponent
-    // const visibility = VisibilityComponent.getMutableOrNull(entity)
-    // if (visibility) {
-    //   visibility.visible = false
-    // }
-    console.log(`🙈 Hiding entity: ${entity}`)
+  hideEntity(entity: Entity) {
+    this.setEntityInteractive(entity, false, false)
+  }
+
+  // Core visibility function - replaces the old setEntityInteractive from Environment.ts
+  private setEntityInteractive(entity: Entity, visible: boolean, interactive: boolean = visible) {
+    // 1. Set visibility
+    const visibility = VisibilityComponent.getMutableOrNull(entity)
+    if (visibility) {
+      visibility.visible = visible
+    }
+
+    // 2. Configure collision masks for both GLTF and MeshCollider
+    const gltfContainer = GltfContainer.getMutableOrNull(entity)
+    const meshCollider = MeshCollider.getMutableOrNull(entity)
+
+    const visibleCollisionMask = interactive
+      ? ColliderLayer.CL_POINTER | ColliderLayer.CL_PHYSICS
+      : ColliderLayer.CL_NONE
+    const invisibleCollisionMask = ColliderLayer.CL_NONE // Always disable collision when invisible
+
+    if (gltfContainer) {
+      gltfContainer.visibleMeshesCollisionMask = visible ? visibleCollisionMask : invisibleCollisionMask
+      // For invisible meshes, ALWAYS disable collision to prevent cursor interaction
+      if ('invisibleMeshesCollisionMask' in gltfContainer) {
+        ;(gltfContainer as any).invisibleMeshesCollisionMask = invisibleCollisionMask
+      }
+    }
+
+    if (meshCollider) {
+      meshCollider.collisionMask = interactive ? ColliderLayer.CL_POINTER : ColliderLayer.CL_NONE
+    }
+
+    // 3. Manage PointerEvents
+    if (!interactive && PointerEvents.has(entity)) {
+      // Remove PointerEvents if shouldn't be interactive
+      PointerEvents.deleteFrom(entity)
+      console.log(`Removed PointerEvents from entity ${entity}`)
+    } else if (interactive && !PointerEvents.has(entity)) {
+      // Recreate PointerEvents if should be interactive but they're missing
+      const interactable = Interactable.getOrNull(entity)
+      if (interactable) {
+        this.recreatePointerEvents(entity, interactable)
+      }
+    }
+
+    console.log(`Entity ${entity}: visible=${visible}, interactive=${interactive}`)
+  }
+
+  private recreatePointerEvents(entity: Entity, interactable: any) {
+    // Recreate PointerEvents based on interaction type
+    let hoverText = 'Interact'
+    switch (interactable.type) {
+      case InteractionType.HATCH:
+        hoverText = 'Hatch Egg'
+        break
+      case InteractionType.PLAY:
+        hoverText = 'Play with Ball'
+        break
+      case InteractionType.PET:
+        hoverText = 'Pet Pet'
+        break
+      case InteractionType.FEED:
+        hoverText = 'Feed Pet'
+        break
+      case InteractionType.SLEEP:
+        hoverText = 'Put to Bed'
+        break
+      case InteractionType.BATHE:
+        hoverText = 'Bathe Pet'
+        break
+      case InteractionType.COLLECT_POOP:
+        hoverText = 'Collect'
+        break
+      default:
+        hoverText = 'Interact'
+    }
+
+    PointerEvents.create(entity, {
+      pointerEvents: [
+        {
+          eventType: 1, // PET_DOWN
+          eventInfo: {
+            button: 0, // IA_POINTER
+            hoverText: hoverText
+          }
+        }
+      ]
+    })
+    console.log(`Recreated PointerEvents for entity ${entity} (${interactable.type})`)
   }
 
   // Group visibility functions
@@ -65,8 +166,10 @@ export class VisibilityManager {
     const entities = this.entityGroups[groupName as keyof typeof this.entityGroups]
     if (entities) {
       entities.forEach((entityName) => {
-        // TODO: Get entity by name and show it
-        console.log(`👁️ Showing group ${groupName}: ${entityName}`)
+        const entity = engine.getEntityOrNullByName(entityName as EntityNames)
+        if (entity) {
+          this.showEntity(entity)
+        }
       })
     }
   }
@@ -75,8 +178,10 @@ export class VisibilityManager {
     const entities = this.entityGroups[groupName as keyof typeof this.entityGroups]
     if (entities) {
       entities.forEach((entityName) => {
-        // TODO: Get entity by name and hide it
-        console.log(`🙈 Hiding group ${groupName}: ${entityName}`)
+        const entity = engine.getEntityOrNullByName(entityName as EntityNames)
+        if (entity) {
+          this.hideEntity(entity)
+        }
       })
     }
   }
@@ -161,4 +266,3 @@ export class VisibilityManager {
 
 // Global instance
 export const visibility = new VisibilityManager()
-

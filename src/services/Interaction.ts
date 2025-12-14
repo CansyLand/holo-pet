@@ -46,7 +46,7 @@ export class InteractionManager {
         }
       })
     } else {
-      console.warn(`🖱️ No handlers registered for ${interactionType}`)
+      console.log(`🖱️ No handlers registered for ${interactionType}`)
     }
   }
 
@@ -85,4 +85,3 @@ export class InteractionManager {
 
 // Global instance
 export const interaction = new InteractionManager()
-

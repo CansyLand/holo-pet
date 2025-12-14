@@ -72,4 +72,3 @@ export class BathModule implements GameModule {
     console.log('🛁 Bath module cleanup')
   }
 }
-

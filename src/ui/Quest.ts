@@ -115,3 +115,7 @@ export class QuestUI {
     const completed = this.getCompletionPercentage()
     const nextQuest = this.getNextQuest()
     return `${completed}% complete${nextQuest ? ` - Next: ${nextQuest.name}` : ' - All done!'}`
+  }
+}
+
+export const questUI = new QuestUI()

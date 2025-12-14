@@ -116,4 +116,3 @@ export class HeartParticleModule implements GameModule {
     this.activeParticles = []
   }
 }
-

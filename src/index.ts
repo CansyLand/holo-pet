@@ -1,10 +1,12 @@
-// 🏗️ HOLO PET - MODULAR ARCHITECTURE SETUP COMPLETE
-// This is the main entry point for the refactored game.
-// All modules are now pluggable and the architecture is ready for Phase 2 implementation.
+// 🚀 HOLO PET - MAIN ENTRY POINT
+// This file contains both the modular architecture exports and the main application entry point.
+// All modules are pluggable and the architecture is ready for Phase 2 implementation.
 
+import { engine, PointerLock } from '@dcl/sdk/ecs'
+import { ReactEcsRenderer } from '@dcl/sdk/react-ecs'
 import { game } from './Game'
 import { EggModule } from './modules/Egg'
-import { NeedsModule } from './modules/Needs'
+import { NeedsBarsModule } from './modules/NeedsBars'
 import { FoodBowlModule } from './modules/FoodBowl'
 import { BathModule } from './modules/Bath'
 import { BedModule } from './modules/Bed'
@@ -13,13 +15,29 @@ import { DecorationModule } from './modules/Decoration'
 import { PoopModule } from './modules/Poop'
 import { HeartParticleModule } from './modules/HeartParticle'
 
+// UI Components (will be implemented)
+import { DebugUI } from './ui/DebugUI'
+import { NamingUI } from './ui/Naming'
+import { questUI } from './ui/Quest'
+
+// Systems (legacy systems we'll keep for now)
+import { inputSystemCallback } from '../src_OLD/systems/Input'
+import { timeSystem } from '../src_OLD/systems/Time'
+import { renderSystem } from '../src_OLD/systems/Render'
+import { movementSystem } from '../src_OLD/systems/Movement'
+
+// Combined UI renderer
+function CombinedUI() {
+  return [DebugUI(), NamingUI({ isVisible: false, onNameSubmit: () => {} }), questUI]
+}
+
 // Register all modules with the game
 export function initializeGame() {
   console.log('🎮 Initializing Holo Pet - Modular Architecture')
 
   // Register pluggable modules
   game.registerModule(new EggModule())
-  game.registerModule(new NeedsModule())
+  game.registerModule(new NeedsBarsModule())
   game.registerModule(new FoodBowlModule())
   game.registerModule(new BathModule())
   game.registerModule(new BedModule())
@@ -36,9 +54,31 @@ export function initializeGame() {
   console.log('🎯 Ready for Phase 2: Module Implementation')
 }
 
-// Export everything for use in main game file
+// Main application entry point (called by Decentraland)
+export function main() {
+  // 1. Setup Core Systems
+  engine.addSystem(inputSystemCallback)
+  engine.addSystem(timeSystem)
+  engine.addSystem(renderSystem)
+  engine.addSystem(movementSystem)
+
+  // 2. Initialize New Modular Game
+  initializeGame()
+
+  // 3. Setup ReactECS UI
+  ReactEcsRenderer.setUiRenderer(CombinedUI)
+
+  // 4. Setup Cursor State
+  if (!PointerLock.getOrNull(engine.CameraEntity)) {
+    PointerLock.create(engine.CameraEntity, { isPointerLocked: true })
+  }
+
+  console.log('🎮 Holo Pet initialized with new modular architecture!')
+}
+
+// Export everything for use in other parts of the game
 export * from './Game'
-export * from './Pet'
+export { Pet } from './Pet'
 export * from './services/Visibility'
 export * from './services/Interaction'
 export * from './services/Focus'

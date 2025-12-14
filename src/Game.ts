@@ -2,19 +2,10 @@
 // This is the centerpiece of the Holo Pet game. It knows everything about the current game state
 // and coordinates all the pluggable modules. Modules read game.state to know what to do.
 
-export enum GamePhase {
-  EGG = 'egg',
-  HATCHING = 'hatching',
-  PET = 'pet'
-}
+import { engine, Entity } from '@dcl/sdk/ecs'
+import { GameStateComponent, GamePhase, Theme } from './components/GameState'
 
-// Themes are cosmetic variations of the PET scene. They change colors and add decorations but don't affect gameplay.
-// Will be implemented later. For now only default theme is available.
-export enum Theme {
-  DEFAULT = 'default',
-  THEME_1 = 'theme_1',
-  THEME_2 = 'theme_2'
-}
+export { GamePhase, Theme }
 
 export interface GameState {
   phase: GamePhase
@@ -32,7 +23,15 @@ export interface GameModule {
 
 // Forward declaration for Pet (will be defined in Pet.ts)
 export interface Pet {
-  // This will be filled in when we create Pet.ts
+  data: any // Will be properly typed when Pet.ts is complete
+  update(dt: number): void
+  feed(): void
+  pet(): void
+  play(): void
+  bath(): void
+  sleep(): void
+  wakeUp(): void
+  recordInteraction(): void
 }
 
 // Import services and modules here (will be added as we create them)
@@ -42,6 +41,9 @@ export interface Pet {
 // import { StateManager } from './services/State'
 
 export class Game {
+  // Game entity that holds the global game state
+  gameEntity: Entity
+
   // Current state - modules read this
   state: GameState = {
     phase: GamePhase.EGG,
@@ -52,18 +54,16 @@ export class Game {
   // Modules register themselves
   modules: GameModule[] = []
 
-  // Services (will be initialized when created)
-  // visibility: VisibilityManager
-  // interaction: InteractionManager
-  // focus: FocusService
-  // stateManager: StateManager
-
   constructor() {
-    // Initialize services when they exist
-    // this.visibility = new VisibilityManager()
-    // this.interaction = new InteractionManager()
-    // this.focus = new FocusService()
-    // this.stateManager = new StateManager()
+    // Create the game entity that holds global state
+    this.gameEntity = engine.addEntity()
+    GameStateComponent.create(this.gameEntity, {
+      phase: GamePhase.EGG,
+      activePetEntity: undefined,
+      theme: Theme.DEFAULT
+    })
+
+    console.log('🎮 Game entity created with initial state')
   }
 
   // Register a module with the game
@@ -93,8 +93,22 @@ export class Game {
     const oldState = { ...this.state }
     this.state = { ...this.state, ...newState }
 
+    // Update the ECS component
+    const gameStateComp = GameStateComponent.getMutable(this.gameEntity)
+    gameStateComp.phase = this.state.phase
+    gameStateComp.theme = this.state.theme
+    if (this.state.pet) {
+      // TODO: Set activePetEntity when we have pet entities
+      // gameStateComp.activePetEntity = this.state.pet.entity
+    }
+
     // Notify modules of state change
-    this.onStateChange(newState as GameState, oldState)
+    this.notifyStateChange(newState as GameState, oldState)
+  }
+
+  private notifyStateChange(newState: GameState, oldState: GameState) {
+    // TODO: Notify modules that care about state changes
+    console.log(`🔄 Game state changed: ${oldState.phase} → ${newState.phase}`)
   }
 
   // Module coordination - called every frame
@@ -125,43 +139,51 @@ export class Game {
   hatchEgg() {
     if (this.state.phase !== GamePhase.EGG) return
 
-    console.log('Egg hatching!')
+    console.log('🥚 Egg hatching! Creating pet...')
 
     // Set hatching phase briefly for animations
     this.setState({ phase: GamePhase.HATCHING })
 
-    // TODO: Play hatching animations
+    // TODO: Play hatching animations using tweens
+    // The egg module should handle this
 
-    // After animation, create pet and switch to pet phase
-    // For tween animation check out the file dclcontext/Entity-Animation.md
-    // I think we need a tewwn animation sequence for the egg
-    // But alos this shoudl be handled in the egg file as egg stuff belogs into eg file
+    // For now, immediately switch to pet phase (animations can be added later)
+    // TODO: Create pet using pet factory
+    // const pet = createPet(Species.TIGER)
+    // this.state.pet = pet
+
+    this.setState({
+      phase: GamePhase.PET
+      // pet: pet
+    })
+
+    console.log('🐾 Pet hatched successfully!')
   }
 
   // Handle pet care interactions
   feedPet() {
     if (!this.state.pet) return
-    // TODO: this.state.pet.feed()
+    this.state.pet.feed()
   }
 
   petPet() {
     if (!this.state.pet) return
-    // TODO: this.state.pet.pet()
+    this.state.pet.pet()
   }
 
   playWithPet() {
     if (!this.state.pet) return
-    // TODO: this.state.pet.play()
+    this.state.pet.play()
   }
 
   bathePet() {
     if (!this.state.pet) return
-    // TODO: this.state.pet.bath()
+    this.state.pet.bath()
   }
 
   putPetToSleep() {
     if (!this.state.pet) return
-    // TODO: this.state.pet.sleep()
+    this.state.pet.sleep()
   }
 
   // Cleanup when game ends or resets

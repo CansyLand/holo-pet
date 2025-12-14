@@ -73,8 +73,10 @@ export class BedModule implements GameModule {
   private wakePetUp() {
     // TODO: Play wake up animation
     // TODO: Remove ZZZ particles
-    game.state.pet.wakeUp()
-    console.log('🌅 Pet woke up refreshed')
+    if (game.state.pet) {
+      game.state.pet.wakeUp()
+      console.log('🌅 Pet woke up refreshed')
+    }
   }
 
   // Ready for expansion: sleep cycle simulation
@@ -106,4 +108,3 @@ export class BedModule implements GameModule {
     console.log('🛏️ Bed module cleanup')
   }
 }
-

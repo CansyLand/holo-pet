@@ -4,6 +4,9 @@
 // This replaces PetComponent, PersonalityComponent, BondComponent, HygieneComponent, etc.
 
 export enum Species {
+  // DOG = 'dog',
+  // CAT = 'cat',
+  // DRAGON = 'dragon',
   TIGER = 'tiger' // For now only tiger is supported
 }
 
@@ -386,7 +389,7 @@ export class Pet {
   }
 
   // Record player interaction
-  private recordInteraction() {
+  recordInteraction() {
     this.data.lastVisit = Date.now()
   }
 
