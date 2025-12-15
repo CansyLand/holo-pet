@@ -159,10 +159,10 @@ export class VisibilityManager {
     // }
 
     // Recreate PointerEvents if should be interactive but they're missing
-    const interactable = Interactable.getOrNull(entity)
-    if (interactable) {
-      this.recreatePointerEvents(entity, interactable)
-    }
+    // const interactable = Interactable.getOrNull(entity)
+    // if (interactable) {
+    //   this.recreatePointerEvents(entity, interactable)
+    // }
 
     // Check for player collision after making entity visible
     if (visible) {
@@ -172,48 +172,48 @@ export class VisibilityManager {
     console.log(`Entity ${entity}: visible=${visible}, interactive=${interactive}`)
   }
 
-  private recreatePointerEvents(entity: Entity, interactable: any) {
-    // Recreate PointerEvents based on interaction type
-    let hoverText = 'Interact'
-    switch (interactable.type) {
-      case InteractionType.HATCH:
-        hoverText = 'Hatch Egg'
-        break
-      case InteractionType.PLAY:
-        hoverText = 'Play with Ball'
-        break
-      case InteractionType.PET:
-        hoverText = 'Pet Pet'
-        break
-      case InteractionType.FEED:
-        hoverText = 'Feed Pet'
-        break
-      case InteractionType.SLEEP:
-        hoverText = 'Put to Bed'
-        break
-      case InteractionType.BATHE:
-        hoverText = 'Bathe Pet'
-        break
-      case InteractionType.COLLECT_POOP:
-        hoverText = 'Collect'
-        break
-      default:
-        hoverText = 'Interact'
-    }
+  // private recreatePointerEvents(entity: Entity, interactable: any) {
+  //   // Recreate PointerEvents based on interaction type
+  //   let hoverText = 'Interact'
+  //   switch (interactable.type) {
+  //     case InteractionType.HATCH:
+  //       hoverText = 'Hatch Egg'
+  //       break
+  //     case InteractionType.PLAY:
+  //       hoverText = 'Play with Ball'
+  //       break
+  //     case InteractionType.PET:
+  //       hoverText = 'Pet Pet'
+  //       break
+  //     case InteractionType.FEED:
+  //       hoverText = 'Feed Pet'
+  //       break
+  //     case InteractionType.SLEEP:
+  //       hoverText = 'Put to Bed'
+  //       break
+  //     case InteractionType.BATHE:
+  //       hoverText = 'Bathe Pet'
+  //       break
+  //     case InteractionType.COLLECT_POOP:
+  //       hoverText = 'Collect'
+  //       break
+  //     default:
+  //       hoverText = 'Interact'
+  //   }
 
-    PointerEvents.create(entity, {
-      pointerEvents: [
-        {
-          eventType: 1, // PET_DOWN
-          eventInfo: {
-            button: 0, // IA_POINTER
-            hoverText: hoverText
-          }
-        }
-      ]
-    })
-    console.log(`Recreated PointerEvents for entity ${entity} (${interactable.type})`)
-  }
+  //   PointerEvents.create(entity, {
+  //     pointerEvents: [
+  //       {
+  //         eventType: 1, // PET_DOWN
+  //         eventInfo: {
+  //           button: 0, // IA_POINTER
+  //           hoverText: hoverText
+  //         }
+  //       }
+  //     ]
+  //   })
+  //   console.log(`Recreated PointerEvents for entity ${entity} (${interactable.type})`)
+  // }
 
   // Group visibility functions
   showGroup(groupName: string) {

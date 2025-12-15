@@ -545,10 +545,13 @@ export class PetModule implements GameModule {
       return
     }
 
-    pointerEventsSystem.onPointerDown({ entity: this.petEntity, opts: { hoverText: 'Pet companion 🐾' } }, () => {
-      console.log('🐾 Tiger clicked!')
-      focus.focusOn(this.petEntity!)
-    })
+    pointerEventsSystem.onPointerDown(
+      { entity: this.petEntity, opts: { button: InputAction.IA_POINTER, hoverText: 'Pet companion 🐾' } },
+      () => {
+        console.log('🐾 Tiger clicked!')
+        focus.focusOn(this.petEntity!)
+      }
+    )
 
     console.log('🐾 Pet pointer events set up')
   }
