@@ -14,6 +14,7 @@ import {
   PointerEventType
 } from '@dcl/sdk/ecs'
 import { Vector3, Quaternion } from '@dcl/sdk/math'
+import { movePlayerTo } from '~system/RestrictedActions'
 import { pointer } from './Pointer'
 // import { CameraFocusComponent, CursorFollowComponent } from '../components/CameraFocus'
 import { game } from '../Game'
@@ -66,6 +67,9 @@ export class CameraFocusService {
   focusOn(entity: any, options: FocusOptions = {}) {
     console.log(`🎥 Focusing on entity: ${entity}`)
 
+    // Move player closer to pet (4m away)
+    this.movePlayerCloserToEntity(entity)
+
     // Set focus state
     this.currentFocus = entity
 
@@ -99,6 +103,9 @@ export class CameraFocusService {
     if (!this.currentFocus) return
 
     console.log('🎥 Unfocusing current entity')
+
+    // Exit bath mode if active (camera unfocus = bath exit)
+    game.state.pet?.exitBath()
 
     // Stop monitoring for focus-breaking inputs
     this.stopFocusMonitoring()
@@ -136,6 +143,35 @@ export class CameraFocusService {
 
     // Notify modules of focus change
     this.onFocusChanged(false, previousFocus)
+  }
+
+  // Move player to 4m away from entity
+  private movePlayerCloserToEntity(entity: any) {
+    try {
+      const entityTransform = Transform.get(entity)
+      const entityPos = entityTransform.position
+      const playerTransform = Transform.get(engine.PlayerEntity)
+      const playerPos = playerTransform.position
+
+      // Calculate direction from entity to player
+      const direction = Vector3.normalize(Vector3.subtract(playerPos, entityPos))
+
+      // Calculate target position: 4m away from entity in the direction of player
+      const targetDistance = 4.0
+      const targetPos = Vector3.add(entityPos, Vector3.scale(direction, targetDistance))
+
+      // Keep player's Y position (don't change height)
+      targetPos.y = playerPos.y
+
+      // Move player to target position
+      movePlayerTo({
+        newRelativePosition: targetPos
+      })
+
+      console.log(`🚶 Moving player to ${targetDistance}m away from entity`)
+    } catch (error) {
+      console.error('Failed to move player:', error)
+    }
   }
 
   // Check if currently focused
@@ -342,6 +378,7 @@ export class CameraFocusService {
       }
     }
 
+    // Camera focus monitoring (only if camera is focused)
     if (!isFocused) return
 
     // 1. Cursor becomes locked (original behavior)

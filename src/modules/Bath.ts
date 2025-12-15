@@ -2,10 +2,12 @@
 // Basic cleanliness mechanics - bathing interaction and mood boost.
 // Ready for expansion: bathing mini-game, water effects, bathing animations.
 
-import { engine, pointerEventsSystem, InputAction, MeshCollider, ColliderLayer } from '@dcl/sdk/ecs'
+import { engine, pointerEventsSystem, InputAction, MeshCollider, ColliderLayer, Transform } from '@dcl/sdk/ecs'
+import { Vector3, Quaternion } from '@dcl/sdk/math'
 import { game } from '../Game'
 import { GameModule } from '../Game'
 import { EntityNames } from '../../assets/scene/entity-names'
+import { cameraFocus } from '../services/CameraFocus'
 
 export class BathModule implements GameModule {
   name = 'Bath'
@@ -35,15 +37,47 @@ export class BathModule implements GameModule {
   }
 
   private bathePet() {
-    if (!game.state.pet) return
+    if (!game.state.pet || !game.state.pet.entity) return
+
+    // Place pet in bath position
+    this.placePetInBath()
+
+    // Focus camera on pet
+    this.focusCameraOnPet()
+
+    // Spawn blue particles
+    this.spawnBubbleParticles()
 
     // Trigger bathing in pet object
     game.bathePet()
 
-    // Visual feedback - bubble particles
-    this.spawnBubbleParticles()
-
     console.log('🛁 Pet bathed successfully')
+  }
+
+  private placePetInBath() {
+    if (!game.state.pet?.entity || !this.bathEntity) return
+
+    const bathTransform = Transform.get(this.bathEntity)
+    const petTransform = Transform.getMutable(game.state.pet.entity)
+
+    // Place pet at bath position (adjust Y offset as needed)
+    petTransform.position = Vector3.create(
+      bathTransform.position.x,
+      bathTransform.position.y + 0.5, // Slightly above bath
+      bathTransform.position.z
+    )
+
+    // Rotate pet 90 degrees to face sideways (more like bathing experience)
+    petTransform.rotation = Quaternion.fromEulerDegrees(0, 90, 0)
+
+    // Stop pet movement and set to idle
+    game.state.pet.stopCurrentActivity()
+  }
+
+  private focusCameraOnPet() {
+    if (game.state.pet?.entity) {
+      cameraFocus.focusOn(game.state.pet.entity)
+    }
   }
 
   private spawnBubbleParticles() {

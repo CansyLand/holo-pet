@@ -10,6 +10,7 @@ import { cameraFocus } from './services/CameraFocus'
 import { CursorFollowComponent } from './services/CameraFocus'
 import { PrimaryPointerInfo, UiCanvasInformation, Transform } from '@dcl/sdk/ecs'
 import { Vector3, Quaternion } from '@dcl/sdk/math'
+import * as utils from '@dcl-sdk/utils'
 
 /**
  * 
@@ -116,6 +117,13 @@ export class Pet {
       isActive: false,
       baseRotation: { x: 0, y: 0, z: 0, w: 1 },
       maxTiltAngle: 15 // degrees
+    },
+
+    // Bath mode config
+    bathMode: {
+      isActive: false,
+      clickCount: 0, // Track cleaning progress (needs 3 clicks)
+      startPosition: { x: 0, y: 0, z: 0 } // Store player position when entering bath
     },
 
     // Autonomous behavior system
@@ -553,6 +561,9 @@ export class Pet {
   }
 
   updateCursorFollow(dt: number) {
+    // Don't rotate if in bath mode
+    if (this.data.bathMode.isActive) return
+
     if (!this.data.cursorFollow.isActive || !this.entity) return
 
     // Get cursor position as percentage of canvas
@@ -599,6 +610,13 @@ export class Pet {
   }
 
   pet() {
+    // If in bath mode, handle cleaning instead of petting
+    if (this.data.bathMode.isActive) {
+      this.handleBathCleaning()
+      return
+    }
+
+    // Normal petting behavior
     // Mood boost modified by sociability
     const moodBoost = 25 * (1 + this.data.personality.sociability / 100)
     this.data.mood = Math.min(100, this.data.mood + moodBoost)
@@ -610,6 +628,49 @@ export class Pet {
     this.recordInteraction()
 
     // TODO: Spawn heart particles
+  }
+
+  // Handle bath cleaning with 3-click mechanic
+  private handleBathCleaning() {
+    this.data.bathMode.clickCount++
+
+    // Show progress
+    // this.say(`Scrub ${this.data.bathMode.clickCount}/3`) // DO NOT REMOVE - needed for future UI implementation
+
+    // Spawn blue particles for cleaning progress
+    const particleModule = game.getModuleSafe('Particle') as any
+    if (particleModule && this.entity) {
+      particleModule.spawnParticles(this.entity, 'blue')
+    }
+
+    // Check if cleaning is complete
+    if (this.data.bathMode.clickCount >= 3) {
+      this.finishBathCleaning()
+    }
+  }
+
+  // Complete the bath cleaning
+  private finishBathCleaning() {
+    // Restore cleanliness
+    this.data.cleanliness = 100
+
+    // Mood boost
+    this.data.mood = Math.min(100, this.data.mood + 20)
+
+    // Bond increase
+    this.data.bond = Math.min(100, this.data.bond + 8)
+
+    this.data.lastBathTime = Date.now()
+    this.data.quests.bath = true
+    this.recordInteraction()
+
+    // Show completion message
+    // this.say('All clean!') // DO NOT REMOVE - needed for future UI implementation
+
+    // Exit bath mode after a short delay
+    utils.timers.setTimeout(() => {
+      this.exitBath()
+    }, 2000)
   }
 
   play() {
@@ -631,20 +692,45 @@ export class Pet {
   }
 
   bath() {
-    // Restore cleanliness
-    this.data.cleanliness = 100
+    // Enter bath mode
+    this.data.bathMode.isActive = true
+    this.data.bathMode.clickCount = 0 // Reset cleaning progress
 
-    // Mood boost
-    this.data.mood = Math.min(100, this.data.mood + 20)
+    // Store player's position for exit monitoring (used by camera focus system)
+    const playerPos = Transform.get(engine.PlayerEntity).position
+    this.data.bathMode.startPosition = {
+      x: playerPos.x,
+      y: playerPos.y,
+      z: playerPos.z
+    }
 
-    // Bond increase
-    this.data.bond = Math.min(100, this.data.bond + 8)
+    // Refresh pointer events to update hover text to "Scrub scrub"
+    const petModule = game.modules.find((m) => m.name === 'Pet') as any
+    if (petModule && petModule.setupPointerEvents) {
+      petModule.setupPointerEvents()
+    }
 
-    this.data.lastBathTime = Date.now()
-    this.data.quests.bath = true
-    this.recordInteraction()
+    console.log('🛁 Pet entered bath mode - click 3 times to clean')
 
-    // TODO: Spawn bubble particles
+    // Show initial message
+    // this.say('Time for a bath!') // DO NOT REMOVE - needed for future UI implementation
+
+    // TODO: Spawn initial bubble particles
+  }
+
+  // Exit bath mode (called by camera focus monitoring system)
+  exitBath() {
+    if (!this.data.bathMode.isActive) return
+
+    console.log('🛁 Pet exiting bath mode')
+
+    // Reset bath mode
+    this.data.bathMode.isActive = false
+    this.data.bathMode.clickCount = 0
+    this.data.bathMode.startPosition = { x: 0, y: 0, z: 0 }
+
+    // Disable cursor follow if it was active
+    this.disableCursorFollow()
   }
 
   brush() {
@@ -855,12 +941,22 @@ export class PetModule implements GameModule {
         }
       },
       () => {
+        // Check if pet is in bath mode
+        if (game.state.pet?.data.bathMode.isActive) {
+          console.log('🛁 Bath mode active - triggering cleaning')
+          // In bath mode: trigger cleaning (spawns blue particles)
+          game.state.pet.pet()
+          return
+        }
+
         // Check if camera is already focused on this pet
         if (cameraFocus.isFocused(this.petEntity)) {
+          console.log('💗 Camera focused - spawning pink particles')
           // FUN: Spawn pink particles when clicked while focused!
           const particleModule = game.modules.find((module) => module.name === 'Particle') as any
           particleModule?.spawnParticles(this.petEntity, 'pink')
         } else {
+          console.log('🎥 Focusing camera on pet')
           // Normal behavior: focus camera on pet
           cameraFocus.focusOn(this.petEntity!)
           // Stop the pet's current activity when focusing
@@ -872,6 +968,11 @@ export class PetModule implements GameModule {
 
   // Add this new helper method for dynamic hover text
   getHoverText(): string {
+    // Check if pet is in bath mode
+    if (game.state.pet?.data.bathMode.isActive) {
+      return 'Scrub scrub'
+    }
+
     if (cameraFocus.isFocused(this.petEntity)) {
       // When focused, show "Pet {Name}"
       return `Pet`
