@@ -114,6 +114,16 @@ export class Game {
     })
   }
 
+  // Safe module access (avoids collection enumeration errors)
+  getModuleSafe(name: string): GameModule | null {
+    try {
+      return this.modules.find((m) => m.name === name) || null
+    } catch (error) {
+      console.error('❌ Game.getModuleSafe error:', error)
+      return null
+    }
+  }
+
   // Module coordination - called every frame
   update(dt: number) {
     // Modules handle pet.update(dt)
@@ -146,6 +156,12 @@ export class Game {
 
     // ASSIGN PET ENTITY (clean call to Pet class)
     Pet.assignEntityToPet(this.state.pet)
+
+    // CREATE NEEDS BARS now that pet entity exists
+    const needsModule = this.getModuleSafe('Needs') as any
+    if (needsModule) {
+      needsModule.createBarsWhenPetReady()
+    }
 
     // Switch directly to PET (Visibility will hide egg/show pet scene)
     this.setState({ phase: GamePhase.PET })

@@ -24,6 +24,7 @@ import { QuestUI } from './ui/Quest'
 // Services
 import { visibility } from './services/Visibility'
 import { cursorFollowSystem } from './systems/CursorFollowSystem'
+import { needsBarsSystem, initializeNeedsBarsSystem } from './modules/NeedsBars'
 
 // Systems (legacy systems we'll keep for now)
 
@@ -40,7 +41,9 @@ export function initializeGame() {
 
   // Register pluggable modules
   game.registerModule(new EggModule())
-  game.registerModule(new NeedsBarsModule())
+  const needsBarsModule = new NeedsBarsModule()
+  game.registerModule(needsBarsModule)
+  initializeNeedsBarsSystem(needsBarsModule) // Initialize system reference
   game.registerModule(new FoodBowlModule())
   game.registerModule(new BathModule())
   game.registerModule(new BedModule())
@@ -84,8 +87,9 @@ export function main() {
   // 2. Initialize New Modular Game
   initializeGame()
 
-  // 2.5. Add cursor follow system
+  // 2.5. Add systems
   engine.addSystem(cursorFollowSystem)
+  // engine.addSystem(needsBarsSystem)
   engine.addSystem((dt) => game.update(dt), 1, 'GameUpdateSystem')
 
   // 3. Setup ReactECS UI

@@ -432,9 +432,35 @@ export function DebugUI() {
           fontSize={11}
           uiTransform={{ width: 120, height: 26 }}
           onMouseDown={() => {
-            // TODO: Implement needs UI toggle
+            console.log('🔍 DebugUI: Show Bars button clicked')
+            console.log('🔍 DebugUI: Current needsUIEnabled:', needsUIEnabled)
+            console.log('🔍 DebugUI: Game modules count:', game.modules.length)
+            console.log(
+              '🔍 DebugUI: Game modules:',
+              game.modules.map((m) => m.name)
+            )
+
             needsUIEnabled = !needsUIEnabled
-            console.log('Needs UI toggle - not yet implemented')
+            console.log('🔍 DebugUI: New needsUIEnabled:', needsUIEnabled)
+
+            try {
+              const needsModule = game.getModuleSafe('Needs') as any
+              console.log('🔍 DebugUI: Found needs module:', !!needsModule)
+
+              if (needsModule) {
+                if (needsUIEnabled) {
+                  console.log('🔍 DebugUI: Calling showBars()')
+                  needsModule.showBars()
+                } else {
+                  console.log('🔍 DebugUI: Calling hideBars()')
+                  needsModule.hideBars()
+                }
+              } else {
+                console.log('🔍 DebugUI: Needs module not found!')
+              }
+            } catch (error) {
+              console.error('🔍 DebugUI: Error accessing needs module:', error)
+            }
           }}
         />
       </UiEntity>

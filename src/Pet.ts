@@ -451,35 +451,35 @@ export class Pet {
   private moveTowardsFoodBowl() {
     // TODO: Move pet towards food bowl position
     // Show hunger indicator above head
-    console.log('Pet seeking food bowl')
+    // console.log('Pet seeking food bowl')
   }
 
   private moveTowardsBed() {
     // TODO: Move pet towards bed position
-    console.log('Pet seeking bed')
+    // console.log('Pet seeking bed')
   }
 
   private moveTowardsBath() {
     // TODO: Move pet towards bath position
-    console.log('Pet seeking bath')
+    // console.log('Pet seeking bath')
   }
 
   private idleBehavior(dt: number) {
     // TODO: Idle animation - look around, small movements
     // Check for player proximity to potentially follow
-    console.log('Pet is idle')
+    // console.log('Pet is idle')
   }
 
   private wanderBehavior(dt: number) {
     // TODO: Random wandering movement to nearby locations
     // Periodically return to central area as per stories
-    console.log('Pet is wandering')
+    // console.log('Pet is wandering')
   }
 
   private followPlayerBehavior(dt: number) {
     // TODO: Move towards player if they're within range and moving slowly
     // Stop following if player moves too fast or gets too far
-    console.log('Pet is following player')
+    // console.log('Pet is following player')
   }
 
   // Record player interaction
