@@ -99,6 +99,7 @@ export interface PetData {
   isMoving: boolean
   isDrinking: boolean
   manualBedSeeking: boolean
+  lastDistanceLog?: number // For debug logging
 }
 
 // Create initial pet data with default values

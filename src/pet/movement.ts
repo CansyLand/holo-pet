@@ -14,8 +14,22 @@ export function moveTowards(pet: Pet, targetPos: Vector3, dt: number): boolean {
   const currentPos = transform.position
   const distance = Vector3.distance(currentPos, targetPos)
 
+  // Debug: Log distance periodically to avoid spam
+  if (
+    (Math.floor(Date.now() / 1000) % 2 === 0 && !pet.data.lastDistanceLog) ||
+    Date.now() - (pet.data.lastDistanceLog || 0) > 2000
+  ) {
+    console.log(
+      `🏃 Moving towards target - Distance: ${distance.toFixed(3)}, Target: (${targetPos.x.toFixed(
+        2
+      )}, ${targetPos.y.toFixed(2)}, ${targetPos.z.toFixed(2)})`
+    )
+    pet.data.lastDistanceLog = Date.now()
+  }
+
   // Arrived at destination?
   if (distance < 0.5) {
+    console.log(`✅ Arrived at destination! Distance: ${distance.toFixed(3)}`)
     animations.playIdle(pet) // Stop moving, play idle
     return true // Signal we arrived
   }

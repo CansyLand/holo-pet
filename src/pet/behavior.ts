@@ -1,10 +1,19 @@
 // Pet behavior - state machine and AI decision making
 
+import { Transform } from '@dcl/sdk/ecs'
+import { Vector3 } from '@dcl/sdk/math'
 import { EntityNames } from '../../assets/scene/entity-names'
 import { cameraFocus } from '../services/CameraFocus'
 import { PetState } from './types'
 import { restoreEnergy } from './stats'
-import { moveToStation, moveTowardsPoop, followPlayer, getPlayerDistance, lookAtPlayer } from './movement'
+import {
+  moveToStation,
+  moveTowardsPoop,
+  followPlayer,
+  getPlayerDistance,
+  lookAtPlayer,
+  getStationPosition
+} from './movement'
 import { playIdle, playSleep, playDrinking } from './animations'
 import type { Pet } from '../Pet'
 
@@ -16,6 +25,10 @@ function getRandomStateDuration(): number {
 // Change pet state and update timing
 export function changeState(pet: Pet, newState: PetState, customDuration?: number) {
   if (pet.data.state !== newState) {
+    console.log(
+      `🔄 State change: ${pet.data.state} → ${newState}${customDuration ? ` (duration: ${customDuration}ms)` : ''}`
+    )
+
     // Clear poop cache when changing away from SEEKING_POOP
     if (pet.data.state === PetState.SEEKING_POOP && newState !== PetState.SEEKING_POOP) {
       pet.data.cachedPoopPosition = null
@@ -120,7 +133,7 @@ export function executeCurrentActivity(pet: Pet, dt: number) {
       break
 
     case PetState.SLEEPING:
-      handleSleepingState(pet, dt)
+      // Energy restoration is now handled in updateBehavior to ensure it runs
       break
 
     case PetState.IDLE:
@@ -153,22 +166,32 @@ function handleDrinkingState(pet: Pet, dt: number) {
 function handleSeekingBedState(pet: Pet, dt: number) {
   const arrivedAtBed = moveToStation(pet, EntityNames.Bed, dt)
 
+  // Debug logging
+  const bedPos = getStationPosition(EntityNames.Bed)
+  const petPos = pet.entity ? Transform.get(pet.entity).position : pet.data.position
+  const distance = bedPos ? Vector3.distance(petPos, bedPos) : 'NO_BED_POS'
+
+  console.log(
+    `🐾 Seeking bed - Pet pos: (${petPos.x.toFixed(2)},${petPos.y.toFixed(2)},${petPos.z.toFixed(2)}), Bed pos: ${
+      bedPos ? `(${bedPos.x.toFixed(2)},${bedPos.y.toFixed(2)},${bedPos.z.toFixed(2)})` : 'NOT_FOUND'
+    }, Distance: ${distance}, arrivedAtBed: ${arrivedAtBed}, manualBedSeeking: ${
+      pet.data.manualBedSeeking
+    }, energy: ${pet.data.energy.toFixed(1)}`
+  )
+
   if (arrivedAtBed) {
+    console.log(
+      `🛏️ Pet arrived at bed! Energy: ${pet.data.energy.toFixed(1)}, manualBedSeeking: ${pet.data.manualBedSeeking}`
+    )
     if (pet.data.energy < 30 || pet.data.manualBedSeeking) {
+      console.log(`💤 Starting to sleep - changing state to SLEEPING`)
       changeState(pet, PetState.SLEEPING, 30000)
       playSleep(pet)
       pet.data.manualBedSeeking = false
     } else {
+      console.log(`😴 Not tired enough to sleep (energy >= 30 and not manual), going idle`)
       changeState(pet, PetState.IDLE)
     }
-  }
-}
-
-// Handle sleeping state
-function handleSleepingState(pet: Pet, dt: number) {
-  const fullyRested = restoreEnergy(pet, dt)
-  if (fullyRested) {
-    pet.wakeUp()
   }
 }
 
@@ -189,14 +212,35 @@ export function checkStateTransitions(pet: Pet) {
 
 // Main behavior update loop
 export function updateBehavior(pet: Pet, dt: number) {
-  // Handle sleep timer expiration
+  // Handle sleep timer expiration and energy restoration
   if (pet.data.state === PetState.SLEEPING) {
     const timeInSleep = Date.now() - pet.data.stateStartTime
+
+    // Gradually restore energy during sleep
+    const energyBefore = pet.data.energy
+    const fullyRested = restoreEnergy(pet, dt)
+    const energyAfter = pet.data.energy
+
+    console.log(
+      `💤 Sleeping - Energy: ${energyBefore.toFixed(1)} → ${energyAfter.toFixed(1)}, time: ${timeInSleep.toFixed(
+        0
+      )}ms/${pet.data.stateDuration}ms, fullyRested: ${fullyRested}`
+    )
+
+    // Wake up if timer expired OR fully rested (whichever comes first)
     if (timeInSleep >= pet.data.stateDuration) {
+      console.log(`⏰ Sleep timer expired, waking up`)
       pet.wakeUp()
       return
     }
-    return // Don't disturb sleep
+
+    if (fullyRested) {
+      console.log(`🌅 Energy fully restored, waking up naturally`)
+      pet.wakeUp()
+      return
+    }
+
+    return // Continue sleeping
   }
 
   // Immediate player proximity check (don't interrupt task-focused states)
