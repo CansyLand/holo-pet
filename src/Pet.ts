@@ -3,13 +3,24 @@
 // No more scattered ECS components - everything pet-related lives here.
 // This replaces PetComponent, PersonalityComponent, BondComponent, HygieneComponent, etc.
 
-import { Entity, engine, MeshCollider, ColliderLayer, pointerEventsSystem, InputAction } from '@dcl/sdk/ecs'
+import { Entity, engine, MeshCollider, ColliderLayer, pointerEventsSystem, InputAction, Animator } from '@dcl/sdk/ecs'
 import { game, GameModule } from './Game'
 import { EntityNames } from '../assets/scene/entity-names'
 import { cameraFocus } from './services/CameraFocus'
 import { CursorFollowComponent } from './services/CameraFocus'
 import { PrimaryPointerInfo, UiCanvasInformation, Transform } from '@dcl/sdk/ecs'
 import { Vector3, Quaternion } from '@dcl/sdk/math'
+
+/**
+ * 
+ * Animations:
+ *  Idle
+ *  Sitting (sits down)
+ *  Standing  (stands up
+ *  Walking
+ * 
+ 
+ */
 
 export enum Species {
   // DOG = 'dog',
@@ -27,6 +38,9 @@ export enum PetState {
   SEEKING_FOOD = 'seeking_food',
   SEEKING_BATH = 'seeking_bath',
   SEEKING_BED = 'seeking_bed',
+  SEEKING_BALL = 'seeking_ball',
+  SEEKING_DECORATION = 'seeking_decoration',
+  SEEKING_POOP = 'seeking_poop',
   FOLLOWING_PLAYER = 'following_player'
 }
 
@@ -102,7 +116,12 @@ export class Pet {
       isActive: false,
       baseRotation: { x: 0, y: 0, z: 0, w: 1 },
       maxTiltAngle: 15 // degrees
-    }
+    },
+
+    // Autonomous behavior system
+    activityTimer: 0,
+    cachedPoopPosition: null as Vector3 | null,
+    isMoving: false // Track if pet is currently moving
   }
 
   // Reference to game instance (will be set when created)
@@ -173,6 +192,11 @@ export class Pet {
   // Change pet state and update timing
   private changeState(newState: PetState, customDuration?: number) {
     if (this.data.state !== newState) {
+      // Clear poop cache when changing away from SEEKING_POOP
+      if (this.data.state === PetState.SEEKING_POOP && newState !== PetState.SEEKING_POOP) {
+        this.data.cachedPoopPosition = null
+      }
+
       this.data.state = newState
       this.data.stateStartTime = Date.now()
       this.data.stateDuration = customDuration || this.getRandomStateDuration()
@@ -216,55 +240,299 @@ export class Pet {
     }
   }
 
-  // Update autonomous behavior based on stats and personality
-  // FOOD is top priority - pet will ALWAYS seek food when hungry, regardless of current state
-  // After ~10 seconds in current state, pet can flexibly switch to new behaviors
-  // This creates more lifelike, less predictable pet behavior
-  private updateBehavior(dt: number) {
-    // FOOD IS TOP PRIORITY - always seek food if hungry, regardless of current state
+  // Decide next activity based on current needs (called every 10 seconds)
+  private decideNextActivity() {
+    console.log('🐾 Checking what to do next...')
+
+    // Check needs in priority order
     if (this.data.hunger > 80) {
       this.changeState(PetState.SEEKING_FOOD)
-      this.moveTowardsFoodBowl()
-      return
+      console.log('🐾 Decided: seeking food (hungry!)')
+    } else if (this.getPlayerDistance() < 4) {
+      this.changeState(PetState.FOLLOWING_PLAYER)
+      console.log('🐾 Decided: following player (owner nearby!)')
+    } else if (this.data.energy < 20) {
+      this.changeState(PetState.SEEKING_BED)
+      console.log('🐾 Decided: seeking bed (tired)')
+    } else if (this.data.cleanliness < 40 && this.data.personality.cleanliness > 75) {
+      this.changeState(PetState.SEEKING_BATH)
+      console.log('🐾 Decided: seeking bath (dirty - clean freak personality)')
+    } else {
+      // No urgent needs - pick fun activity based on personality
+      this.pickFunActivity()
     }
+  }
 
-    // Check if it's time to switch states for more flexibility
-    if (this.shouldSwitchState()) {
-      this.decideNextState()
+  // Pick fun activity when no needs (personality-driven)
+  private pickFunActivity() {
+    const roll = Math.random() * 100
+    const p = this.data.personality
+
+    console.log(
+      `🐾 Picking fun activity (roll: ${roll.toFixed(1)}, personality: energy=${p.energy}, appetite=${
+        p.appetite
+      }, cleanliness=${p.cleanliness})`
+    )
+
+    if (roll < p.appetite * 0.2) {
+      this.changeState(PetState.SEEKING_FOOD)
+      console.log('🐾 Fun activity: seeking food (likes eating)')
+    } else if (roll < 25 + p.energy * 0.3) {
+      this.changeState(PetState.SEEKING_BALL)
+      console.log('🐾 Fun activity: seeking ball (energetic)')
+    } else if (roll < 45 + p.cleanliness * 0.3) {
+      this.changeState(PetState.SEEKING_BATH)
+      console.log('🐾 Fun activity: seeking bath (clean freak)')
+    } else if (roll < 65) {
+      this.changeState(PetState.SEEKING_DECORATION)
+      console.log('🐾 Fun activity: seeking decoration (curious)')
+    } else {
+      this.changeState(PetState.SEEKING_POOP)
+      console.log('🐾 Fun activity: seeking poop (sniffing around)')
     }
+  }
 
-    // Execute current state behavior
+  // Execute current activity with exit conditions
+  private executeCurrentActivity(dt: number) {
     switch (this.data.state) {
       case PetState.SEEKING_FOOD:
-        this.moveTowardsFoodBowl()
+        if (this.data.hunger > 60) {
+          // Still hungry enough - keep moving
+          if (this.moveTowardsFoodBowl(dt)) {
+            // Arrived at food bowl
+            console.log('🐾 Arrived at food bowl!')
+          }
+        } else {
+          this.changeState(PetState.IDLE) // Done eating
+          console.log('🐾 Finished seeking food (not hungry anymore)')
+        }
         break
+
       case PetState.SEEKING_BED:
-        if (this.data.energy < 10) {
-          this.moveTowardsBed()
+        if (this.data.energy < 15) {
+          // Still tired enough - keep moving
+          if (this.moveTowardsBed(dt)) {
+            // Arrived at bed
+            console.log('🐾 Arrived at bed!')
+          }
         } else {
-          // Energy improved, can switch states
-          this.decideNextState()
+          this.changeState(PetState.IDLE) // Rested enough
+          console.log('🐾 Finished seeking bed (not tired anymore)')
         }
         break
+
       case PetState.SEEKING_BATH:
-        if (this.data.cleanliness < 30 && this.data.personality.cleanliness > 60) {
-          this.moveTowardsBath()
+        if (this.data.cleanliness < 35) {
+          // Still dirty enough - keep moving
+          if (this.moveTowardsBath(dt)) {
+            // Arrived at bath
+            console.log('🐾 Arrived at bath!')
+          }
         } else {
-          // Clean enough, can switch states
-          this.decideNextState()
+          this.changeState(PetState.IDLE) // Clean enough
+          console.log('🐾 Finished seeking bath (clean enough)')
         }
         break
+
+      case PetState.SEEKING_BALL:
+        if (this.moveTowardsBall(dt)) {
+          // Arrived at ball - stay there until timer changes activity
+          console.log('🐾 Arrived at ball - play time!')
+        }
+        break
+
+      case PetState.SEEKING_DECORATION:
+        if (this.moveTowardsDecoration(dt)) {
+          // Arrived at decoration - stay there until timer changes activity
+          console.log('🐾 Arrived at decoration - curious!')
+        }
+        break
+
+      case PetState.SEEKING_POOP:
+        if (this.moveTowardsPoop(dt)) {
+          // Arrived at poop - clear cache and stay there until timer changes activity
+          this.data.cachedPoopPosition = null
+          console.log('🐾 Arrived at poop - sniffing!')
+        }
+        break
+
       case PetState.FOLLOWING_PLAYER:
-        this.followPlayerBehavior(dt)
+        if (this.getPlayerDistance() < 5) {
+          // Player still nearby - move towards player
+          this.followPlayerBehavior(dt)
+        } else {
+          this.changeState(PetState.IDLE) // Player moved away
+          console.log('🐾 Stopped following player (moved away)')
+        }
         break
-      case PetState.WANDERING:
-        this.wanderBehavior(dt)
-        break
+
       case PetState.IDLE:
       default:
-        this.idleBehavior(dt)
+        this.idleBehavior(dt) // Idle continues until timer changes it
+        // Make sure idle animation is playing when idle
+        if (this.data.isMoving) {
+          this.playIdleAnimation()
+        }
         break
     }
+  }
+
+  // Get distance to player
+  private getPlayerDistance(): number {
+    const playerPos = Transform.get(engine.PlayerEntity).position
+    const petPos = this.entity ? Transform.get(this.entity).position : this.data.position
+    return Vector3.distance(playerPos, petPos)
+  }
+
+  // Look at player when nearby
+  private lookAtPlayer() {
+    if (!this.entity) return
+    const playerPos = Transform.get(engine.PlayerEntity).position
+    const petTransform = Transform.getMutable(this.entity)
+    const direction = Vector3.subtract(playerPos, petTransform.position)
+    petTransform.rotation = Quaternion.lookRotation(direction)
+  }
+
+  // Move towards target (stub - implement actual movement)
+  private goTo(target: string) {
+    console.log(`🐾 Pet going to: ${target}`)
+    // TODO: Get target position and move pet there
+  }
+
+  // Get position of a station entity
+  private getStationPosition(entityName: string): Vector3 | null {
+    const entity = engine.getEntityOrNullByName(entityName)
+    if (!entity) return null
+
+    try {
+      const transform = Transform.get(entity)
+      return transform.position
+    } catch {
+      return null
+    }
+  }
+
+  // Get random poop position from the 7 available poop entities
+  private getRandomPoopPosition(): Vector3 | null {
+    const poopNames = [
+      EntityNames.Poop_1,
+      EntityNames.Poop_2,
+      EntityNames.Poop_3,
+      EntityNames.Poop_4,
+      EntityNames.Poop_5,
+      EntityNames.Poop_6,
+      EntityNames.Poop_7
+    ]
+
+    // Pick a random poop entity
+    const randomPoop = poopNames[Math.floor(Math.random() * poopNames.length)]
+    return this.getStationPosition(randomPoop)
+  }
+
+  // Play walking animation
+  private playWalkingAnimation() {
+    if (!this.entity || this.data.isMoving) return
+
+    // Check if Animator component exists
+    try {
+      const animator = Animator.getClip(this.entity, 'Walking')
+      if (!animator) return // Animator not set up yet
+    } catch {
+      return // Animator component doesn't exist
+    }
+
+    this.data.isMoving = true
+    try {
+      Animator.playSingleAnimation(this.entity, 'Walking')
+      console.log('🐾 Playing walking animation')
+    } catch (error) {
+      console.log('🐾 Walking animation not found')
+    }
+  }
+
+  // Play idle animation
+  private playIdleAnimation() {
+    if (!this.entity) return
+
+    // Only switch to idle if currently moving
+    if (!this.data.isMoving) return
+
+    // Check if Animator component exists
+    try {
+      const animator = Animator.getClip(this.entity, 'Idle')
+      if (!animator) return // Animator not set up yet
+    } catch {
+      return // Animator component doesn't exist
+    }
+
+    this.data.isMoving = false
+    try {
+      Animator.playSingleAnimation(this.entity, 'Idle')
+      console.log('🐾 Playing idle animation')
+    } catch (error) {
+      console.log('🐾 Idle animation not found')
+    }
+  }
+
+  // Simple movement towards target position
+  private moveTowards(targetPos: Vector3, dt: number): boolean {
+    if (!this.entity) return false
+
+    const transform = Transform.getMutable(this.entity)
+    const currentPos = transform.position
+    const distance = Vector3.distance(currentPos, targetPos)
+
+    // Arrived at destination?
+    if (distance < 0.5) {
+      console.log('🐾 Arrived at destination!')
+      this.playIdleAnimation() // Stop moving, play idle
+      return true // Signal we arrived
+    }
+
+    // Start walking animation if not already moving
+    this.playWalkingAnimation()
+
+    // Simple lerp movement
+    const moveSpeed = 2.0 * dt // Units per second
+    const direction = Vector3.normalize(Vector3.subtract(targetPos, currentPos))
+
+    transform.position = Vector3.add(currentPos, Vector3.scale(direction, Math.min(moveSpeed, distance)))
+
+    // Face movement direction
+    this.faceDirection(direction)
+
+    return false // Still moving
+  }
+
+  // Face a direction (simple XZ plane rotation)
+  private faceDirection(direction: Vector3) {
+    if (!this.entity || (direction.x === 0 && direction.z === 0)) return
+
+    const angle = Math.atan2(direction.x, direction.z)
+    const transform = Transform.getMutable(this.entity)
+    transform.rotation = Quaternion.fromEulerDegrees(0, (angle * 180) / Math.PI, 0)
+  }
+
+  // Simplified autonomous behavior system
+  private updateBehavior(dt: number) {
+    // Don't disturb sleep
+    if (this.data.state === PetState.SLEEPING) return
+
+    // Always look at player when close
+    if (this.getPlayerDistance() < 4) {
+      this.lookAtPlayer()
+    }
+
+    // Simple timer for activity changes (faster state switching)
+    this.data.activityTimer += dt
+    if (this.data.activityTimer > 15) {
+      // Changed from 10 to 5 seconds for faster state changes
+      this.data.activityTimer = 0
+      this.decideNextActivity()
+    }
+
+    // Execute current activity with exit conditions
+    this.executeCurrentActivity(dt)
   }
 
   // Check for state transitions based on thresholds
@@ -448,38 +716,82 @@ export class Pet {
   }
 
   // Autonomous movement behaviors
-  private moveTowardsFoodBowl() {
-    // TODO: Move pet towards food bowl position
-    // Show hunger indicator above head
-    // console.log('Pet seeking food bowl')
+  private moveTowardsFoodBowl(dt: number): boolean {
+    const targetPos = this.getStationPosition(EntityNames.Food_Bowl)
+    if (!targetPos) return true // Can't find food bowl, consider arrived
+
+    console.log('🐾 Pet seeking food bowl')
+    return this.moveTowards(targetPos, dt)
   }
 
-  private moveTowardsBed() {
-    // TODO: Move pet towards bed position
-    // console.log('Pet seeking bed')
+  private moveTowardsBed(dt: number): boolean {
+    const targetPos = this.getStationPosition(EntityNames.Bed)
+    if (!targetPos) return true // Can't find bed, consider arrived
+
+    console.log('🐾 Pet seeking bed')
+    return this.moveTowards(targetPos, dt)
   }
 
-  private moveTowardsBath() {
-    // TODO: Move pet towards bath position
-    // console.log('Pet seeking bath')
+  private moveTowardsBath(dt: number): boolean {
+    const targetPos = this.getStationPosition(EntityNames.Bath_Tub)
+    if (!targetPos) return true // Can't find bath, consider arrived
+
+    console.log('🐾 Pet seeking bath')
+    return this.moveTowards(targetPos, dt)
+  }
+
+  private moveTowardsBall(dt: number): boolean {
+    const targetPos = this.getStationPosition(EntityNames.Ball)
+    if (!targetPos) return true // Can't find ball, consider arrived
+
+    console.log('🐾 Pet seeking ball')
+    return this.moveTowards(targetPos, dt)
+  }
+
+  private moveTowardsDecoration(dt: number): boolean {
+    const targetPos = this.getStationPosition(EntityNames.Decoration)
+    if (!targetPos) return true // Can't find decoration, consider arrived
+
+    console.log('🐾 Pet seeking decoration')
+    return this.moveTowards(targetPos, dt)
+  }
+
+  private moveTowardsPoop(dt: number): boolean {
+    // Cache the poop position when first starting to seek poop
+    if (!this.data.cachedPoopPosition) {
+      this.data.cachedPoopPosition = this.getRandomPoopPosition()
+      if (!this.data.cachedPoopPosition) return true // Can't find any poop, consider arrived
+    }
+
+    console.log('🐾 Pet seeking poop')
+    return this.moveTowards(this.data.cachedPoopPosition, dt)
   }
 
   private idleBehavior(dt: number) {
-    // TODO: Idle animation - look around, small movements
-    // Check for player proximity to potentially follow
-    // console.log('Pet is idle')
-  }
-
-  private wanderBehavior(dt: number) {
-    // TODO: Random wandering movement to nearby locations
-    // Periodically return to central area as per stories
-    // console.log('Pet is wandering')
+    // Pet is idle - just standing still, looking around
+    // The timer will pick a new activity soon
+    // No movement, just waiting for next activity decision
   }
 
   private followPlayerBehavior(dt: number) {
-    // TODO: Move towards player if they're within range and moving slowly
-    // Stop following if player moves too fast or gets too far
-    // console.log('Pet is following player')
+    const playerPos = Transform.get(engine.PlayerEntity).position
+    if (!this.entity) return
+
+    const transform = Transform.getMutable(this.entity)
+    const currentPos = transform.position
+    const distance = Vector3.distance(currentPos, playerPos)
+
+    // Don't get too close - stop at a comfortable distance
+    if (distance < 2.0) {
+      // Close enough - just face the player
+      this.lookAtPlayer()
+      return
+    }
+
+    // Move towards player
+    console.log('🐾 Pet is following player')
+    const targetPos = playerPos
+    this.moveTowards(targetPos, dt)
   }
 
   // Record player interaction
@@ -528,6 +840,37 @@ export class PetModule implements GameModule {
     // Set entity reference on the pet object
     if (game.state.pet) {
       game.state.pet.entity = this.petEntity
+    }
+
+    // Set up Animator component for pet animations
+    try {
+      Animator.create(this.petEntity, {
+        states: [
+          {
+            clip: 'Idle',
+            playing: true,
+            loop: true
+          },
+          {
+            clip: 'Walking',
+            playing: false,
+            loop: true
+          },
+          {
+            clip: 'Sitting',
+            playing: false,
+            loop: true
+          },
+          {
+            clip: 'Standing',
+            playing: false,
+            loop: false
+          }
+        ]
+      })
+      console.log('🐾 Animator component set up')
+    } catch (error) {
+      console.log('🐾 Animator setup failed (animations may not exist in model):', error)
     }
 
     // if (!MeshCollider.has(this.petEntity)) {
