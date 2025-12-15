@@ -206,23 +206,25 @@ export class CameraFocusService {
     console.log('📷 Virtual camera deactivated')
   }
 
-  // Update camera position based on entity's facing direction
+  // Update camera position between pet and player
   private updateCameraPosition(cameraEntity: any, entity: any) {
     const entityTransform = Transform.get(entity)
     const entityPos = entityTransform.position
-    const entityRotation = entityTransform.rotation
 
-    // Calculate forward direction from entity's rotation
-    const forward = Vector3.rotate(Vector3.Forward(), entityRotation)
+    // Get player position
+    const playerTransform = Transform.get(engine.PlayerEntity)
+    const playerPos = playerTransform.position
 
-    // Position camera 2m in front of entity + height offset
-    const cameraPos = Vector3.add(
-      Vector3.create(entityPos.x, entityPos.y + 4, entityPos.z - 4), // base offset
-      Vector3.add(
-        Vector3.scale(forward, 2), // 2m in front
-        Vector3.create(0, 4.5, 0) // height offset for good viewing angle
-      )
-    )
+    // Calculate direction from pet to player
+    const petToPlayer = Vector3.subtract(playerPos, entityPos)
+
+    // Position camera between player and pet, but at fixed distance from pet
+    // Camera should be closer to the pet for better focus
+    const cameraDistanceFromPet = 3 // Adjust this distance as needed
+    const cameraPos = Vector3.add(entityPos, Vector3.scale(Vector3.normalize(petToPlayer), cameraDistanceFromPet))
+
+    // Add height offset for "from above" perspective
+    cameraPos.y += 7
 
     // Update camera transform
     Transform.getMutable(cameraEntity).position = cameraPos
@@ -230,6 +232,28 @@ export class CameraFocusService {
 
   // Enable cursor follow for entity
   private enableCursorFollow(entity: any) {
+    // If this is the pet entity, make it face the player first
+    if (game.state.pet && game.state.pet.entity === entity) {
+      // Get player position
+      const playerPos = Transform.get(engine.PlayerEntity).position
+      const petPos = Transform.get(entity).position
+
+      // Calculate direction from pet to player
+      const directionToPlayer = Vector3.subtract(playerPos, petPos)
+
+      // Create rotation to face player
+      const lookRotation = Quaternion.fromLookAt(Vector3.Zero(), directionToPlayer)
+
+      // Set pet's base rotation to face player
+      game.state.pet.data.cursorFollow.baseRotation = lookRotation
+
+      // Apply the rotation immediately
+      const petTransform = Transform.getMutable(entity)
+      petTransform.rotation = lookRotation
+
+      game.state.pet.enableCursorFollow()
+    }
+
     // Create cursor follow component if it doesn't exist
     if (!CursorFollowComponent.has(entity)) {
       CursorFollowComponent.create(entity, {
@@ -241,11 +265,6 @@ export class CameraFocusService {
       // Update existing component
       const cursorFollow = CursorFollowComponent.getMutable(entity)
       cursorFollow.isActive = true
-    }
-
-    // If this is the pet entity, call pet's enable method
-    if (game.state.pet && game.state.pet.entity === entity) {
-      game.state.pet.enableCursorFollow()
     }
   }
 
