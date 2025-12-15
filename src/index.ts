@@ -16,6 +16,7 @@ import { DecorationModule } from './modules/Decoration'
 import { PoopModule } from './modules/Poop'
 import { ParticleModule } from './modules/Particle'
 import { AvatarHiderModule } from './modules/AvatarHider'
+import { QuestModule } from './modules/Quest'
 import { PetModule } from './Pet'
 
 // UI Components (will be implemented)
@@ -27,6 +28,7 @@ import { QuestUI } from './ui/Quest'
 import { visibility } from './services/Visibility'
 import { cursorFollowSystem } from './systems/CursorFollowSystem'
 import { needsBarsSystem, initializeNeedsBarsSystem } from './modules/NeedsBars'
+import { initPersistence, persistenceSystem } from './services/Persistence'
 
 // Systems (legacy systems we'll keep for now)
 
@@ -56,6 +58,7 @@ export async function initializeGame() {
   game.registerPoopModule(poopModule)
   game.registerModule(new ParticleModule())
   game.registerModule(new AvatarHiderModule())
+  game.registerModule(new QuestModule())
   game.registerModule(new PetModule())
   game.registerModule(new AvatarHiderModule())
 
@@ -91,6 +94,9 @@ export async function main() {
   // 2. Initialize New Modular Game
   await initializeGame()
 
+  // 2.3. Initialize Persistence System
+  initPersistence()
+
   // 2.4. Load saved pet data after player data is ready
   onPlayerDataReady(async (userId: string) => {
     console.log('🎮 Player data ready, checking for saved pet data...')
@@ -104,6 +110,7 @@ export async function main() {
   // 2.5. Add systems
   engine.addSystem(cursorFollowSystem)
   engine.addSystem(needsBarsSystem)
+  engine.addSystem(persistenceSystem) // Handle failed save retries
   engine.addSystem((dt) => game.update(dt), 1, 'GameUpdateSystem')
 
   // 3. Setup ReactECS UI

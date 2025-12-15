@@ -5,11 +5,15 @@
 import ReactEcs, { UiEntity, Label, Button, Input } from '@dcl/sdk/react-ecs'
 import { Color4 } from '@dcl/sdk/math'
 import { game } from '../Game'
+import { triggerSaveWithDetails } from '../services/Persistence'
+import { pointer } from '../services/Pointer'
 
 // State (module-level, not React hooks)
 let isVisible = false
 let currentName = ''
 let onNameSubmitCallback: ((name: string) => void) | null = null
+let saveError: string | null = null // Error message state
+let isSaving = false // Loading state
 
 // Colors for UI
 const HEADER_COLOR = Color4.White()
@@ -29,12 +33,41 @@ export function hideNamingUI() {
   isVisible = false
   currentName = ''
   onNameSubmitCallback = null
+  saveError = null
+  isSaving = false
 }
 
-function handleNameSubmit() {
-  if (currentName.trim() && onNameSubmitCallback) {
-    onNameSubmitCallback(currentName.trim())
-    hideNamingUI()
+async function handleNameSubmit() {
+  if (!currentName.trim() || isSaving) return
+
+  // Clear any previous errors
+  saveError = null
+  isSaving = true
+
+  try {
+    // Set the pet's name first
+    if (onNameSubmitCallback) {
+      onNameSubmitCallback(currentName.trim())
+    }
+
+    // Try to save with detailed error handling
+    const result = await triggerSaveWithDetails()
+
+    if (result.success) {
+      // Success! Close the popup
+      pointer.restorePointerState()
+      hideNamingUI()
+      console.log(`🐾 Pet named and saved successfully: ${currentName.trim()}`)
+    } else {
+      // Validation failed - show error and keep popup open
+      saveError = result.error || 'Save failed'
+      console.error('🐾 Pet naming save failed:', saveError)
+    }
+  } catch (error) {
+    saveError = 'Network error - please try again'
+    console.error('🐾 Save operation failed:', error)
+  } finally {
+    isSaving = false
   }
 }
 
@@ -110,6 +143,23 @@ export function NamingUI() {
           uiTransform={{ height: 40, width: 350 }}
         />
 
+        {/* Error message - only show if there's an error */}
+        {saveError && (
+          <UiEntity
+            uiTransform={{
+              width: 350,
+              height: 40,
+              flexDirection: 'row',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: { left: 10, right: 10 }
+            }}
+            uiBackground={{ color: Color4.create(0.8, 0.2, 0.2, 0.9) }}
+          >
+            <Label value={`${saveError}`} fontSize={14} color={Color4.White()} uiTransform={{ width: '100%' }} />
+          </UiEntity>
+        )}
+
         {/* Text input */}
         <Input
           placeholder="Enter pet name..."
@@ -148,10 +198,10 @@ export function NamingUI() {
             onMouseDown={() => handleRandomName()}
           />
           <Button
-            value="✅ Name Pet"
+            value={isSaving ? 'Saving...' : '✅ Name Pet'}
             variant="primary"
             fontSize={14}
-            disabled={!currentName.trim()}
+            disabled={!currentName.trim() || isSaving}
             uiTransform={{
               width: 120,
               height: 40

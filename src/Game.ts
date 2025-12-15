@@ -28,6 +28,7 @@ export interface GameModule {
 // Import services and modules here (will be added as we create them)
 import { visibility } from './services/Visibility'
 import { pointer } from './services/Pointer'
+import { updateCurrentPetMeta } from './services/Persistence'
 // import { InteractionManager } from './services/Interaction'
 // import { FocusService } from './services/Focus'
 // import { StateManager } from './services/State'
@@ -185,12 +186,12 @@ export class Game {
     this.setState({ phase: GamePhase.PET })
     console.log('🐾 Pet revealed + phase=PET (scene switch triggered)')
 
-    // Show naming UI
+    // Show naming UI (save is handled internally by the UI)
     import('./ui/Naming').then(({ showNamingUI }) => {
       showNamingUI((name: string) => {
-        console.log(`🐾 Pet named: ${name}`)
+        console.log(`🐾 Pet naming initiated: ${name}`)
         game.state.pet?.setName(name)
-        pointer.restorePointerState()
+        // Note: Save is now handled by the NamingUI component
       })
     })
 
@@ -201,6 +202,12 @@ export class Game {
   feedPet() {
     if (!this.state.pet) return
     this.state.pet.feed()
+
+    // Check quest completion
+    const questModule = this.getModuleSafe('Quest') as any
+    if (questModule) {
+      questModule.checkQuestCompletion('feed', this.state.pet.data)
+    }
   }
 
   petPet() {
@@ -217,16 +224,34 @@ export class Game {
   playWithPet() {
     if (!this.state.pet) return
     this.state.pet.play()
+
+    // Check quest completion
+    const questModule = this.getModuleSafe('Quest') as any
+    if (questModule) {
+      questModule.checkQuestCompletion('play', this.state.pet.data)
+    }
   }
 
   bathePet() {
     if (!this.state.pet) return
     this.state.pet.bath()
+
+    // Check quest completion
+    const questModule = this.getModuleSafe('Quest') as any
+    if (questModule) {
+      questModule.checkQuestCompletion('bath', this.state.pet.data, this.state.pet.data)
+    }
   }
 
   putPetToSleep() {
     if (!this.state.pet) return
     this.state.pet.sleep()
+
+    // Check bedtime quest completion
+    const questModule = this.getModuleSafe('Quest') as any
+    if (questModule) {
+      questModule.checkQuestCompletion('bedtime', this.state.pet.data)
+    }
   }
 
   // Get active poop count for DebugUI
@@ -267,6 +292,9 @@ export class Game {
 
       if (savedData && savedData.meta.gamePhase === 'pet' && this.state.pet) {
         console.log('🐾 Found saved pet data, loading in quest mode...')
+
+        // Update persistence system with current meta data
+        updateCurrentPetMeta(savedData.meta)
 
         // Import serialization function
         const { deserializePetForQuestMode } = await import('./persistence/serialization')
