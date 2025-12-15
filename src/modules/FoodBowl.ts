@@ -2,9 +2,10 @@
 // Basic feeding mechanics - hunger modification and visual feedback.
 // Ready for expansion: multiple food types, feeding animations, pet preference system.
 
-import { engine } from '@dcl/sdk/ecs'
+import { engine, pointerEventsSystem, InputAction, MeshCollider, ColliderLayer } from '@dcl/sdk/ecs'
 import { game } from '../Game'
 import { GameModule } from '../Game'
+import { EntityNames } from '../../assets/scene/entity-names'
 
 export class FoodBowlModule implements GameModule {
   name = 'FoodBowl'
@@ -12,7 +13,15 @@ export class FoodBowlModule implements GameModule {
 
   init() {
     console.log('🍽️ Food bowl module initialized')
-    this.bowlEntity = engine.getEntityOrNullByName('Food_Bowl')
+    this.bowlEntity = engine.getEntityOrNullByName(EntityNames.Food_Bowl)
+    if (!this.bowlEntity) {
+      console.error('🍽️ Food bowl entity not found!')
+      return
+    }
+
+    // Add collider to make it clickable
+    MeshCollider.setBox(this.bowlEntity, ColliderLayer.CL_POINTER)
+
     this.setupInteractions()
   }
 
@@ -65,7 +74,17 @@ export class FoodBowlModule implements GameModule {
   }
 
   private setupInteractions() {
-    // TODO: Register click handler with interaction service
+    pointerEventsSystem.onPointerDown(
+      {
+        entity: this.bowlEntity!,
+        opts: { button: InputAction.IA_POINTER, hoverText: 'Feed Pet' }
+      },
+      () => {
+        console.log('🍽️ Food bowl clicked - triggering feed!')
+        this.onClick()
+      }
+    )
+
     console.log('🍽️ Food bowl interactions set up')
   }
 

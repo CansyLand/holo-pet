@@ -151,15 +151,15 @@ export class Pet {
     const decayRate = dt / 1000 // Convert to seconds
 
     // Hunger grows faster with high appetite personality
-    const hungerModifier = 1 + this.data.personality.appetite / 100
+    const hungerModifier = 1000 + this.data.personality.appetite / 100
     this.data.hunger = Math.min(100, this.data.hunger + decayRate * hungerModifier)
 
     // Energy decays (slightly affected by energy personality)
-    const energyModifier = 0.8 + this.data.personality.energy / 500 // Less effect on decay
+    const energyModifier = 100 + this.data.personality.energy / 500 // Less effect on decay
     this.data.energy = Math.max(0, this.data.energy - decayRate * energyModifier)
 
     // Cleanliness decays faster with high cleanliness personality
-    const cleanlinessModifier = 1 + this.data.personality.cleanliness / 200
+    const cleanlinessModifier = 100 + this.data.personality.cleanliness / 200
     this.data.cleanliness = Math.max(0, this.data.cleanliness - decayRate * cleanlinessModifier)
 
     // Bond decays when player is absent (1 month = game reset)
