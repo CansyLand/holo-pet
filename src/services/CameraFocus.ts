@@ -15,6 +15,7 @@ import {
 } from '@dcl/sdk/ecs'
 import { Vector3, Quaternion } from '@dcl/sdk/math'
 import { movePlayerTo } from '~system/RestrictedActions'
+import * as utils from '@dcl-sdk/utils'
 import { pointer } from './Pointer'
 // import { CameraFocusComponent, CursorFollowComponent } from '../components/CameraFocus'
 import { game } from '../Game'
@@ -67,10 +68,7 @@ export class CameraFocusService {
   focusOn(entity: any, options: FocusOptions = {}) {
     console.log(`🎥 Focusing on entity: ${entity}`)
 
-    // Move player closer to pet (4m away)
-    this.movePlayerCloserToEntity(entity)
-
-    // Set focus state
+    // Set focus state FIRST
     this.currentFocus = entity
 
     // Create virtual camera for this focus session
@@ -96,6 +94,11 @@ export class CameraFocusService {
 
     // Notify modules of focus change
     this.onFocusChanged(true, entity)
+
+    // Move player closer AFTER camera is set up (with delay to let camera transition happen)
+    // utils.timers.setTimeout(() => {
+    //   this.movePlayerCloserToEntity(entity)
+    // }, 500) // 500ms delay to let camera focus transition complete
   }
 
   // Unfocus current entity

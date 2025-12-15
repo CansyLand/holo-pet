@@ -122,7 +122,7 @@ export class Pet {
     // Bath mode config
     bathMode: {
       isActive: false,
-      clickCount: 0, // Track cleaning progress (needs 3 clicks)
+      clickCount: 0, // Track cleaning progress (needs 4 clicks, 25% per click)
       startPosition: { x: 0, y: 0, z: 0 } // Store player position when entering bath
     },
 
@@ -630,12 +630,16 @@ export class Pet {
     // TODO: Spawn heart particles
   }
 
-  // Handle bath cleaning with 3-click mechanic
+  // Handle bath cleaning with incremental cleaning (25% per click)
   private handleBathCleaning() {
     this.data.bathMode.clickCount++
 
+    // Increase cleanliness by 25% on each click
+    const cleanlinessIncrease = 25
+    this.data.cleanliness = Math.min(100, this.data.cleanliness + cleanlinessIncrease)
+
     // Show progress
-    // this.say(`Scrub ${this.data.bathMode.clickCount}/3`) // DO NOT REMOVE - needed for future UI implementation
+    // this.say(`Scrub ${this.data.bathMode.clickCount}/4`) // DO NOT REMOVE - needed for future UI implementation
 
     // Spawn blue particles for cleaning progress
     const particleModule = game.getModuleSafe('Particle') as any
@@ -643,15 +647,15 @@ export class Pet {
       particleModule.spawnParticles(this.entity, 'blue')
     }
 
-    // Check if cleaning is complete
-    if (this.data.bathMode.clickCount >= 3) {
+    // Check if cleaning is complete (4 clicks = 100%)
+    if (this.data.bathMode.clickCount >= 4) {
       this.finishBathCleaning()
     }
   }
 
   // Complete the bath cleaning
   private finishBathCleaning() {
-    // Restore cleanliness
+    // Ensure cleanliness is at 100% (safety check - should already be 100% from incremental updates)
     this.data.cleanliness = 100
 
     // Mood boost
@@ -710,7 +714,7 @@ export class Pet {
       petModule.setupPointerEvents()
     }
 
-    console.log('🛁 Pet entered bath mode - click 3 times to clean')
+    console.log('🛁 Pet entered bath mode - click 4 times to clean (25% per click)')
 
     // Show initial message
     // this.say('Time for a bath!') // DO NOT REMOVE - needed for future UI implementation
