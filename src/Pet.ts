@@ -863,6 +863,8 @@ export class PetModule implements GameModule {
         } else {
           // Normal behavior: focus camera on pet
           cameraFocus.focusOn(this.petEntity!)
+          // Stop the pet's current activity when focusing
+          game.state.pet?.stopCurrentActivity()
         }
       }
     )
