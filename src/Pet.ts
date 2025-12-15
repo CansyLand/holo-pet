@@ -760,6 +760,13 @@ export class Pet {
   // Set pet name (called after hatching)
   setName(name: string) {
     this.data.name = name
+
+    // Refresh pointer events to update hover text with new name
+    const petModule = game.modules.find((m) => m.name === 'Pet') as any
+    if (petModule && petModule.setupPointerEvents) {
+      petModule.setupPointerEvents()
+    }
+
     // Start with proper state timing after naming
     this.changeState(PetState.IDLE)
   }
@@ -840,16 +847,36 @@ export class PetModule implements GameModule {
     }
 
     pointerEventsSystem.onPointerDown(
-      { entity: this.petEntity, opts: { button: InputAction.IA_POINTER, hoverText: 'Pet companion 🐾' } },
-      () => {
-        // Stop the pet's current activity when clicked
-        if (game.state.pet) {
-          game.state.pet.stopCurrentActivity()
+      {
+        entity: this.petEntity,
+        opts: {
+          button: InputAction.IA_POINTER,
+          hoverText: this.getHoverText() // Dynamic hover text!
         }
-
-        cameraFocus.focusOn(this.petEntity!)
+      },
+      () => {
+        // Check if camera is already focused on this pet
+        if (cameraFocus.isFocused(this.petEntity)) {
+          // FUN: Spawn pink particles when clicked while focused!
+          const particleModule = game.modules.find((module) => module.name === 'Particle') as any
+          particleModule?.spawnParticles(this.petEntity, 'pink')
+        } else {
+          // Normal behavior: focus camera on pet
+          cameraFocus.focusOn(this.petEntity!)
+        }
       }
     )
+  }
+
+  // Add this new helper method for dynamic hover text
+  getHoverText(): string {
+    if (cameraFocus.isFocused(this.petEntity)) {
+      // When focused, show "Pet {Name}"
+      return `Pet`
+    } else {
+      // Normal hover text
+      return game.state.pet?.data.name || 'Unknown'
+    }
   }
 
   update(dt: number) {

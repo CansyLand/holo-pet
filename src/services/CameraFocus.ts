@@ -286,8 +286,12 @@ export class CameraFocusService {
 
   // Notify listeners of focus changes
   private onFocusChanged(isFocused: boolean, entity: any) {
-    // TODO: Notify modules that care about focus state
-    // e.g., Needs module might hide bars when focused
+    // Notify PetModule to update pointer events when focus changes
+    const petModule = game.modules.find((m) => m.name === 'Pet') as any
+    if (petModule && petModule.setupPointerEvents) {
+      petModule.setupPointerEvents()
+    }
+
     console.log(`🎥 Focus changed: ${isFocused ? 'focused' : 'unfocused'} on ${entity}`)
   }
 
