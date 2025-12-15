@@ -14,6 +14,7 @@ import { BallModule } from './modules/Ball'
 import { DecorationModule } from './modules/Decoration'
 import { PoopModule } from './modules/Poop'
 import { HeartParticleModule } from './modules/HeartParticle'
+import { AvatarHiderModule } from './modules/AvatarHider'
 import { PetModule } from './Pet'
 
 // UI Components (will be implemented)
@@ -53,7 +54,9 @@ export function initializeGame() {
   game.registerModule(poopModule)
   game.registerPoopModule(poopModule)
   game.registerModule(new HeartParticleModule())
+  game.registerModule(new AvatarHiderModule())
   game.registerModule(new PetModule())
+  game.registerModule(new AvatarHiderModule())
 
   // Initialize all modules
   game.init()

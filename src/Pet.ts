@@ -200,7 +200,6 @@ export class Pet {
       this.data.state = newState
       this.data.stateStartTime = Date.now()
       this.data.stateDuration = customDuration || this.getRandomStateDuration()
-      console.log(`Pet state changed to ${newState}, duration: ${this.data.stateDuration}ms`)
     }
   }
 
@@ -242,21 +241,15 @@ export class Pet {
 
   // Decide next activity based on current needs (called every 10 seconds)
   private decideNextActivity() {
-    console.log('🐾 Checking what to do next...')
-
     // Check needs in priority order
     if (this.data.hunger > 80) {
       this.changeState(PetState.SEEKING_FOOD)
-      console.log('🐾 Decided: seeking food (hungry!)')
     } else if (this.getPlayerDistance() < 4) {
       this.changeState(PetState.FOLLOWING_PLAYER)
-      console.log('🐾 Decided: following player (owner nearby!)')
     } else if (this.data.energy < 20) {
       this.changeState(PetState.SEEKING_BED)
-      console.log('🐾 Decided: seeking bed (tired)')
     } else if (this.data.cleanliness < 40 && this.data.personality.cleanliness > 75) {
       this.changeState(PetState.SEEKING_BATH)
-      console.log('🐾 Decided: seeking bath (dirty - clean freak personality)')
     } else {
       // No urgent needs - pick fun activity based on personality
       this.pickFunActivity()
@@ -268,27 +261,16 @@ export class Pet {
     const roll = Math.random() * 100
     const p = this.data.personality
 
-    console.log(
-      `🐾 Picking fun activity (roll: ${roll.toFixed(1)}, personality: energy=${p.energy}, appetite=${
-        p.appetite
-      }, cleanliness=${p.cleanliness})`
-    )
-
     if (roll < p.appetite * 0.2) {
       this.changeState(PetState.SEEKING_FOOD)
-      console.log('🐾 Fun activity: seeking food (likes eating)')
     } else if (roll < 25 + p.energy * 0.3) {
       this.changeState(PetState.SEEKING_BALL)
-      console.log('🐾 Fun activity: seeking ball (energetic)')
     } else if (roll < 45 + p.cleanliness * 0.3) {
       this.changeState(PetState.SEEKING_BATH)
-      console.log('🐾 Fun activity: seeking bath (clean freak)')
     } else if (roll < 65) {
       this.changeState(PetState.SEEKING_DECORATION)
-      console.log('🐾 Fun activity: seeking decoration (curious)')
     } else {
       this.changeState(PetState.SEEKING_POOP)
-      console.log('🐾 Fun activity: seeking poop (sniffing around)')
     }
   }
 
@@ -298,61 +280,42 @@ export class Pet {
       case PetState.SEEKING_FOOD:
         if (this.data.hunger > 60) {
           // Still hungry enough - keep moving
-          if (this.moveTowardsFoodBowl(dt)) {
-            // Arrived at food bowl
-            console.log('🐾 Arrived at food bowl!')
-          }
+          this.moveTowardsFoodBowl(dt)
         } else {
           this.changeState(PetState.IDLE) // Done eating
-          console.log('🐾 Finished seeking food (not hungry anymore)')
         }
         break
 
       case PetState.SEEKING_BED:
         if (this.data.energy < 15) {
           // Still tired enough - keep moving
-          if (this.moveTowardsBed(dt)) {
-            // Arrived at bed
-            console.log('🐾 Arrived at bed!')
-          }
+          this.moveTowardsBed(dt)
         } else {
           this.changeState(PetState.IDLE) // Rested enough
-          console.log('🐾 Finished seeking bed (not tired anymore)')
         }
         break
 
       case PetState.SEEKING_BATH:
         if (this.data.cleanliness < 35) {
           // Still dirty enough - keep moving
-          if (this.moveTowardsBath(dt)) {
-            // Arrived at bath
-            console.log('🐾 Arrived at bath!')
-          }
+          this.moveTowardsBath(dt)
         } else {
           this.changeState(PetState.IDLE) // Clean enough
-          console.log('🐾 Finished seeking bath (clean enough)')
         }
         break
 
       case PetState.SEEKING_BALL:
-        if (this.moveTowardsBall(dt)) {
-          // Arrived at ball - stay there until timer changes activity
-          console.log('🐾 Arrived at ball - play time!')
-        }
+        this.moveTowardsBall(dt)
         break
 
       case PetState.SEEKING_DECORATION:
-        if (this.moveTowardsDecoration(dt)) {
-          // Arrived at decoration - stay there until timer changes activity
-          console.log('🐾 Arrived at decoration - curious!')
-        }
+        this.moveTowardsDecoration(dt)
         break
 
       case PetState.SEEKING_POOP:
         if (this.moveTowardsPoop(dt)) {
           // Arrived at poop - clear cache and stay there until timer changes activity
           this.data.cachedPoopPosition = null
-          console.log('🐾 Arrived at poop - sniffing!')
         }
         break
 
@@ -362,7 +325,6 @@ export class Pet {
           this.followPlayerBehavior(dt)
         } else {
           this.changeState(PetState.IDLE) // Player moved away
-          console.log('🐾 Stopped following player (moved away)')
         }
         break
 
@@ -395,7 +357,6 @@ export class Pet {
 
   // Move towards target (stub - implement actual movement)
   private goTo(target: string) {
-    console.log(`🐾 Pet going to: ${target}`)
     // TODO: Get target position and move pet there
   }
 
@@ -444,9 +405,8 @@ export class Pet {
     this.data.isMoving = true
     try {
       Animator.playSingleAnimation(this.entity, 'Walking')
-      console.log('🐾 Playing walking animation')
     } catch (error) {
-      console.log('🐾 Walking animation not found')
+      // Walking animation not found
     }
   }
 
@@ -468,9 +428,8 @@ export class Pet {
     this.data.isMoving = false
     try {
       Animator.playSingleAnimation(this.entity, 'Idle')
-      console.log('🐾 Playing idle animation')
     } catch (error) {
-      console.log('🐾 Idle animation not found')
+      // Idle animation not found
     }
   }
 
@@ -484,7 +443,6 @@ export class Pet {
 
     // Arrived at destination?
     if (distance < 0.5) {
-      console.log('🐾 Arrived at destination!')
       this.playIdleAnimation() // Stop moving, play idle
       return true // Signal we arrived
     }
@@ -547,7 +505,6 @@ export class Pet {
     // Become sleeping when energy is critically low
     if (this.data.energy < 5 && this.data.state !== PetState.SLEEPING) {
       this.changeState(PetState.SLEEPING, 20000) // Sleep for 20 seconds when exhausted
-      console.log('Pet is very tired and fell asleep')
     }
   }
 
@@ -564,7 +521,6 @@ export class Pet {
       w: currentTransform.rotation.w
     }
     this.data.cursorFollow.isActive = true
-    console.log('👁️ Cursor follow enabled for pet')
   }
 
   disableCursorFollow() {
@@ -580,7 +536,6 @@ export class Pet {
     }
 
     this.data.cursorFollow.isActive = false
-    console.log('👁️ Cursor follow disabled for pet - rotation reset')
   }
 
   updateCursorFollow(dt: number) {
@@ -627,8 +582,6 @@ export class Pet {
 
     this.data.quests.feed = true
     this.recordInteraction()
-
-    console.log(`Fed pet. Hunger: ${this.data.hunger}, Mood: ${this.data.mood}`)
   }
 
   pet() {
@@ -643,7 +596,6 @@ export class Pet {
     this.recordInteraction()
 
     // TODO: Spawn heart particles
-    console.log(`Petted pet. Mood: ${this.data.mood}, Bond: ${this.data.bond}`)
   }
 
   play() {
@@ -662,7 +614,6 @@ export class Pet {
     this.recordInteraction()
 
     // TODO: Spawn yellow particles from ball
-    console.log(`Played with pet. Stats updated`)
   }
 
   bath() {
@@ -680,7 +631,6 @@ export class Pet {
     this.recordInteraction()
 
     // TODO: Spawn bubble particles
-    console.log(`Bathed pet. Cleanliness: ${this.data.cleanliness}`)
   }
 
   brush() {
@@ -695,8 +645,6 @@ export class Pet {
 
     this.data.lastBrushTime = Date.now()
     this.recordInteraction()
-
-    console.log(`Brushed pet. Cleanliness: ${this.data.cleanliness}`)
   }
 
   sleep() {
@@ -705,14 +653,12 @@ export class Pet {
     this.recordInteraction()
 
     // TODO: Show ZZZ particles, start energy recharge
-    console.log('Pet went to sleep')
   }
 
   // Wake up pet (called after sleep timer or player interaction)
   wakeUp() {
     this.changeState(PetState.IDLE)
     this.data.energy = 100 // Full energy after sleep
-    console.log('Pet woke up refreshed')
   }
 
   // Autonomous movement behaviors
@@ -720,7 +666,6 @@ export class Pet {
     const targetPos = this.getStationPosition(EntityNames.Food_Bowl)
     if (!targetPos) return true // Can't find food bowl, consider arrived
 
-    console.log('🐾 Pet seeking food bowl')
     return this.moveTowards(targetPos, dt)
   }
 
@@ -728,7 +673,6 @@ export class Pet {
     const targetPos = this.getStationPosition(EntityNames.Bed)
     if (!targetPos) return true // Can't find bed, consider arrived
 
-    console.log('🐾 Pet seeking bed')
     return this.moveTowards(targetPos, dt)
   }
 
@@ -736,7 +680,6 @@ export class Pet {
     const targetPos = this.getStationPosition(EntityNames.Bath_Tub)
     if (!targetPos) return true // Can't find bath, consider arrived
 
-    console.log('🐾 Pet seeking bath')
     return this.moveTowards(targetPos, dt)
   }
 
@@ -744,7 +687,6 @@ export class Pet {
     const targetPos = this.getStationPosition(EntityNames.Ball)
     if (!targetPos) return true // Can't find ball, consider arrived
 
-    console.log('🐾 Pet seeking ball')
     return this.moveTowards(targetPos, dt)
   }
 
@@ -752,7 +694,6 @@ export class Pet {
     const targetPos = this.getStationPosition(EntityNames.Decoration)
     if (!targetPos) return true // Can't find decoration, consider arrived
 
-    console.log('🐾 Pet seeking decoration')
     return this.moveTowards(targetPos, dt)
   }
 
@@ -763,7 +704,6 @@ export class Pet {
       if (!this.data.cachedPoopPosition) return true // Can't find any poop, consider arrived
     }
 
-    console.log('🐾 Pet seeking poop')
     return this.moveTowards(this.data.cachedPoopPosition, dt)
   }
 
@@ -789,7 +729,6 @@ export class Pet {
     }
 
     // Move towards player
-    console.log('🐾 Pet is following player')
     const targetPos = playerPos
     this.moveTowards(targetPos, dt)
   }
@@ -804,7 +743,6 @@ export class Pet {
     this.data.name = name
     // Start with proper state timing after naming
     this.changeState(PetState.IDLE)
-    console.log(`Pet named: ${name}`)
   }
 
   // Set owner ID (from wallet)
@@ -826,14 +764,12 @@ export class PetModule implements GameModule {
   petEntity: Entity | null = null
 
   init() {
-    console.log('🐾 PetModule init')
     this.setupPetEntity()
   }
 
   private setupPetEntity() {
     this.petEntity = engine.getEntityOrNullByName(EntityNames.Tiger)
     if (!this.petEntity) {
-      console.error('🐾 Tiger not found')
       return
     }
 
@@ -868,9 +804,8 @@ export class PetModule implements GameModule {
           }
         ]
       })
-      console.log('🐾 Animator component set up')
     } catch (error) {
-      console.log('🐾 Animator setup failed (animations may not exist in model):', error)
+      // Animator setup failed (animations may not exist in model)
     }
 
     // if (!MeshCollider.has(this.petEntity)) {
@@ -878,25 +813,19 @@ export class PetModule implements GameModule {
     // }
 
     this.setupPointerEvents()
-
-    console.log('🐾 Tiger set up!')
   }
 
   setupPointerEvents() {
     if (!this.petEntity) {
-      console.error('🐾 Cannot set up pointer events - pet entity not found!')
       return
     }
 
     pointerEventsSystem.onPointerDown(
       { entity: this.petEntity, opts: { button: InputAction.IA_POINTER, hoverText: 'Pet companion 🐾' } },
       () => {
-        console.log('🐾 Tiger clicked!')
         cameraFocus.focusOn(this.petEntity!)
       }
     )
-
-    console.log('🐾 Pet pointer events set up')
   }
 
   update(dt: number) {
