@@ -14,7 +14,6 @@ export class NeedsBarsModule implements GameModule {
   rootEntity: Entity | null = null
   barEntities: Entity[] = []
   barOffset = 6 // Height above pet
-  isVisible = false
 
   // Configuration matching old system
   private readonly NEED_CONFIG = [
@@ -46,24 +45,37 @@ export class NeedsBarsModule implements GameModule {
 
   init() {
     console.log('📊 Needs bars module initialized')
-    // Don't create bars yet - wait for pet to be available
-    // Bars will be created after pet hatches via createBarsWhenPetReady()
+    // Create bars once during init when pet entity is available
+    this.createBars()
   }
 
-  // Remove update() method - handled by needsBarsSystem
+  // Try to create bars if pet becomes available later
+  tryCreateBars() {
+    if (!this.rootEntity && game.state.pet?.entity) {
+      this.createBars()
+    }
+  }
 
-  // Create bars when pet is ready (called after pet hatching)
-  createBarsWhenPetReady() {
-    console.log('📊 Creating needs bars now that pet is available')
+  // Single simple method - bars only show/hide when explicitly called
+  setVisible(visible: boolean) {
+    if (!this.rootEntity) return
+
+    const scale = visible ? Vector3.create(1, 1, 1) : Vector3.create(0.001, 0.001, 0.001)
+    Transform.getMutable(this.rootEntity).scale = scale
+    console.log(`📊 Bars ${visible ? 'shown' : 'hidden'} manually`)
+  }
+
+  // Create bars once during init (when pet entity exists)
+  createBars() {
+    console.log('📊 Creating needs bars')
     this.createNeedsUI()
-    // Don't show immediately - let game state control visibility
   }
 
   private createNeedsUI() {
     // Get pet entity for parenting
     const petEntity = game.state.pet?.entity
     if (!petEntity) {
-      console.log('📊 Pet entity not available for parenting needs bars')
+      console.log('📊 Pet entity not available for parenting needs bars - will create bars when pet is available')
       return
     }
 
@@ -71,7 +83,8 @@ export class NeedsBarsModule implements GameModule {
     this.rootEntity = engine.addEntity()
     Transform.create(this.rootEntity, {
       parent: petEntity, // Parent to pet entity for automatic following
-      position: Vector3.create(0, this.barOffset, 0) // Relative position
+      position: Vector3.create(0, this.barOffset, 0), // Relative position
+      scale: Vector3.create(0.001, 0.001, 0.001) // Start hidden
     })
     Billboard.create(this.rootEntity, { billboardMode: BillboardMode.BM_Y })
 
@@ -154,8 +167,10 @@ export class NeedsBarsModule implements GameModule {
     const barHeight = 0.6
     const newHeight = Math.max(0.02, barHeight * fillPct)
     const fillTransform = Transform.getMutable(fillEntity)
-    fillTransform.scale = Vector3.create(0.85, newHeight, 0.85)
-    fillTransform.position = Vector3.create(0, -barHeight / 2 + newHeight / 2, 0)
+    fillTransform.scale = Vector3.create(0.085, newHeight, 0.085)
+    // Preserve the X position (baseX) while updating Y position for height
+    const currentX = fillTransform.position.x
+    fillTransform.position = Vector3.create(currentX, -barHeight / 2 + newHeight / 2, 0)
 
     const color = this.getBarColor(fillPct)
     Material.setPbrMaterial(fillEntity, {
@@ -167,7 +182,7 @@ export class NeedsBarsModule implements GameModule {
     })
   }
 
-  // Public method for system to update all bars
+  // Public method for updating all bars
   updateAllBars() {
     if (!game.state.pet) return
 
@@ -186,99 +201,30 @@ export class NeedsBarsModule implements GameModule {
     }
     return Color4.fromHexString('#ff4d4f') // Red - bad
   }
-
-  showBars() {
-    if (!this.rootEntity || this.isVisible) {
-      console.log('📊 showBars: No root entity or already visible', {
-        rootEntity: !!this.rootEntity,
-        isVisible: this.isVisible
-      })
-      return
-    }
-    this.isVisible = true
-    console.log('📊 showBars: Making bars visible using scaling')
-
-    // Use scaling approach like original NeedsUI
-    const transform = Transform.getMutable(this.rootEntity)
-    transform.scale = Vector3.create(1, 1, 1)
-    console.log('📊 showBars: Bars should now be visible (scale = 1)')
-  }
-
-  hideBars() {
-    if (!this.rootEntity || !this.isVisible) {
-      console.log('📊 hideBars: No root entity or already hidden', {
-        rootEntity: !!this.rootEntity,
-        isVisible: this.isVisible
-      })
-      return
-    }
-    this.isVisible = false
-    console.log('📊 hideBars: Hiding bars using scaling')
-
-    // Use scaling approach like original NeedsUI
-    const transform = Transform.getMutable(this.rootEntity)
-    transform.scale = Vector3.create(0.001, 0.001, 0.001)
-    console.log('📊 hideBars: Bars should now be hidden (scale = 0.001)')
-  }
-
-  onGameStateChange() {
-    if (game.state.phase === 'pet') {
-      this.showBars()
-    } else {
-      this.hideBars()
-    }
-  }
-
-  onFocusChange(isFocused: boolean) {
-    if (isFocused) {
-      this.hideBars() // Don't show bars when camera is focused on pet
-    } else {
-      this.showBars()
-    }
-  }
-
-  cleanup() {
-    console.log('📊 Needs bars module cleanup')
-    this.hideBars()
-  }
 }
 
-// NeedsBars system - handles periodic updates and visibility
+// Simple periodic update system for bars (only when visible)
 let needsBarsModuleInstance: NeedsBarsModule | null = null
 let lastUpdateTime = 0
-const UPDATE_INTERVAL = 1000 // 1 second
+const UPDATE_INTERVAL = 250 // 1/4 second
 
 export function initializeNeedsBarsSystem(module: NeedsBarsModule) {
   needsBarsModuleInstance = module
-  console.log('📊 Needs bars system initialized')
+  console.log('📊 Needs bars system initialized (manual control only)')
 }
 
 export function needsBarsSystem(dt: number) {
   if (!needsBarsModuleInstance) return
 
-  // Check visibility based on game state
-  const shouldBeVisible = game.state.phase === 'pet' && game.state.pet !== null
-  if (shouldBeVisible && !needsBarsModuleInstance.isVisible) {
-    needsBarsModuleInstance.showBars()
-  } else if (!shouldBeVisible && needsBarsModuleInstance.isVisible) {
-    needsBarsModuleInstance.hideBars()
-  }
+  // Only update bars if they are visible and pet exists
+  const isVisible =
+    needsBarsModuleInstance.rootEntity && Transform.get(needsBarsModuleInstance.rootEntity).scale.x > 0.1 // Check if not hidden
 
-  // Update bars once per second if visible
-  if (needsBarsModuleInstance.isVisible && game.state.pet) {
+  if (isVisible && game.state.pet) {
     const now = Date.now()
     if (now - lastUpdateTime >= UPDATE_INTERVAL) {
       lastUpdateTime = now
-
-      // Update all bars through public method
       needsBarsModuleInstance.updateAllBars()
-
-      console.log('📊 Updated needs bars:', {
-        hunger: game.state.pet.data.hunger,
-        mood: game.state.pet.data.mood,
-        energy: game.state.pet.data.energy,
-        cleanliness: game.state.pet.data.cleanliness
-      })
     }
   }
 }

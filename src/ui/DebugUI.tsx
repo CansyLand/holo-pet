@@ -57,7 +57,18 @@ interface PetStats {
   }
 }
 
-let cachedStats: PetStats | null = null
+let cachedStats: PetStats = {
+  name: 'No Pet',
+  mood: 0,
+  hunger: 0,
+  energy: 0,
+  bond: 0,
+  trustLevel: 'None',
+  cleanliness: 0,
+  poopCount: 0,
+  personalityTraits: { energy: 0, sociability: 0, cleanliness: 0, appetite: 0 },
+  quests: { feed: false, play: false, bath: false, bedtime: false }
+} // Always has data now
 
 /**
  * Find the active pet and cache its stats
@@ -86,7 +97,29 @@ function updateCachedStats() {
       quests: game.state.pet.data.quests
     }
   } else {
-    cachedStats = null
+    // Show placeholder data when no pet (fallback - shouldn't happen in current architecture)
+    cachedStats = {
+      name: 'No Pet',
+      mood: 0,
+      hunger: 0,
+      energy: 0,
+      bond: 0,
+      trustLevel: 'None',
+      cleanliness: 0,
+      poopCount: 0,
+      personalityTraits: {
+        energy: 0,
+        sociability: 0,
+        cleanliness: 0,
+        appetite: 0
+      },
+      quests: {
+        feed: false,
+        play: false,
+        bath: false,
+        bedtime: false
+      }
+    }
   }
 }
 
@@ -173,17 +206,44 @@ function minAllStats() {
 }
 
 /**
- * Reset the game - remove pet, return to egg state
+ * Reset the game - reset pet stats, return to egg state
  */
 function resetGame() {
   console.log('=== RESETTING GAME ===')
 
-  // Reset game state to EGG phase
-  game.setState({ phase: GamePhase.EGG, pet: null })
+  // Hide bars before resetting state
+  try {
+    const needsModule = game.getModuleSafe('Needs') as any
+    if (needsModule) {
+      needsModule.setVisible(false)
+      console.log('🔄 Reset: Bars hidden')
+    }
+  } catch (error) {
+    console.error('🔄 Reset: Error hiding bars:', error)
+  }
 
-  // TODO: Add cleanup logic for entities, systems, etc.
-  // This would need to be adapted from the old resetGame function
-  // based on your new architecture
+  // Reset pet stats but keep the pet object
+  if (game.state.pet) {
+    game.state.pet.data.name = 'Unnamed Pet'
+    game.state.pet.data.mood = 100
+    game.state.pet.data.hunger = 0 // 0 = not hungry
+    game.state.pet.data.energy = 100
+    game.state.pet.data.cleanliness = 100
+    game.state.pet.data.bond = 50
+
+    // Reset quests
+    game.state.pet.data.quests = {
+      feed: false,
+      play: false,
+      bath: false,
+      bedtime: false
+    }
+
+    console.log('🐾 Pet stats reset, keeping pet object')
+  }
+
+  // Reset game state to EGG phase (pet stays but hidden by visibility system)
+  game.setState({ phase: GamePhase.EGG })
 
   console.log('=== GAME RESET COMPLETE ===')
 }
@@ -316,10 +376,7 @@ export function DebugUI() {
     )
   }
 
-  // Don't show if no pet exists
-  if (!cachedStats) {
-    return null
-  }
+  // Always show debug UI (even with placeholder data)
 
   return (
     <UiEntity
@@ -449,11 +506,11 @@ export function DebugUI() {
 
               if (needsModule) {
                 if (needsUIEnabled) {
-                  console.log('🔍 DebugUI: Calling showBars()')
-                  needsModule.showBars()
+                  console.log('🔍 DebugUI: Setting bars visible')
+                  needsModule.setVisible(true)
                 } else {
-                  console.log('🔍 DebugUI: Calling hideBars()')
-                  needsModule.hideBars()
+                  console.log('🔍 DebugUI: Setting bars hidden')
+                  needsModule.setVisible(false)
                 }
               } else {
                 console.log('🔍 DebugUI: Needs module not found!')

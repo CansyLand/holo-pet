@@ -58,8 +58,22 @@ export class Game {
       theme: Theme.DEFAULT
     })
 
+    // Initialize pet immediately (but keep it hidden)
+    this.initializePet()
+
     // Note: Visibility initialization moved to initializeGame() after modules are loaded
     console.log('🎮 Game entity created with initial state')
+  }
+
+  private initializePet() {
+    // Create pet data immediately
+    const petData = new Pet(Species.TIGER)
+    this.state.pet = petData
+
+    // Assign existing tiger entity to pet
+    Pet.assignEntityToPet(this.state.pet)
+
+    console.log('🐾 Pet initialized and hidden at game start')
   }
 
   // Register a module with the game
@@ -148,24 +162,19 @@ export class Game {
   hatchEgg() {
     if (this.state.phase !== GamePhase.EGG) return
 
-    console.log('🥚 Egg hatching → directly to PET phase')
+    console.log('🥚 Egg hatching → show existing pet')
 
-    // Create Pet DATA immediately
-    const petData = new Pet(Species.TIGER)
-    this.state.pet = petData
-
-    // ASSIGN PET ENTITY (clean call to Pet class)
-    Pet.assignEntityToPet(this.state.pet)
-
-    // CREATE NEEDS BARS now that pet entity exists
+    // Ensure bars are created (they should already be from init, but just in case)
     const needsModule = this.getModuleSafe('Needs') as any
     if (needsModule) {
-      needsModule.createBarsWhenPetReady()
+      needsModule.tryCreateBars()
+      // 🔄 NEW: Show bars by default when entering PET phase
+      needsModule.setVisible(true)
     }
 
-    // Switch directly to PET (Visibility will hide egg/show pet scene)
+    // Switch to PET phase (Visibility will hide egg/show pet scene)
     this.setState({ phase: GamePhase.PET })
-    console.log('🐾 Pet DATA + phase=PET (scene switch triggered)')
+    console.log('🐾 Pet revealed + phase=PET (scene switch triggered)')
 
     // Show naming UI
     import('./ui/Naming').then(({ showNamingUI }) => {
@@ -176,7 +185,7 @@ export class Game {
       })
     })
 
-    console.log('🐾 Direct to PET + naming complete!')
+    console.log('🐾 Pet revealed + naming prompt shown!')
   }
 
   // Handle pet care interactions

@@ -89,7 +89,7 @@ export function main() {
 
   // 2.5. Add systems
   engine.addSystem(cursorFollowSystem)
-  // engine.addSystem(needsBarsSystem)
+  engine.addSystem(needsBarsSystem)
   engine.addSystem((dt) => game.update(dt), 1, 'GameUpdateSystem')
 
   // 3. Setup ReactECS UI
