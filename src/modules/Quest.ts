@@ -5,6 +5,7 @@
 import { engine, Entity } from '@dcl/sdk/ecs'
 import { game, GameModule } from '../Game'
 import { triggerSave } from '../services/Persistence'
+import { startQuestCompletionAnimation } from '../ui/QuestAnimations'
 
 // Quest state entity (singleton)
 let questStateEntity: Entity | null = null
@@ -168,25 +169,33 @@ export class QuestModule implements GameModule {
   private completeQuest(questType: 'feed' | 'play' | 'bath' | 'bedtime', questState: QuestState) {
     console.log(`✅ Quest completed: ${questType}`)
 
-    // Mark quest as completed
+    // Determine quest index for animation
+    let questIndex = 0
     switch (questType) {
       case 'feed':
         this.updateQuestState({ feedCompleted: true })
         completionFlags.feedAwarded = true
+        questIndex = 0
         break
       case 'play':
         this.updateQuestState({ playCompleted: true })
         completionFlags.playAwarded = true
+        questIndex = 1
         break
       case 'bath':
         this.updateQuestState({ bathCompleted: true })
         completionFlags.bathAwarded = true
+        questIndex = 2
         break
       case 'bedtime':
         this.updateQuestState({ bedtimeCompleted: true })
         completionFlags.bedtimeAwarded = true
+        questIndex = 3
         break
     }
+
+    // Trigger completion animation
+    startQuestCompletionAnimation(questIndex)
 
     // Award XP (could be extended to modify pet score)
     console.log(`🎉 Awarded XP for quest completion!`)

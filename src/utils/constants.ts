@@ -1,5 +1,7 @@
 // Game Constants - Magic numbers extracted for maintainability
 
+import { Color4 } from '@dcl/sdk/math'
+
 // =============================================================================
 // TIME SYSTEM CONSTANTS
 // =============================================================================
@@ -181,6 +183,30 @@ export const SLEEP_FULL_ENERGY_THRESHOLD = 95 // Energy above this = pet wakes u
 // Quest Animation
 export const QUEST_ANIMATION_DURATION = 0.4 // seconds for carousel animations
 export const QUEST_COMPLETE_SCALE_PULSE = 1.2 // scale multiplier for completion effect
+
+// =============================================================================
+// QUEST UI CONSTANTS
+// =============================================================================
+// Quest UI Colors
+export const QUEST_UI_BG_COLOR = Color4.create(1, 1, 1, 0.95) // White background
+export const QUEST_UI_TEXT_COLOR = Color4.create(0.3, 0.3, 0.3, 1) // Dark gray text
+export const QUEST_UI_SQUARE_INACTIVE = Color4.create(0.6, 0.6, 0.6, 1) // Gray square
+export const QUEST_UI_SQUARE_COMPLETE = Color4.create(0.2, 0.8, 0.2, 1) // Green square
+
+// Quest UI Layout
+export const QUEST_UI_PANEL_WIDTH = 220
+export const QUEST_UI_BORDER_RADIUS = 12
+export const QUEST_UI_ROW_HEIGHT_INACTIVE = 32
+export const QUEST_UI_ROW_HEIGHT_ACTIVE = 40
+export const QUEST_UI_SQUARE_SIZE_INACTIVE = 16
+export const QUEST_UI_SQUARE_SIZE_ACTIVE = 20
+export const QUEST_UI_TEXT_FONT_SIZE_INACTIVE = 14
+export const QUEST_UI_TEXT_FONT_SIZE_ACTIVE = 16
+export const QUEST_UI_ACTIVE_OPACITY = 1.0
+export const QUEST_UI_INACTIVE_OPACITY = 0.5
+
+// Quest Animation Constants
+export const QUEST_SLIDE_DISTANCE = -20 // pixels to slide completed quests
 
 // =============================================================================
 // MULTIPLAYER CONSTANTS

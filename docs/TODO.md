@@ -2,7 +2,7 @@ Open Discord
 
 ======= CODE
 
-Refactor
+simplify quest (3 files into 1?)
 
 change color -> egg, hologram,
 
