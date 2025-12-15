@@ -46,6 +46,9 @@ export class Game {
   // Modules register themselves
   modules: GameModule[] = []
 
+  // Poop module reference (set when registered)
+  poopModule: any = null
+
   constructor() {
     // Create the game entity that holds global state
     this.gameEntity = engine.addEntity()
@@ -184,6 +187,23 @@ export class Game {
   putPetToSleep() {
     if (!this.state.pet) return
     this.state.pet.sleep()
+  }
+
+  // Get active poop count for DebugUI
+  getActivePoopCount(): number {
+    return this.poopModule ? this.poopModule.getActivePoopCount() : 0
+  }
+
+  // Force spawn poop for DebugUI
+  forceSpawnPoop() {
+    if (this.poopModule) {
+      this.poopModule.forceSpawnPoop()
+    }
+  }
+
+  // Register the poop module when it's added
+  registerPoopModule(poopModule: any) {
+    this.poopModule = poopModule
   }
 
   // Cleanup when game ends or resets

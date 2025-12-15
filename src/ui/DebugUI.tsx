@@ -42,6 +42,7 @@ interface PetStats {
   bond: number
   trustLevel: string
   cleanliness: number
+  poopCount: number
   personalityTraits: {
     energy: number
     sociability: number
@@ -75,6 +76,7 @@ function updateCachedStats() {
       bond: Math.round(game.state.pet.data.bond),
       trustLevel: game.state.pet.getTrustLevel(),
       cleanliness: Math.round(game.state.pet.data.cleanliness),
+      poopCount: game.getActivePoopCount(),
       personalityTraits: {
         energy: game.state.pet.data.personality.energy,
         sociability: game.state.pet.data.personality.sociability,
@@ -361,6 +363,7 @@ export function DebugUI() {
       <StatRow label="Energy" value={cachedStats.energy} stat="energy" />
       <StatRow label="Bond" value={`${cachedStats.bond} (${cachedStats.trustLevel})`} stat="bond" />
       <StatRow label="Clean" value={cachedStats.cleanliness} stat="cleanliness" />
+      <StatRow label="Poop Count" value={cachedStats.poopCount} showButtons={false} />
 
       {/* Personality Section */}
       <Label
@@ -404,6 +407,13 @@ export function DebugUI() {
           fontSize={11}
           uiTransform={{ width: 65, height: 26 }}
           onMouseDown={() => minAllStats()}
+        />
+        <Button
+          value="Poop"
+          variant="secondary"
+          fontSize={11}
+          uiTransform={{ width: 65, height: 26 }}
+          onMouseDown={() => game.forceSpawnPoop()}
         />
       </UiEntity>
 

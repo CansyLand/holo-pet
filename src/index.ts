@@ -46,7 +46,9 @@ export function initializeGame() {
   game.registerModule(new BedModule())
   game.registerModule(new BallModule())
   game.registerModule(new DecorationModule())
-  game.registerModule(new PoopModule())
+  const poopModule = new PoopModule()
+  game.registerModule(poopModule)
+  game.registerPoopModule(poopModule)
   game.registerModule(new HeartParticleModule())
   game.registerModule(new PetModule())
 
@@ -84,6 +86,7 @@ export function main() {
 
   // 2.5. Add cursor follow system
   engine.addSystem(cursorFollowSystem)
+  engine.addSystem((dt) => game.update(dt), 1, 'GameUpdateSystem')
 
   // 3. Setup ReactECS UI
   ReactEcsRenderer.setUiRenderer(CombinedUI)
