@@ -1,9 +1,12 @@
-// EPIC: Pet Care Interactions - Daily Quest System (Bedtime)
-// Basic energy recharge - sleep interaction and rest mechanics.
-// Ready for expansion: sleep cycle simulation, dream sequences, energy recharge over time.
+// EPIC: Pet Care Interactions - Sleep Interaction Story
+// Basic sleep mechanics - manual bed interaction and visual feedback.
+// Ready for expansion: sleep quality, bed preferences, bedtime routines.
 
+import { engine, pointerEventsSystem, InputAction, MeshCollider, ColliderLayer } from '@dcl/sdk/ecs'
 import { game } from '../Game'
 import { GameModule } from '../Game'
+import { EntityNames } from '../../assets/scene/entity-names'
+import { PetState } from '../Pet'
 
 export class BedModule implements GameModule {
   name = 'Bed'
@@ -11,96 +14,83 @@ export class BedModule implements GameModule {
 
   init() {
     console.log('🛏️ Bed module initialized')
-    // TODO: Find bed entity by name
-    // this.bedEntity = engine.getEntityOrNullByName('Bed')
+    this.bedEntity = engine.getEntityOrNullByName(EntityNames.Bed)
+    if (!this.bedEntity) {
+      console.error('🛏️ Bed entity not found!')
+      return
+    }
+
+    // Add collider to make it clickable
+    MeshCollider.setBox(this.bedEntity, ColliderLayer.CL_POINTER)
+
     this.setupInteractions()
   }
 
   update(dt: number) {
-    // Handle sleep timers, energy recharge, etc.
-    this.handleSleepMechanics(dt)
+    // Handle any bed animations or effects
   }
 
   onClick() {
-    console.log('🛏️ Bed clicked - putting pet to sleep')
-    this.putPetToSleep()
+    console.log('🛏️ Bed clicked - pet will go to bed')
+    this.triggerPetToBed()
   }
 
-  private putPetToSleep() {
+  private triggerPetToBed() {
     if (!game.state.pet) return
 
-    // Trigger sleep in pet object
-    game.putPetToSleep()
-
-    // Start sleep sequence
-    this.startSleepSequence()
-
-    console.log('🛏️ Pet put to sleep')
-  }
-
-  private startSleepSequence() {
-    // TODO: Move pet to bed position
-    // TODO: Play sleep animation
-    // TODO: Show ZZZ particles
-
-    console.log('😴 Starting sleep sequence')
-    this.spawnZZZParticles()
-  }
-
-  private spawnZZZParticles() {
-    // TODO: Spawn white ZZZ particles above pet head
-    // Float upward slowly
-    console.log('💤 Spawning ZZZ particles')
-  }
-
-  // Handle sleep mechanics and energy recharge
-  private handleSleepMechanics(dt: number) {
-    if (!game.state.pet) return
-
-    // TODO: Check if pet is sleeping
-    // if (game.state.pet.data.state === 'sleeping') {
-    //   // Recharge energy over time
-    //   const rechargeRate = dt / 1000 // 1 energy per second
-    //   game.state.pet.data.energy = Math.min(100, game.state.pet.data.energy + rechargeRate)
-    //
-    //   // Wake up when fully rested
-    //   if (game.state.pet.data.energy >= 100) {
-    //     this.wakePetUp()
-    //   }
-    // }
-  }
-
-  private wakePetUp() {
-    // TODO: Play wake up animation
-    // TODO: Remove ZZZ particles
-    if (game.state.pet) {
-      game.state.pet.wakeUp()
-      console.log('🌅 Pet woke up refreshed')
+    // If pet is already seeking bed, let it continue
+    if (game.state.pet.data.state === PetState.SEEKING_BED) {
+      console.log('🛏️ Pet already going to bed')
+      return
     }
+
+    // Otherwise, trigger pet to seek the bed
+    game.state.pet.startSeekingBed()
+
+    console.log('🛏️ Pet triggered to go to bed')
   }
 
-  // Ready for expansion: sleep cycle simulation
-  simulateSleepCycle() {
-    // TODO: Different sleep stages (light, deep, REM)
-    // TODO: Different recharge rates for each stage
-    console.log('🌙 Simulating sleep cycle')
+  private spawnSleepParticles() {
+    const particleModule = game.getModuleSafe('Particle') as any
+    if (particleModule && this.bedEntity) {
+      particleModule.spawnParticles(this.bedEntity, 'blue') // ZZZ particles?
+    }
+    console.log('💤 Spawning sleep particles')
   }
 
-  // Ready for expansion: dream sequences
-  playDreamSequence() {
-    // TODO: Mini dream animations or sequences
-    // TODO: Mood boosts from good dreams
-    console.log('💭 Playing dream sequence')
+  // Ready for expansion: different bed types
+  upgradeBed(bedType: string) {
+    // TODO: Different beds with different comfort levels
+    // Luxury bed: faster energy restoration
+    // Cozy bed: better mood boost
+    // Smart bed: tracks sleep patterns
+    console.log(`🛏️ Upgrading bed to: ${bedType}`)
   }
 
-  // Ready for expansion: wake up animations
-  playWakeUpAnimation() {
-    // TODO: Pet stretches, yawns, gets up from bed
-    console.log('🌅 Playing wake up animation')
+  // Ready for expansion: bedtime routines
+  playBedtimeRoutine() {
+    // TODO: Pet walks to bed, bedtime animation, lights dim slightly
+    console.log('🛏️ Playing bedtime routine')
+  }
+
+  // Ready for expansion: sleep quality system
+  getSleepQuality(): number {
+    // TODO: Based on pet stats, time of day, bed type
+    return 0.8 // Placeholder - 80% sleep quality
   }
 
   private setupInteractions() {
-    // TODO: Register click handler with interaction service
+    pointerEventsSystem.onPointerDown(
+      {
+        entity: this.bedEntity!,
+        opts: { button: InputAction.IA_POINTER, hoverText: 'Send Pet to Bed' }
+      },
+      () => {
+        console.log('🛏️ Bed clicked - triggering sleep!')
+        this.onClick()
+      }
+    )
+
     console.log('🛏️ Bed interactions set up')
   }
 

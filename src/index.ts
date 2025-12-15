@@ -17,7 +17,7 @@ import { PoopModule } from './modules/Poop'
 import { ParticleModule } from './modules/Particle'
 import { AvatarHiderModule } from './modules/AvatarHider'
 import { QuestModule } from './modules/Quest'
-import { PetModule } from './Pet'
+import { PetModule } from './modules/Pet'
 
 // UI Components (will be implemented)
 import { DebugUI } from './ui/DebugUI'
