@@ -2,8 +2,10 @@
 // Basic cleanliness mechanics - bathing interaction and mood boost.
 // Ready for expansion: bathing mini-game, water effects, bathing animations.
 
+import { engine, pointerEventsSystem, InputAction, MeshCollider, ColliderLayer } from '@dcl/sdk/ecs'
 import { game } from '../Game'
 import { GameModule } from '../Game'
+import { EntityNames } from '../../assets/scene/entity-names'
 
 export class BathModule implements GameModule {
   name = 'Bath'
@@ -11,8 +13,15 @@ export class BathModule implements GameModule {
 
   init() {
     console.log('🛁 Bath module initialized')
-    // TODO: Find bath entity by name
-    // this.bathEntity = engine.getEntityOrNullByName('Bath_Tub')
+    this.bathEntity = engine.getEntityOrNullByName(EntityNames.Bath_Tub)
+    if (!this.bathEntity) {
+      console.error('🛁 Bath entity not found!')
+      return
+    }
+
+    // Add collider to make it clickable
+    MeshCollider.setBox(this.bathEntity, ColliderLayer.CL_POINTER)
+
     this.setupInteractions()
   }
 
@@ -64,7 +73,17 @@ export class BathModule implements GameModule {
   }
 
   private setupInteractions() {
-    // TODO: Register click handler with interaction service
+    pointerEventsSystem.onPointerDown(
+      {
+        entity: this.bathEntity!,
+        opts: { button: InputAction.IA_POINTER, hoverText: 'Bathe Pet' }
+      },
+      () => {
+        console.log('🛁 Bath clicked - triggering bath!')
+        this.onClick()
+      }
+    )
+
     console.log('🛁 Bath interactions set up')
   }
 

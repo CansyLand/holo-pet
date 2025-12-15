@@ -1,9 +1,11 @@
 // EPIC: Pet Care Interactions - Play Interaction Story
-// Interactive ball for play. Currently basic placeholder - ready for physics mini-games.
+// Interactive ball for play. Pet gets tired and dirty from playing!
 // Future: ball physics, pet AI to chase and fetch, throwing mechanics.
 
+import { engine, pointerEventsSystem, InputAction, MeshCollider, ColliderLayer } from '@dcl/sdk/ecs'
 import { game } from '../Game'
 import { GameModule } from '../Game'
+import { EntityNames } from '../../assets/scene/entity-names'
 
 export class BallModule implements GameModule {
   name = 'Ball'
@@ -11,8 +13,15 @@ export class BallModule implements GameModule {
 
   init() {
     console.log('🏀 Ball module initialized')
-    // TODO: Find ball entity by name
-    // this.ballEntity = engine.getEntityOrNullByName('Ball')
+    this.ballEntity = engine.getEntityOrNullByName(EntityNames.Ball)
+    if (!this.ballEntity) {
+      console.error('🏀 Ball entity not found!')
+      return
+    }
+
+    // Add collider to make it clickable
+    MeshCollider.setBox(this.ballEntity, ColliderLayer.CL_POINTER)
+
     this.setupInteractions()
   }
 
@@ -68,7 +77,17 @@ export class BallModule implements GameModule {
   }
 
   private setupInteractions() {
-    // TODO: Register click handler with interaction service
+    pointerEventsSystem.onPointerDown(
+      {
+        entity: this.ballEntity!,
+        opts: { button: InputAction.IA_POINTER, hoverText: 'Play with Pet' }
+      },
+      () => {
+        console.log('🏀 Ball clicked - triggering play!')
+        this.onClick()
+      }
+    )
+
     console.log('🏀 Ball interactions set up')
   }
 
