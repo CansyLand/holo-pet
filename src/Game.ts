@@ -148,6 +148,15 @@ export class Game {
       }
     }
 
+    // Try to assign pet entity if not already assigned
+    // This retries until the Tiger entity is available (loads asynchronously)
+    if (this.state.pet && !this.state.pet.entity) {
+      const assigned = Pet.assignEntityToPet(this.state.pet)
+      if (assigned) {
+        console.log('🐾 Pet entity assigned successfully (retry successful)')
+      }
+    }
+
     // Handle interactions (will use interaction service)
     this.handleInteractions()
   }
@@ -235,6 +244,59 @@ export class Game {
   // Register the poop module when it's added
   registerPoopModule(poopModule: any) {
     this.poopModule = poopModule
+  }
+
+  // Load saved pet data and switch to pet phase if pet exists
+  // Uses quest mode deserialization (low levels for quest completion)
+  async loadSavedPet(): Promise<boolean> {
+    try {
+      // Get wallet address (should be available now that player data is ready)
+      const { getWalletAddress } = await import('./utils/wallet')
+      const userId = getWalletAddress()
+
+      if (!userId) {
+        console.log('🐾 No wallet address available, cannot load saved pet')
+        return false
+      }
+
+      console.log('🐾 Loading saved pet data for:', userId.slice(0, 10) + '...')
+
+      // Dynamic import to avoid circular dependencies
+      const { loadPet } = await import('./persistence/api')
+      const savedData = await loadPet()
+
+      if (savedData && savedData.meta.gamePhase === 'pet' && this.state.pet) {
+        console.log('🐾 Found saved pet data, loading in quest mode...')
+
+        // Import serialization function
+        const { deserializePetForQuestMode } = await import('./persistence/serialization')
+
+        // Load pet data with LOW levels for quest completion
+        const petData = deserializePetForQuestMode(savedData)
+
+        // Apply to existing pet
+        Object.assign(this.state.pet.data, petData)
+
+        // Update pet name in UI/hover text
+        this.state.pet.setName(petData.name)
+
+        // Set owner ID from wallet
+        const { getWalletAddress } = await import('./utils/wallet')
+        this.state.pet.setOwner(getWalletAddress() || '')
+
+        // Switch to PET phase (egg disappears, pet appears, bars auto-show)
+        this.setState({ phase: GamePhase.PET })
+
+        console.log('🐾 Pet loaded with low levels - ready for quests!')
+        return true
+      }
+
+      console.log('🐾 No saved pet data found for this wallet, staying in egg phase')
+      return false
+    } catch (error) {
+      console.error('🐾 Failed to load saved pet:', error)
+      return false
+    }
   }
 
   // Cleanup when game ends or resets

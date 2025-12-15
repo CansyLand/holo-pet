@@ -65,7 +65,7 @@ export class Pet {
       console.log('🐾 Pet entity reference set')
       return true
     } else {
-      console.error('🐾 Tiger entity not found!')
+      // Don't log error here - this will be called repeatedly until entity is available
       return false
     }
   }

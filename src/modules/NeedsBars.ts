@@ -5,7 +5,7 @@
 
 import { engine, Entity, Transform, MeshRenderer, Material, TextShape, Billboard, BillboardMode } from '@dcl/sdk/ecs'
 import { Vector3, Color4 } from '@dcl/sdk/math'
-import { game } from '../Game'
+import { game, GamePhase } from '../Game'
 import { GameModule } from '../Game'
 import { visibility } from '../services/Visibility'
 
@@ -203,24 +203,38 @@ export class NeedsBarsModule implements GameModule {
   }
 }
 
-// Simple periodic update system for bars (only when visible)
+// Automatic state-based update system for bars
 let needsBarsModuleInstance: NeedsBarsModule | null = null
 let lastUpdateTime = 0
-const UPDATE_INTERVAL = 250 // 1/4 second
+const UPDATE_INTERVAL = 250 // 1/4 second (4 times per second)
 
 export function initializeNeedsBarsSystem(module: NeedsBarsModule) {
   needsBarsModuleInstance = module
-  console.log('📊 Needs bars system initialized (manual control only)')
+  console.log('📊 Needs bars system initialized (automatic state-based control)')
 }
 
 export function needsBarsSystem(dt: number) {
   if (!needsBarsModuleInstance) return
 
-  // Only update bars if they are visible and pet exists
-  const isVisible =
-    needsBarsModuleInstance.rootEntity && Transform.get(needsBarsModuleInstance.rootEntity).scale.x > 0.1 // Check if not hidden
+  // ✅ Try to create bars if pet entity becomes available
+  needsBarsModuleInstance.tryCreateBars()
 
-  if (isVisible && game.state.pet) {
+  // ✅ Check game state automatically 4 times per second
+  const shouldBeVisible = game.state.phase === GamePhase.PET
+  const isCurrentlyVisible =
+    needsBarsModuleInstance.rootEntity && Transform.get(needsBarsModuleInstance.rootEntity).scale.x > 0.1
+
+  // Auto-show/hide based on game state
+  if (shouldBeVisible && !isCurrentlyVisible) {
+    console.log('📊 Auto-showing needs bars (PET phase)')
+    needsBarsModuleInstance.setVisible(true)
+  } else if (!shouldBeVisible && isCurrentlyVisible) {
+    console.log('📊 Auto-hiding needs bars (not PET phase)')
+    needsBarsModuleInstance.setVisible(false)
+  }
+
+  // Update bars if they should be visible and pet exists and bars exist
+  if (shouldBeVisible && game.state.pet && needsBarsModuleInstance.rootEntity) {
     const now = Date.now()
     if (now - lastUpdateTime >= UPDATE_INTERVAL) {
       lastUpdateTime = now

@@ -5,6 +5,7 @@
 import { engine, PointerLock } from '@dcl/sdk/ecs'
 import { ReactEcsRenderer } from '@dcl/sdk/react-ecs'
 import { game } from './Game'
+import { onPlayerDataReady } from './utils/playerUtils'
 import { EggModule } from './modules/Egg'
 import { NeedsBarsModule } from './modules/NeedsBars'
 import { FoodBowlModule } from './modules/FoodBowl'
@@ -37,7 +38,7 @@ function CombinedUI() {
 console.log('GAME STARTING')
 
 // Register all modules with the game
-export function initializeGame() {
+export async function initializeGame() {
   console.log('🎮 Initializing Holo Pet - Modular Architecture')
 
   // Register pluggable modules
@@ -80,7 +81,7 @@ export function initializeGame() {
 }
 
 // Main application entry point (called by Decentraland)
-export function main() {
+export async function main() {
   // 1. Setup Core Systems
   // engine.addSystem(inputSystemCallback)
   // engine.addSystem(timeSystem)
@@ -88,7 +89,17 @@ export function main() {
   // engine.addSystem(movementSystem)
 
   // 2. Initialize New Modular Game
-  initializeGame()
+  await initializeGame()
+
+  // 2.4. Load saved pet data after player data is ready
+  onPlayerDataReady(async (userId: string) => {
+    console.log('🎮 Player data ready, checking for saved pet data...')
+    try {
+      await game.loadSavedPet()
+    } catch (error) {
+      console.error('🎮 Error loading saved pet:', error)
+    }
+  })
 
   // 2.5. Add systems
   engine.addSystem(cursorFollowSystem)
