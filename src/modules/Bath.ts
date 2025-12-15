@@ -47,8 +47,10 @@ export class BathModule implements GameModule {
   }
 
   private spawnBubbleParticles() {
-    // TODO: Spawn blue bubble particles from bath
-    // Rise up and pop effect
+    const particleModule = game.getModuleSafe('Particle') as any
+    if (particleModule && this.bathEntity) {
+      particleModule.spawnParticles(this.bathEntity, 'blue')
+    }
     console.log('🫧 Spawning bubble particles')
   }
 

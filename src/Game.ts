@@ -197,6 +197,12 @@ export class Game {
   petPet() {
     if (!this.state.pet) return
     this.state.pet.pet()
+
+    // Spawn heart particles
+    const particleModule = this.getModuleSafe('Particle') as any
+    if (particleModule && this.state.pet?.entity) {
+      particleModule.spawnParticles(this.state.pet.entity, 'pink')
+    }
   }
 
   playWithPet() {

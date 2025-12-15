@@ -14,6 +14,7 @@ import { BallModule } from './modules/Ball'
 import { DecorationModule } from './modules/Decoration'
 import { PoopModule } from './modules/Poop'
 import { HeartParticleModule } from './modules/HeartParticle'
+import { ParticleModule } from './modules/Particle'
 import { AvatarHiderModule } from './modules/AvatarHider'
 import { PetModule } from './Pet'
 
@@ -54,6 +55,7 @@ export function initializeGame() {
   game.registerModule(poopModule)
   game.registerPoopModule(poopModule)
   game.registerModule(new HeartParticleModule())
+  game.registerModule(new ParticleModule())
   game.registerModule(new AvatarHiderModule())
   game.registerModule(new PetModule())
   game.registerModule(new AvatarHiderModule())

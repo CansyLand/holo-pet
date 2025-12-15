@@ -47,8 +47,10 @@ export class FoodBowlModule implements GameModule {
   }
 
   private spawnFoodParticles() {
-    // TODO: Spawn food particles from bowl
-    // Similar to pet/bath particles but different color (maybe brown/orange)
+    const particleModule = game.getModuleSafe('Particle') as any
+    if (particleModule && this.bowlEntity) {
+      particleModule.spawnParticles(this.bowlEntity, 'green')
+    }
     console.log('✨ Spawning food particles')
   }
 

@@ -47,8 +47,10 @@ export class BallModule implements GameModule {
   }
 
   private spawnPlayParticles() {
-    // TODO: Spawn yellow particles from ball
-    // Burst outward when clicked
+    const particleModule = game.getModuleSafe('Particle') as any
+    if (particleModule && this.ballEntity) {
+      particleModule.spawnParticles(this.ballEntity, 'yellow')
+    }
     console.log('⭐ Spawning play particles')
   }
 
