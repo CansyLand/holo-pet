@@ -30,20 +30,17 @@ export class FoodBowlModule implements GameModule {
   }
 
   onClick() {
-    console.log('🍽️ Food bowl clicked - feeding pet')
-    this.feedPet()
+    console.log('🍽️ Food bowl clicked - pet will walk to drink')
+    this.triggerPetToDrink()
   }
 
-  private feedPet() {
+  private triggerPetToDrink() {
     if (!game.state.pet) return
 
-    // Trigger feeding in pet object
-    game.feedPet()
+    // Trigger pet to walk to bowl and drink
+    game.state.pet.startDrinkingFromBowl()
 
-    // Visual feedback - particles from bowl
-    this.spawnFoodParticles()
-
-    console.log('🍽️ Pet fed successfully')
+    console.log('🍽️ Pet triggered to drink from bowl')
   }
 
   private spawnFoodParticles() {

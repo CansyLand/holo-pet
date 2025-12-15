@@ -19,6 +19,7 @@ import * as utils from '@dcl-sdk/utils'
  *  Sitting (sits down)
  *  Standing  (stands up
  *  Walking
+ *  Sleep
  * 
  
  */
@@ -37,6 +38,7 @@ export enum PetState {
   SAD = 'sad',
   WANDERING = 'wandering',
   SEEKING_FOOD = 'seeking_food',
+  DRINKING_FROM_BOWL = 'drinking_from_bowl',
   SEEKING_BATH = 'seeking_bath',
   SEEKING_BED = 'seeking_bed',
   SEEKING_BALL = 'seeking_ball',
@@ -129,7 +131,8 @@ export class Pet {
     // Autonomous behavior system
     activityTimer: 0,
     cachedPoopPosition: null as Vector3 | null,
-    isMoving: false // Track if pet is currently moving
+    isMoving: false, // Track if pet is currently moving
+    isDrinking: false // Track if drinking animation is active
   }
 
   // Reference to game instance (will be set when created)
@@ -291,6 +294,25 @@ export class Pet {
           this.moveTowardsFoodBowl(dt)
         } else {
           this.changeState(PetState.IDLE) // Done eating
+        }
+        break
+
+      case PetState.DRINKING_FROM_BOWL:
+        // Move towards food bowl if not already there
+        const arrivedAtBowl = this.moveTowardsFoodBowl(dt)
+
+        if (arrivedAtBowl) {
+          // Start drinking animation only once
+          if (!this.data.isDrinking) {
+            this.playDrinkingAnimation()
+            this.data.isDrinking = true
+          }
+
+          // Check if drinking time is up (3 seconds)
+          const timeInDrinkingState = Date.now() - this.data.stateStartTime
+          if (timeInDrinkingState >= 3000) {
+            this.finishDrinking()
+          }
         }
         break
 
@@ -458,8 +480,10 @@ export class Pet {
     // Start walking animation if not already moving
     this.playWalkingAnimation()
 
-    // Simple lerp movement
-    const moveSpeed = 2.0 * dt // Units per second
+    // Simple lerp movement with tiredness modifier
+    const baseSpeed = 2.0
+    const tirednessModifier = Math.max(0.3, (this.data.energy + this.data.mood) / 200) // 0.3 to 1.0 based on average mood/energy
+    const moveSpeed = baseSpeed * tirednessModifier * dt // Units per second
     const direction = Vector3.normalize(Vector3.subtract(targetPos, currentPos))
 
     transform.position = Vector3.add(currentPos, Vector3.scale(direction, Math.min(moveSpeed, distance)))
@@ -479,13 +503,24 @@ export class Pet {
     transform.rotation = Quaternion.fromEulerDegrees(0, (angle * 180) / Math.PI, 0)
   }
 
+  // Check if pet is in a task-focused state that shouldn't be interrupted
+  private isInTaskFocusedState(): boolean {
+    return (
+      this.data.state === PetState.DRINKING_FROM_BOWL ||
+      this.data.state === PetState.SEEKING_BATH ||
+      this.data.state === PetState.SEEKING_BED
+    )
+    // Add other task states here as needed
+  }
+
   // Simplified autonomous behavior system
   private updateBehavior(dt: number) {
     // Don't disturb sleep
     if (this.data.state === PetState.SLEEPING) return
 
     // 🔥 IMMEDIATE PLAYER PROXIMITY CHECK - No 15-second delay!
-    if (this.getPlayerDistance() < 4 && !cameraFocus.isFocused(this.entity)) {
+    // But don't interrupt task-focused states
+    if (this.getPlayerDistance() < 4 && !cameraFocus.isFocused(this.entity) && !this.isInTaskFocusedState()) {
       // Player is close AND camera not focused - follow immediately!
       if (this.data.state !== PetState.FOLLOWING_PLAYER) {
         this.changeState(PetState.FOLLOWING_PLAYER)
@@ -493,8 +528,8 @@ export class Pet {
       }
     }
 
-    // Always look at player when close
-    if (this.getPlayerDistance() < 4) {
+    // Always look at player when close, but not during task-focused states
+    if (this.getPlayerDistance() < 4 && !this.isInTaskFocusedState()) {
       this.lookAtPlayer()
     }
 
@@ -517,6 +552,9 @@ export class Pet {
 
   // Check for state transitions based on thresholds
   private checkStateTransitions() {
+    // Don't override task-focused states (drinking, bathing, etc.)
+    if (this.isInTaskFocusedState()) return
+
     // Become sad when mood is low
     if (this.data.mood < 30 && this.data.state !== PetState.SAD) {
       this.changeState(PetState.SAD, 5000) // Stay sad for 5 seconds minimum
@@ -765,6 +803,47 @@ export class Pet {
     this.data.energy = 100 // Full energy after sleep
   }
 
+  // Drinking interaction methods
+  startDrinkingFromBowl() {
+    this.changeState(PetState.DRINKING_FROM_BOWL)
+    console.log('🐾 Pet starting to drink from bowl')
+  }
+
+  playDrinkingAnimation() {
+    if (!this.entity) return
+
+    try {
+      // Use playSingleAnimation - it properly stops other animations and starts this one
+      // The isDrinking flag ensures this only runs once, so no continuous restarting
+      Animator.playSingleAnimation(this.entity, 'Drinking')
+      console.log('🥤 Playing drinking animation (looping)')
+    } catch (error) {
+      console.log('🥤 Drinking animation not available, using idle')
+      this.playIdleAnimation()
+    }
+  }
+
+  finishDrinking() {
+    // Reset drinking flag
+    this.data.isDrinking = false
+
+    // Actually feed the pet (reduce hunger, boost stats)
+    this.feed()
+
+    // Spawn food particles for visual feedback
+    const particleModule = game.getModuleSafe('Particle') as any
+    if (particleModule) {
+      const bowlPos = this.getStationPosition(EntityNames.Food_Bowl)
+      if (bowlPos && this.entity) {
+        particleModule.spawnParticles(this.entity, 'pink')
+      }
+    }
+
+    // Choose new activity after drinking (based on pet's needs)
+    this.decideNextActivity()
+    console.log('🥤 Pet finished drinking from bowl')
+  }
+
   // Autonomous movement behaviors
   private moveTowardsFoodBowl(dt: number): boolean {
     const targetPos = this.getStationPosition(EntityNames.Food_Bowl)
@@ -917,6 +996,11 @@ export class PetModule implements GameModule {
             clip: 'Standing',
             playing: false,
             loop: false
+          },
+          {
+            clip: 'Drinking',
+            playing: false,
+            loop: true
           }
         ]
       })

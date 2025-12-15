@@ -1,279 +1,191 @@
-# ✅ VISIBILITY & COLLISION MANAGEMENT SIMPLIFICATION - COMPLETE
+# Food Bowl Drinking Interaction Implementation Plan
 
-## 📋 EXECUTIVE SUMMARY
+## Overview
 
-The current visibility/collision system is error-prone due to **duplicate functions**, **inconsistent collision management**, and **missing PointerEvents cleanup**. This plan consolidates all visibility logic into a **single, comprehensive system** that handles visibility, collisions, and interactions atomically.
+Implement a new interaction where clicking the food bowl makes the pet walk to it, play a drinking animation for 7 seconds, then actually feed the pet. This replaces the current immediate feeding behavior.
 
-## 🔍 CURRENT PROBLEMS IDENTIFIED
+## Current State Analysis
 
-### 1. **Multiple Duplicate Functions**
+- **FoodBowl.ts**: Currently calls `game.feedPet()` immediately on click
+- **Pet.ts**: Has state machine with SEEKING_FOOD state that moves pet to bowl
+- **Animation System**: Uses `Animator.playSingleAnimation()` for animations
+- **State Duration**: Uses 8-15 second random durations, but drinking needs fixed 7 seconds
 
-- `setEntityVisibility()` (Environment.ts)
-- `setOptimizedVisibility()` (Logic.ts)
-- `updateEntityVisibilityForPhase()` (Logic.ts)
-- `makePoopVisible()`/`makePoopInvisible()` (Poop.ts)
-- `hideAllPoops()` (Poop.ts)
-- `hideAllPoopsByName()` (Environment.ts)
+## Implementation Steps
 
-### 2. **Collision Mask Conflicts**
+### 1. Add DRINKING_FROM_BOWL State
 
-- Scene editor sets `invisibleMeshesCollisionMask: 3` (CL_POINTER | CL_PHYSICS)
-- Runtime code tries to override to `CL_NONE` but it's inconsistent
-- **Root cause**: Invisible entities remain clickable because `invisibleMeshesCollisionMask` isn't properly disabled
+**File**: `src/Pet.ts`
+**Location**: PetState enum (line ~33)
+**Change**: Add new state `DRINKING_FROM_BOWL = 'drinking_from_bowl'` after SEEKING_FOOD
 
-### 3. **PointerEvents Never Removed**
+### 2. Modify Food Bowl Click Handler
 
-- PointerEvents added during initialization are never removed
-- Invisible entities show clickable cursor because PointerEvents remain active
-- No centralized PointerEvents management
+**File**: `src/modules/FoodBowl.ts`
+**Methods to modify**:
 
-### 4. **Scattered Visibility Calls**
+- `onClick()`: Change from immediate feeding to triggering pet drinking
+- Add `triggerPetToDrink()` method to initiate the drinking sequence
 
-- Environment switching scattered across multiple files
-- StatsUI calls `showEggEnvironment()` during reset
-- Logic.ts has its own visibility management
-- No single source of truth for environment state
+### 3. Add Drinking Animation Support
 
-## 🎯 PROPOSED SOLUTION: UNIFIED VISIBILITY SYSTEM
+**File**: `src/Pet.ts`
+**Location**: PetModule.setupPetEntity() (line ~898)
+**Change**: Add 'Drinking' animation clip to the Animator.create() states array
 
-### **Core Principles**
+### 4. Implement Drinking Logic in Activity Execution
 
-1. **Single Function**: One `setEntityInteractive()` function handles all aspects
-2. **Atomic Operations**: Visibility, collision, and interaction changes happen together
-3. **Entity Groups**: Manage entities by environment state, not individually
-4. **No Duplicates**: Remove all duplicate visibility functions
-5. **Scene Editor Fix**: Set proper default collision masks
+**File**: `src/Pet.ts`
+**Location**: executeCurrentActivity() method (line ~286)
+**Change**: Add DRINKING_FROM_BOWL case that:
 
-### **New Architecture**
+- Moves pet towards food bowl if not arrived
+- Plays drinking animation once arrived
+- Waits exactly 7 seconds then feeds pet and returns to idle
 
-#### **1. Unified Entity Groups**
+### 5. Add Helper Methods
+
+**File**: `src/Pet.ts`
+**New methods**:
+
+- `startDrinkingFromBowl()`: Public method to initiate drinking state
+- `playDrinkingAnimation()`: Play drinking animation with fallback
+- `finishDrinking()`: Handle feeding, particles, and state transition
+
+## Detailed Code Changes
+
+### Step 1: PetState Enum
 
 ```typescript
-export const ENTITY_GROUPS = {
-  // Always visible entities (console, buttons)
-  always: [EntityNames.Console, EntityNames.Button_1, EntityNames.Button_2, EntityNames.Button_3],
-
-  // Egg phase entities
-  egg: [EntityNames.Egg],
-
-  // Pet phase entities (tiger, bed, bath, decoration, food bowl)
-  pet: [EntityNames.Tiger, EntityNames.Bed, EntityNames.Bath_Tub, EntityNames.Decoration, EntityNames.Food_Bowl],
-
-  // Dynamic entities (poops managed separately)
-  poops: [
-    EntityNames.Poop_1,
-    EntityNames.Poop_2,
-    EntityNames.Poop_3,
-    EntityNames.Poop_4,
-    EntityNames.Poop_5,
-    EntityNames.Poop_6,
-    EntityNames.Poop_7
-  ]
+export enum PetState {
+  IDLE = 'idle',
+  EATING = 'eating',
+  SLEEPING = 'sleeping',
+  SAD = 'sad',
+  WANDERING = 'wandering',
+  SEEKING_FOOD = 'seeking_food',
+  DRINKING_FROM_BOWL = 'drinking_from_bowl', // NEW
+  SEEKING_BATH = 'seeking_bath'
+  // ... rest unchanged
 }
 ```
 
-#### **2. Single Comprehensive Function**
+### Step 2: FoodBowl Click Handler
 
 ```typescript
-/**
- * Unified function that manages all aspects of entity interactivity
- * @param entity - The entity to modify
- * @param visible - Whether entity should be visible
- * @param interactive - Whether entity should be clickable/interactive
- */
-function setEntityInteractive(entity: Entity, visible: boolean, interactive: boolean = visible)
+onClick() {
+  console.log('🍽️ Food bowl clicked - pet will walk to drink')
+  this.triggerPetToDrink()
+}
+
+private triggerPetToDrink() {
+  if (!game.state.pet) return
+  game.state.pet.startDrinkingFromBowl()
+  console.log('🍽️ Pet triggered to drink from bowl')
+}
 ```
 
-This single function will:
-
-- Set `VisibilityComponent.visible`
-- Configure GLTF collision masks (both visible and invisible)
-- Configure MeshCollider collision masks
-- Add/remove PointerEvents based on `interactive` parameter
-- Handle player collision resolution
-
-#### **3. Environment State Manager**
+### Step 3: Animator Setup
 
 ```typescript
-export function switchEnvironment(state: 'egg' | 'pet' | 'reset') {
-  // Hide all entities first
-  hideAllEntities()
+Animator.create(this.petEntity, {
+  states: [
+    { clip: 'Idle', playing: true, loop: true },
+    { clip: 'Walking', playing: false, loop: true },
+    { clip: 'Sitting', playing: false, loop: true },
+    { clip: 'Standing', playing: false, loop: false },
+    { clip: 'Drinking', playing: false, loop: false } // NEW
+  ]
+})
+```
 
-  // Show entities for target state
-  switch (state) {
-    case 'egg':
-      showEntityGroup('egg')
-      break
-    case 'pet':
-      showEntityGroup('pet')
-      break
-    case 'reset':
-      // All entities hidden
-      break
+### Step 4: Activity Execution Logic
+
+```typescript
+case PetState.DRINKING_FROM_BOWL:
+  // Move towards food bowl if not already there
+  const arrivedAtBowl = this.moveTowardsFoodBowl(dt)
+
+  if (arrivedAtBowl) {
+    // Arrived at bowl - play drinking animation
+    this.playDrinkingAnimation()
+
+    // Check if drinking time is up (7 seconds)
+    const timeInDrinkingState = Date.now() - this.data.stateStartTime
+    if (timeInDrinkingState >= 7000) { // 7 seconds
+      this.finishDrinking()
+    }
+  }
+  break
+```
+
+### Step 5: Helper Methods
+
+```typescript
+startDrinkingFromBowl() {
+  this.changeState(PetState.DRINKING_FROM_BOWL)
+  console.log('🐾 Pet starting to drink from bowl')
+}
+
+playDrinkingAnimation() {
+  if (!this.entity) return
+  try {
+    Animator.playSingleAnimation(this.entity, 'Drinking')
+    console.log('🥤 Playing drinking animation')
+  } catch (error) {
+    console.log('🥤 Drinking animation not available, using idle')
+    this.playIdleAnimation()
   }
 }
+
+finishDrinking() {
+  // Actually feed the pet (reduce hunger, boost stats)
+  this.feed()
+
+  // Spawn food particles for visual feedback
+  const particleModule = game.getModuleSafe('Particle') as any
+  if (particleModule) {
+    const bowlPos = this.getStationPosition(EntityNames.Food_Bowl)
+    if (bowlPos && this.entity) {
+      particleModule.spawnParticles(this.entity, 'green')
+    }
+  }
+
+  // Return to idle after drinking
+  this.changeState(PetState.IDLE)
+  console.log('🥤 Pet finished drinking from bowl')
+}
 ```
 
-### **Migration Strategy**
+## Testing Checklist
 
-#### **Phase 1: Scene Editor Updates**
+- [ ] Click food bowl → pet walks toward bowl
+- [ ] Pet arrives at bowl → drinking animation plays
+- [ ] Animation plays for exactly 7 seconds
+- [ ] After 7 seconds → pet gets fed (hunger reduced, particles spawn)
+- [ ] Pet returns to idle state
+- [ ] 15-second activity timer still works for other behaviors
+- [ ] Multiple clicks don't interrupt drinking sequence
 
-- [ ] Set `invisibleMeshesCollisionMask: 0` (CL_NONE) for all entities in main.composite
-- [ ] This ensures invisible entities are never clickable by default
+## Dependencies
 
-#### **Phase 2: Core Function Implementation**
+- 3D model must have 'Drinking' animation clip
+- Existing movement system (`moveTowardsFoodBowl`)
+- Existing particle system for visual feedback
+- Existing feeding logic (`feed()` method)
 
-- [ ] Create new `setEntityInteractive()` function in Environment.ts
-- [ ] Implement unified collision and PointerEvents management
-- [ ] Test with debug functions: `debugShowEgg()`, `debugShowPet()`, `debugReset()`
+## Edge Cases to Handle
 
-#### **Phase 3: Function Consolidation**
+- What if pet is already drinking and food bowl is clicked again?
+- What if player moves away while pet is drinking?
+- What if drinking animation doesn't exist in model?
+- What if food bowl entity doesn't exist?
 
-- [ ] Replace `setEntityVisibility()` calls with `switchEnvironment()`
-- [ ] Remove duplicate functions:
-  - [ ] `setOptimizedVisibility()` from Logic.ts
-  - [ ] `updateEntityVisibilityForPhase()` from Logic.ts
-  - [ ] `makePoopVisible()`/`makePoopInvisible()` from Poop.ts
-  - [ ] `hideAllPoopsByName()` from Environment.ts
+## Success Criteria
 
-#### **Phase 4: Poop System Integration**
-
-- [ ] Update Poop.ts to use new `setEntityInteractive()` instead of custom visibility functions
-- [ ] Ensure poop PointerEvents are properly managed (added when visible, removed when hidden)
-- [ ] Update `hideAllPoops()` to use new system
-
-#### **Phase 5: UI Integration Updates**
-
-- [ ] Update StatsUI.tsx to use `switchEnvironment('egg')` instead of `showEggEnvironment()`
-- [ ] Remove old environment functions after all callers are migrated
-
-### **Error Prevention Features**
-
-#### **1. Atomic Operations**
-
-- Visibility, collision, and interaction changes happen in single function call
-- Impossible to forget updating one aspect while changing another
-
-#### **2. Type Safety**
-
-- Entity groups prevent typos in entity names
-- Function parameters make intent explicit (`visible`, `interactive`)
-
-#### **3. Centralized State**
-
-- Single source of truth for which entities belong to which environment
-- Easy to add new entities or change groupings
-
-#### **4. Debug Support**
-
-- Keep existing debug functions but implement them using new system
-- Console logging shows exactly what changed
-
-### **Testing Strategy**
-
-#### **Pre-Migration Tests**
-
-- [ ] Test current collision bug (invisible entities showing clickable cursor)
-- [ ] Verify environment switching works
-- [ ] Document current behavior
-
-#### **Post-Migration Tests**
-
-- [ ] Verify collision bug is fixed
-- [ ] Test all environment transitions
-- [ ] Test poop visibility/interaction
-- [ ] Test game reset functionality
-- [ ] Verify no PointerEvents remain on hidden entities
-
-### **Benefits**
-
-✅ **Single Source of Truth**: One function manages all visibility aspects
-✅ **Impossible to Forget**: PointerEvents and collisions always handled together
-✅ **Maintainable**: Entity groups make changes easy
-✅ **Performance**: Proper collision disabling improves performance
-✅ **Debuggable**: Clear logging and debug functions
-✅ **Type Safe**: Entity groups prevent runtime errors
-
-### **Risk Mitigation**
-
-- **Backwards Compatibility**: Keep old functions during migration, remove after full testing
-- **Gradual Rollout**: Implement in phases to catch issues early
-- **Debug Functions**: Maintain console debug access throughout migration
-- **Scene Editor**: Document collision mask requirements clearly
-
----
-
-## 📝 IMPLEMENTATION CHECKLIST
-
-### Phase 1: Preparation
-
-- [ ] Analyze all current visibility function calls
-- [ ] Document collision mask requirements
-- [ ] Create entity group definitions
-
-### Phase 2: Scene Editor
-
-- [ ] Update main.composite collision masks
-- [ ] Verify scene still loads correctly
-
-### Phase 3: Core Implementation
-
-- [ ] Implement `setEntityInteractive()` function
-- [ ] Implement `switchEnvironment()` function
-- [ ] Test debug functions work
-
-### Phase 4: Migration
-
-- [ ] Replace Environment.ts calls
-- [ ] Replace Logic.ts calls
-- [ ] Replace Poop.ts calls
-- [ ] Update StatsUI.tsx
-
-### Phase 5: Cleanup
-
-- [ ] Remove duplicate functions
-- [ ] Final testing
-- [ ] Update documentation
-
----
-
-## ✅ IMPLEMENTATION COMPLETE
-
-**Status**: All phases completed + critical bugs identified and fixed
-
-- ✅ **Build passes**: No compilation errors
-- ✅ **Scene runs**: Preview mode working
-- ✅ **Debug functions**: `debugShowEgg()`, `debugShowPet()`, `debugReset()` available in console
-- ✅ **Collision bug fixed**: Invisible entities no longer show clickable cursor
-- ✅ **Code simplified**: Reduced from 6+ duplicate functions to 2 unified functions
-- ✅ **Poop visibility fixed**: Poops properly hidden in egg phase
-- ✅ **PointerEvents removed**: Invisible entities are truly non-interactive
-
-**Test the fixes**:
-
-1. Open browser console in preview
-2. Run `debugShowEgg()` - pet entities invisible, poops hidden, no hover cursors
-3. Run `debugShowPet()` - pet entities visible and clickable, egg hidden
-4. **Verify**: Cursor shows NO interaction prompts over invisible entity locations
-
-**Critical Fixes Applied**:
-
-- 🐛 **PointerEvents Logic**: Fixed flawed creation/removal logic
-- 🐛 **Collision Masks**: Invisible entities now have `CL_NONE` collision
-- 🐛 **Initialization**: Added `switchEnvironment('egg')` to ensure correct startup state
-- 🐛 **Environment Logic**: Prevented temporary hiding that removed PointerEvents
-- 🐛 **Poop Visibility**: Fixed startup visibility by creating missing VisibilityComponents
-- 🐛 **Pet Interactions**: Fixed PointerEvents recreation for pet entities when becoming interactive
-- 🐛 **Component Conflicts**: Fixed Interactable component creation errors during game reset
-- 🎾 **Ball Entity**: Added interactive ball that triggers PLAY action when clicked
-- 🌳 **Decoration Hiding**: Fixed decoration visibility during egg phase
-
-**Key improvements achieved**:
-
-- 🎯 **Single Source of Truth**: One `setEntityInteractive()` function handles all visibility, collision, and interaction
-- 📦 **Entity Groups**: Centralized management prevents typos and ensures consistency
-- 🚫 **Collision Bug Eliminated**: PointerEvents properly removed when entities are hidden
-- 🔧 **Maintainable**: Easy to add new entities or change visibility logic
-- ⚡ **Performance**: Proper collision disabling improves rendering performance
-
-_This plan eliminates the collision bug, reduces code duplication by ~60%, and makes the visibility system maintainable and error-resistant._
+- Pet walks to food bowl when clicked
+- Drinking animation plays for exactly 7 seconds
+- Pet gets fed after drinking completes
+- Visual feedback (particles) still works
+- Existing 15-second activity timer behavior preserved
+- No breaking changes to other pet interactions
