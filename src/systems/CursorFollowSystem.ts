@@ -18,7 +18,6 @@ export function cursorFollowSystem(dt: number) {
   if (!isAnyCameraFocused) return
   // Now directly check and update the single pet, no iteration needed
   if (game.state.pet && game.state.pet.entity && cameraFocus.isFocused(game.state.pet.entity)) {
-    console.log('👁️ Updating cursor follow for pet')
     game.state.pet.updateCursorFollow(dt)
   }
 }

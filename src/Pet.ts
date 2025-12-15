@@ -476,6 +476,15 @@ export class Pet {
     // Don't disturb sleep
     if (this.data.state === PetState.SLEEPING) return
 
+    // 🔥 IMMEDIATE PLAYER PROXIMITY CHECK - No 15-second delay!
+    if (this.getPlayerDistance() < 4 && !cameraFocus.isFocused(this.entity)) {
+      // Player is close AND camera not focused - follow immediately!
+      if (this.data.state !== PetState.FOLLOWING_PLAYER) {
+        this.changeState(PetState.FOLLOWING_PLAYER)
+        return // Exit early - don't process other behavior
+      }
+    }
+
     // Always look at player when close
     if (this.getPlayerDistance() < 4) {
       this.lookAtPlayer()
@@ -484,9 +493,14 @@ export class Pet {
     // Simple timer for activity changes (faster state switching)
     this.data.activityTimer += dt
     if (this.data.activityTimer > 15) {
-      // Changed from 10 to 5 seconds for faster state changes
-      this.data.activityTimer = 0
-      this.decideNextActivity()
+      // Only change activities if camera is NOT focused on the pet
+      if (!cameraFocus.isFocused(this.entity)) {
+        this.data.activityTimer = 0
+        this.decideNextActivity()
+      } else {
+        // If focused, reset timer but don't change activity - stay focused!
+        this.data.activityTimer = 0
+      }
     }
 
     // Execute current activity with exit conditions
@@ -738,6 +752,11 @@ export class Pet {
     this.data.lastVisit = Date.now()
   }
 
+  // Stop current activity and switch to idle (used when player clicks on pet)
+  stopCurrentActivity() {
+    this.changeState(PetState.IDLE, 10000) // Stay idle for 10 seconds
+  }
+
   // Set pet name (called after hatching)
   setName(name: string) {
     this.data.name = name
@@ -823,6 +842,11 @@ export class PetModule implements GameModule {
     pointerEventsSystem.onPointerDown(
       { entity: this.petEntity, opts: { button: InputAction.IA_POINTER, hoverText: 'Pet companion 🐾' } },
       () => {
+        // Stop the pet's current activity when clicked
+        if (game.state.pet) {
+          game.state.pet.stopCurrentActivity()
+        }
+
         cameraFocus.focusOn(this.petEntity!)
       }
     )

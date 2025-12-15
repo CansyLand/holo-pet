@@ -167,7 +167,7 @@ export class CameraFocusService {
 
     // Position camera to look at the entity from a good angle
     const entityPos = Transform.get(entity).position
-    const cameraPos = Vector3.add(entityPos, Vector3.create(0, 2, 3)) // Behind and above the entity
+    const cameraPos = Vector3.add(entityPos, Vector3.create(0, -2, 7)) // Behind and above the entity
 
     Transform.create(cameraEntity, {
       position: cameraPos
@@ -220,11 +220,11 @@ export class CameraFocusService {
 
     // Position camera between player and pet, but at fixed distance from pet
     // Camera should be closer to the pet for better focus
-    const cameraDistanceFromPet = 3 // Adjust this distance as needed
+    const cameraDistanceFromPet = 1.5 // Adjust this distance as needed
     const cameraPos = Vector3.add(entityPos, Vector3.scale(Vector3.normalize(petToPlayer), cameraDistanceFromPet))
 
     // Add height offset for "from above" perspective
-    cameraPos.y += 7
+    cameraPos.y += 4
 
     // Update camera transform
     Transform.getMutable(cameraEntity).position = cameraPos
