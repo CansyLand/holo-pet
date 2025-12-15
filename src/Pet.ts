@@ -6,8 +6,8 @@
 import { Entity, engine, MeshCollider, ColliderLayer, pointerEventsSystem, InputAction } from '@dcl/sdk/ecs'
 import { game, GameModule } from './Game'
 import { EntityNames } from '../assets/scene/entity-names'
-import { focus } from './services/Focus'
-import { CursorFollowComponent } from './components/CameraFocus'
+import { cameraFocus } from './services/CameraFocus'
+import { CursorFollowComponent } from './services/CameraFocus'
 import { PrimaryPointerInfo, UiCanvasInformation, Transform } from '@dcl/sdk/ecs'
 import { Vector3, Quaternion } from '@dcl/sdk/math'
 
@@ -549,7 +549,7 @@ export class PetModule implements GameModule {
       { entity: this.petEntity, opts: { button: InputAction.IA_POINTER, hoverText: 'Pet companion 🐾' } },
       () => {
         console.log('🐾 Tiger clicked!')
-        focus.focusOn(this.petEntity!)
+        cameraFocus.focusOn(this.petEntity!)
       }
     )
 

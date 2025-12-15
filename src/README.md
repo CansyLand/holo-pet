@@ -24,7 +24,7 @@ src/
 ├── services/           # Shared utilities
 │   ├── Visibility.ts   # 👁️ Centralized visibility management
 │   ├── Interaction.ts  # 🖱️ Input handling system
-│   ├── Focus.ts        # 🎥 Camera focus mechanics
+│   ├── CameraFocus.ts  # 🎥 Camera focus mechanics
 │   └── State.ts        # 📊 Game state management
 └── ui/                # UI components
     ├── DebugUI.tsx    # 🐛 Debug panel with all controls
@@ -141,4 +141,3 @@ Each file starts with the story it belongs to and what the code does, making it 
 The pseudo-code shows exactly what Decentraland SDK calls need to be made. The architecture supports all original features while being much easier to work with.
 
 The foundation is solid and ready for actual implementation! Each module contains clear pseudo-code showing what needs to be built. 🚀
-

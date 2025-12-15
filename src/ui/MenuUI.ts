@@ -3,7 +3,7 @@
 // Shows care options and current pet status.
 
 import { game } from '../Game'
-import { focus } from '../services/Focus'
+import { cameraFocus } from '../services/CameraFocus'
 
 export interface MenuButton {
   id: string
@@ -76,7 +76,7 @@ export class MenuUI {
     this.petEntity = petEntity
 
     // Focus camera on pet
-    focus.focusOn(petEntity)
+    cameraFocus.focusOn(petEntity)
 
     this.render()
     console.log('🎛️ Pet menu shown')
@@ -86,7 +86,7 @@ export class MenuUI {
     this.isVisible = false
 
     // Unfocus camera
-    focus.unfocus()
+    cameraFocus.unfocus()
 
     this.petEntity = null
     console.log('🎛️ Pet menu hidden')

@@ -1,7 +1,7 @@
 import { engine } from '@dcl/sdk/ecs'
-import { CameraFocusComponent } from '../components/CameraFocus'
+import { CameraFocusComponent } from '../services/CameraFocus'
 import { game } from '../Game'
-import { focus } from '../services/Focus'
+import { cameraFocus } from '../services/CameraFocus'
 
 let isAnyCameraFocused = false
 
@@ -17,7 +17,7 @@ export function cursorFollowSystem(dt: number) {
 
   if (!isAnyCameraFocused) return
   // Now directly check and update the single pet, no iteration needed
-  if (game.state.pet && game.state.pet.entity && focus.isFocused(game.state.pet.entity)) {
+  if (game.state.pet && game.state.pet.entity && cameraFocus.isFocused(game.state.pet.entity)) {
     console.log('👁️ Updating cursor follow for pet')
     game.state.pet.updateCursorFollow(dt)
   }
